@@ -1,0 +1,15 @@
+# Build results
+bin/
+obj/
+TestResults/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Other IDEs
+.idea/
+
+# Local tool configuration (agent/harness)
+opencode.json
