@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Windows;
 using CapParse.Capture;
+using CapParse.Platform;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using WinForms = System.Windows.Forms;
@@ -15,6 +16,7 @@ public partial class App : Application
     private readonly CaptureCoordinator _captureCoordinator = new();
     private WinForms.NotifyIcon? _trayIcon;
     private MainWindow? _mainWindow;
+    private GlobalHotkey? _hotkey;
     private bool _isShuttingDown;
 
     public CaptureCoordinator CaptureCoordinator => _captureCoordinator;
@@ -31,6 +33,25 @@ public partial class App : Application
         _mainWindow.Show();
 
         CreateTrayIcon();
+        RegisterCaptureHotkey();
+    }
+
+    private void RegisterCaptureHotkey()
+    {
+        _hotkey = new GlobalHotkey(_captureCoordinator.StartCapture);
+
+        // Single attempt: if another application owns this shortcut, CapParse
+        // keeps working through the tray instead of retrying in a loop.
+        if (!_hotkey.Register(GlobalHotkey.Modifier.Control | GlobalHotkey.Modifier.Shift, GlobalHotkey.KeyX))
+        {
+            MessageBox.Show(
+                "CapParse could not register the global hotkey Ctrl + Shift + X.\n" +
+                "Another application may already be using this shortcut.\n\n" +
+                "Capture is still available from the tray icon.",
+                "CapParse",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     private void CreateTrayIcon()
@@ -91,5 +112,14 @@ public partial class App : Application
         }
 
         Shutdown();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        // Release the global hotkey before the process terminates.
+        _hotkey?.Dispose();
+        _hotkey = null;
+
+        base.OnExit(e);
     }
 }
