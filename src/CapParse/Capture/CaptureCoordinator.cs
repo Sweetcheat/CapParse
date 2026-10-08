@@ -1,6 +1,3 @@
-using System.Windows;
-using MessageBox = System.Windows.MessageBox;
-
 namespace CapParse.Capture;
 
 /// <summary>
@@ -11,9 +8,10 @@ public sealed class CaptureCoordinator
 {
     public void StartCapture()
     {
-        // M2: entry point only. The real freeze-frame capture flow is
-        // implemented in M3/M4 and will replace this body.
-        MessageBox.Show("Capture is not implemented yet.", "CapParse",
-            MessageBoxButton.OK, MessageBoxImage.Information);
+        // M4-D: the coordinator drives the M4-C virtual-desktop capture
+        // pipeline. The bitmap is integration proof only and is disposed
+        // immediately; the in-memory capture-result ownership is designed
+        // in M4-E.
+        using var bitmap = DesktopCapture.CaptureVirtualDesktop();
     }
 }
