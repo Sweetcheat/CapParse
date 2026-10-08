@@ -6,12 +6,10 @@ namespace CapParse.Capture;
 /// </summary>
 public sealed class CaptureCoordinator
 {
-    public void StartCapture()
+    public CaptureResult StartCapture()
     {
-        // M4-D: the coordinator drives the M4-C virtual-desktop capture
-        // pipeline. The bitmap is integration proof only and is disposed
-        // immediately; the in-memory capture-result ownership is designed
-        // in M4-E.
-        using var bitmap = DesktopCapture.CaptureVirtualDesktop();
+        // M4-E: the result owns the captured bitmap. The caller owns the
+        // result and must dispose it when the capture flow is done.
+        return DesktopCapture.CaptureVirtualDesktop();
     }
 }

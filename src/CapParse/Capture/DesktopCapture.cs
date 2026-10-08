@@ -16,11 +16,11 @@ public static class DesktopCapture
     /// not covered by any monitor keep the bitmap's initial value.
     /// </summary>
     /// <remarks>
-    /// On success the returned bitmap is owned by the caller, which must
-    /// dispose it. If a capture fails, the bitmap is disposed and the
-    /// exception is rethrown.
+    /// On success the bitmap is owned by the returned result, which the
+    /// caller must dispose. If a capture fails, the bitmap is disposed and
+    /// the exception is rethrown; no result is returned.
     /// </summary>
-    public static Bitmap CaptureVirtualDesktop()
+    public static CaptureResult CaptureVirtualDesktop()
     {
         var monitors = MonitorDiscovery.GetMonitors();
         var virtualBounds = MonitorDiscovery.GetVirtualBounds(monitors);
@@ -35,7 +35,7 @@ public static class DesktopCapture
                 ScreenCapture.CaptureRectangleInto(monitor.Bounds, bitmap, offset.X, offset.Y);
             }
 
-            return bitmap;
+            return new CaptureResult(bitmap, virtualBounds);
         }
         catch
         {

@@ -36,9 +36,18 @@ public partial class App : Application
         RegisterCaptureHotkey();
     }
 
+    private void StartCapture()
+    {
+        // M5 will consume the capture result (overlay, selection, crop).
+        // Until then the result is not used, so dispose it immediately to
+        // release the captured bitmap.
+        var result = _captureCoordinator.StartCapture();
+        result.Dispose();
+    }
+
     private void RegisterCaptureHotkey()
     {
-        _hotkey = new GlobalHotkey(_captureCoordinator.StartCapture);
+        _hotkey = new GlobalHotkey(StartCapture);
 
         // Single attempt: if another application owns this shortcut, CapParse
         // keeps working through the tray instead of retrying in a loop.
@@ -64,13 +73,13 @@ public partial class App : Application
         };
 
         var menu = new WinForms.ContextMenuStrip();
-        menu.Items.Add("Capture", null, (_, _) => _captureCoordinator.StartCapture());
+        menu.Items.Add("Capture", null, (_, _) => StartCapture());
         menu.Items.Add("Settings", null, (_, _) => ShowSettings());
         menu.Items.Add("Exit", null, (_, _) => ExitApplication());
         _trayIcon.ContextMenuStrip = menu;
 
         // Left double-click on the tray icon starts the capture workflow.
-        _trayIcon.DoubleClick += (_, _) => _captureCoordinator.StartCapture();
+        _trayIcon.DoubleClick += (_, _) => StartCapture();
     }
 
     private static System.Drawing.Icon LoadTrayIcon()
