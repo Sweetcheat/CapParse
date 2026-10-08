@@ -50,4 +50,53 @@ public static class ScreenCapture
             throw;
         }
     }
+
+    /// <summary>
+    /// Captures a physical-pixel rectangle of the virtual desktop directly
+    /// into an existing bitmap, without allocating an intermediate bitmap.
+    /// Negative source X/Y are valid, as in <see cref="CaptureRectangle"/>.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="destination"/> must be large enough to hold the
+    /// <paramref name="sourceBounds"/> size at
+    /// (<paramref name="destinationX"/>, <paramref name="destinationY"/>).
+    /// This method does not take ownership of the bitmap: the caller remains
+    /// responsible for disposing it.
+    /// </remarks>
+    public static void CaptureRectangleInto(
+        Rectangle sourceBounds,
+        Bitmap destination,
+        int destinationX,
+        int destinationY)
+    {
+        if (sourceBounds.Width <= 0 || sourceBounds.Height <= 0)
+        {
+            throw new ArgumentException(
+                $"Rectangle must have a positive width and height (got {sourceBounds.Width}x{sourceBounds.Height}).",
+                nameof(sourceBounds));
+        }
+
+        if (destination == null)
+        {
+            throw new ArgumentNullException(nameof(destination));
+        }
+
+        if (destinationX < 0 || destinationY < 0
+            || destinationX + sourceBounds.Width > destination.Width
+            || destinationY + sourceBounds.Height > destination.Height)
+        {
+            throw new ArgumentException(
+                $"Region {sourceBounds.Width}x{sourceBounds.Height} at ({destinationX},{destinationY}) " +
+                $"does not fit inside a {destination.Width}x{destination.Height} bitmap.",
+                nameof(destinationX));
+        }
+
+        // Same GDI BitBlt from the screen DC as CaptureRectangle, drawn at an
+        // offset into an existing bitmap.
+        using var graphics = Graphics.FromImage(destination);
+        graphics.CopyFromScreen(
+            sourceBounds.Left, sourceBounds.Top, destinationX, destinationY,
+            new Size(sourceBounds.Width, sourceBounds.Height),
+            CopyPixelOperation.SourceCopy);
+    }
 }

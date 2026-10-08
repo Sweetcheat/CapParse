@@ -70,6 +70,53 @@ public static class MonitorDiscovery
         return new Rectangle(left, top, right - left, bottom - top);
     }
 
+    /// <summary>
+    /// Computes the bounding rectangle that encloses all the given monitors,
+    /// in virtual-desktop physical pixels. The result may start at negative
+    /// coordinates and may contain gaps (areas not covered by any monitor).
+    /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="monitors"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="monitors"/> is empty.</exception>
+    public static Rectangle GetVirtualBounds(IEnumerable<MonitorInfo> monitors)
+    {
+        if (monitors == null)
+        {
+            throw new ArgumentNullException(nameof(monitors));
+        }
+
+        int left = int.MaxValue;
+        int top = int.MaxValue;
+        int right = int.MinValue;
+        int bottom = int.MinValue;
+
+        foreach (var monitor in monitors)
+        {
+            left = Math.Min(left, monitor.Bounds.Left);
+            top = Math.Min(top, monitor.Bounds.Top);
+            right = Math.Max(right, monitor.Bounds.Right);
+            bottom = Math.Max(bottom, monitor.Bounds.Bottom);
+        }
+
+        if (left == int.MaxValue)
+        {
+            throw new ArgumentException("At least one monitor is required.", nameof(monitors));
+        }
+
+        return new Rectangle(left, top, right - left, bottom - top);
+    }
+
+    /// <summary>
+    /// Position of a monitor within the virtual desktop, i.e. its offset from
+    /// the virtual desktop origin. Used to compose per-monitor captures into
+    /// a single image of the virtual desktop.
+    /// </summary>
+    public static Point GetOffset(MonitorInfo monitor, Rectangle virtualBounds)
+    {
+        return new Point(
+            monitor.Bounds.Left - virtualBounds.Left,
+            monitor.Bounds.Top - virtualBounds.Top);
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     private struct NativeRect
     {
