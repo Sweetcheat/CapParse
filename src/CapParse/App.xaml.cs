@@ -2,6 +2,7 @@
 using System.Windows;
 using CapParse.Capture;
 using CapParse.Platform;
+using CapParse.UI;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using WinForms = System.Windows.Forms;
@@ -17,6 +18,7 @@ public partial class App : Application
     private WinForms.NotifyIcon? _trayIcon;
     private MainWindow? _mainWindow;
     private GlobalHotkey? _hotkey;
+    private FrozenOverlaySession? _overlaySession;
     private bool _isShuttingDown;
 
     public CaptureCoordinator CaptureCoordinator => _captureCoordinator;
@@ -38,11 +40,29 @@ public partial class App : Application
 
     private void StartCapture()
     {
-        // M5 will consume the capture result (overlay, selection, crop).
-        // Until then the result is not used, so dispose it immediately to
-        // release the captured bitmap.
-        var result = _captureCoordinator.StartCapture();
-        result.Dispose();
+        // While a session is active the overlays cover the desktop; further
+        // triggers are ignored until it ends (Idle -> Capturing).
+        if (_overlaySession is not null)
+        {
+            return;
+        }
+
+        try
+        {
+            var result = _captureCoordinator.StartCapture();
+            _overlaySession = new FrozenOverlaySession(result, () => _overlaySession = null);
+        }
+        catch
+        {
+            // The session cleaned up after itself (overlays closed, captured
+            // bitmap disposed). Show a user-friendly message; technical
+            // details are intentionally not shown.
+            MessageBox.Show(
+                "Could not capture the screen.\n\nTry again.",
+                "CapParse",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     private void RegisterCaptureHotkey()
@@ -125,6 +145,10 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        // End any active capture session before the process terminates.
+        _overlaySession?.Dispose();
+        _overlaySession = null;
+
         // Release the global hotkey before the process terminates.
         _hotkey?.Dispose();
         _hotkey = null;
