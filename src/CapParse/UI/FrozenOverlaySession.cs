@@ -8,6 +8,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CapParse.Capture;
 using CapParse.Platform;
+using Point = System.Drawing.Point;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using Key = System.Windows.Input.Key;
 using PixelFormat = System.Drawing.Imaging.PixelFormat;
@@ -15,15 +16,21 @@ using PixelFormat = System.Drawing.Imaging.PixelFormat;
 namespace CapParse.UI;
 
 /// <summary>
-/// M5-A freeze-frame overlay session: one borderless overlay window per
+/// M5 freeze-frame overlay session: one borderless overlay window per
 /// monitor, each displaying that monitor's region of the single captured
-/// desktop bitmap, dimmed.
+/// desktop bitmap, dimmed. The user selects a rectangular region by
+/// dragging the left mouse button; the drag is tracked in global physical
+/// coordinates (via GetCursorPos), so it can cross monitor boundaries.
 ///
 /// The session owns the <see cref="CaptureResult"/>: closing the session
-/// (via Esc on any overlay, or <see cref="Dispose"/>) closes every overlay
-/// window, releases the WPF images and disposes the captured bitmap. If
-/// overlay creation fails partway, the windows that were already created
-/// are closed before the failure propagates.
+/// (via Esc on any overlay, ending a drag, or <see cref="Dispose"/>)
+/// closes every overlay window, releases the WPF images and disposes the
+/// captured bitmap. If overlay creation fails partway, the windows that
+/// were already created are closed before the failure propagates.
+///
+/// The <paramref name="onClosed"/> callback (M5-B contract) receives the
+/// final selection in virtual-desktop physical coordinates, or null when
+/// the capture was cancelled or the selection had no area.
 /// </summary>
 public sealed class FrozenOverlaySession : IDisposable
 {
@@ -34,13 +41,16 @@ public sealed class FrozenOverlaySession : IDisposable
     private const uint SetWindowPosNoActivate = 0x0010;
     private const uint SetWindowPosNoZOrder = 0x0004;
 
-    private readonly Action _onClosed;
+    private readonly Action<Rectangle?> _onClosed;
     private readonly List<MonitorOverlayWindow> _windows = new();
     private readonly List<BitmapSource> _images = new();
+    private readonly List<Target> _targets = new();
     private CaptureResult? _capture;
+    private Point? _dragStart;
+    private Rectangle? _selection;
     private bool _closed;
 
-    public FrozenOverlaySession(CaptureResult capture, Action onClosed)
+    public FrozenOverlaySession(CaptureResult capture, Action<Rectangle?> onClosed)
     {
         _capture = capture ?? throw new ArgumentNullException(nameof(capture));
         _onClosed = onClosed ?? throw new ArgumentNullException(nameof(onClosed));
@@ -74,8 +84,17 @@ public sealed class FrozenOverlaySession : IDisposable
                 var image = CreateMonitorImage(capture.Image, monitor, capture.VirtualBounds, dpi);
                 window.SetFrozenImage(image);
 
+                // The window only reports global physical cursor positions;
+                // the session owns the selection state, so the drag logic
+                // is not duplicated per window and a drag can cross
+                // monitors.
+                window.DragStarted = BeginDrag;
+                window.DragUpdated = UpdateDrag;
+                window.DragEnded = EndDrag;
+
                 _windows.Add(window);
                 _images.Add(image);
+                _targets.Add(new Target(window, monitor.Bounds, dpi));
             }
 
             foreach (var window in _windows)
@@ -124,6 +143,70 @@ public sealed class FrozenOverlaySession : IDisposable
         }
     }
 
+    /// <summary>
+    /// Starts a selection drag at a global physical cursor position.
+    /// </summary>
+    private void BeginDrag(Point point)
+    {
+        if (_closed)
+        {
+            return;
+        }
+
+        _dragStart = point;
+        UpdateSelectionVisuals(SelectionGeometry.Normalize(point, point));
+    }
+
+    /// <summary>
+    /// Grows the selection to the current global physical cursor position
+    /// and updates the selection visual on every overlay the selection
+    /// touches.
+    /// </summary>
+    private void UpdateDrag(Point point)
+    {
+        if (_closed || _dragStart is not { } start)
+        {
+            return;
+        }
+
+        UpdateSelectionVisuals(SelectionGeometry.Normalize(start, point));
+    }
+
+    /// <summary>
+    /// Ends the drag: the final selection (in virtual-desktop physical
+    /// coordinates) is kept only if it has area, then the session closes.
+    /// A zero-area drag ends the session without a selection, exactly like
+    /// a cancellation.
+    /// </summary>
+    private void EndDrag(Point point)
+    {
+        if (_closed || _dragStart is not { } start)
+        {
+            return;
+        }
+
+        var selection = SelectionGeometry.Normalize(start, point);
+        _selection = SelectionGeometry.IsValid(selection) ? selection : null;
+        Close();
+    }
+
+    private void UpdateSelectionVisuals(Rectangle selection)
+    {
+        foreach (var target in _targets)
+        {
+            var local = SelectionGeometry.ToMonitorLocal(selection, target.Bounds);
+
+            if (local is null)
+            {
+                target.Window.HideSelection();
+                continue;
+            }
+
+            var dip = MonitorGeometry.ToDipRectangle(local.Value, target.Dpi);
+            target.Window.ShowSelection(dip.Left, dip.Top, dip.Width, dip.Height);
+        }
+    }
+
     private void OnWindowClosed(object? sender, EventArgs e)
     {
         Close();
@@ -138,12 +221,15 @@ public sealed class FrozenOverlaySession : IDisposable
 
         _closed = true;
 
+        var selection = _selection;
+
         foreach (var window in _windows)
         {
             window.Close();
         }
 
         _windows.Clear();
+        _targets.Clear();
 
         // The frozen BitmapSources hold managed memory only; dropping
         // the references lets the GC collect them.
@@ -152,8 +238,18 @@ public sealed class FrozenOverlaySession : IDisposable
         _capture?.Dispose();
         _capture = null;
 
-        _onClosed();
+        _dragStart = null;
+        _selection = null;
+
+        _onClosed(selection);
     }
+
+    /// <summary>
+    /// An overlay window and the geometry needed to project the selection
+    /// onto it: the monitor's physical bounds and the DPI the window was
+    /// placed at.
+    /// </summary>
+    private sealed record Target(MonitorOverlayWindow Window, Rectangle Bounds, int Dpi);
 
     /// <summary>
     /// Creates a monitor-sized WPF image from the monitor's region of the

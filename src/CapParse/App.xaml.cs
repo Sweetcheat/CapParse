@@ -19,9 +19,17 @@ public partial class App : Application
     private MainWindow? _mainWindow;
     private GlobalHotkey? _hotkey;
     private FrozenOverlaySession? _overlaySession;
+    private System.Drawing.Rectangle? _lastSelection;
     private bool _isShuttingDown;
 
     public CaptureCoordinator CaptureCoordinator => _captureCoordinator;
+
+    /// <summary>
+    /// The selection of the last finished capture, in virtual-desktop
+    /// physical coordinates, or null if it was cancelled or had no area.
+    /// The M6 crop pipeline consumes this.
+    /// </summary>
+    public System.Drawing.Rectangle? LastSelection => _lastSelection;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -50,7 +58,11 @@ public partial class App : Application
         try
         {
             var result = _captureCoordinator.StartCapture();
-            _overlaySession = new FrozenOverlaySession(result, () => _overlaySession = null);
+            _overlaySession = new FrozenOverlaySession(result, selection =>
+            {
+                _overlaySession = null;
+                _lastSelection = selection;
+            });
         }
         catch
         {
