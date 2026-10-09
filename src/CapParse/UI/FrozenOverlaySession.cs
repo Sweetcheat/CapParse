@@ -28,9 +28,12 @@ namespace CapParse.UI;
 /// captured bitmap. If overlay creation fails partway, the windows that
 /// were already created are closed before the failure propagates.
 ///
-/// The <paramref name="onClosed"/> callback (M5-B contract) receives the
-/// final selection in virtual-desktop physical coordinates, or null when
-/// the capture was cancelled or the selection had no area.
+/// The <paramref name="onClosed"/> callback receives the final selection in
+/// virtual-desktop physical coordinates (null when the capture was
+/// cancelled or the selection had no area) and the cropped bitmap of that
+/// selection (null in the same cases): the crop is an independent copy,
+/// taken while the captured bitmap is still alive, and stays valid after
+/// the session disposes it.
 /// </summary>
 public sealed class FrozenOverlaySession : IDisposable
 {
@@ -41,7 +44,7 @@ public sealed class FrozenOverlaySession : IDisposable
     private const uint SetWindowPosNoActivate = 0x0010;
     private const uint SetWindowPosNoZOrder = 0x0004;
 
-    private readonly Action<Rectangle?> _onClosed;
+    private readonly Action<Rectangle?, Bitmap?> _onClosed;
     private readonly List<MonitorOverlayWindow> _windows = new();
     private readonly List<BitmapSource> _images = new();
     private readonly List<Target> _targets = new();
@@ -50,7 +53,7 @@ public sealed class FrozenOverlaySession : IDisposable
     private Rectangle? _selection;
     private bool _closed;
 
-    public FrozenOverlaySession(CaptureResult capture, Action<Rectangle?> onClosed)
+    public FrozenOverlaySession(CaptureResult capture, Action<Rectangle?, Bitmap?> onClosed)
     {
         _capture = capture ?? throw new ArgumentNullException(nameof(capture));
         _onClosed = onClosed ?? throw new ArgumentNullException(nameof(onClosed));
@@ -235,13 +238,34 @@ public sealed class FrozenOverlaySession : IDisposable
         // the references lets the GC collect them.
         _images.Clear();
 
+        // The crop is taken while the captured bitmap is still alive: it is
+        // disposed right below, and the crop is independent of it.
+        Bitmap? crop = null;
+
+        if (selection is { } sel && _capture is { } capture)
+        {
+            try
+            {
+                crop = CaptureCropper.Crop(capture, sel);
+            }
+            catch
+            {
+                // Defensive: a selection from the overlays always fits the
+                // captured image, so this path should be unreachable. An
+                // unexpected failure must not break session teardown (which
+                // would leave App stuck in the Capturing state); treat it
+                // like a cancelled capture: no crop, callback still runs.
+                crop = null;
+            }
+        }
+
         _capture?.Dispose();
         _capture = null;
 
         _dragStart = null;
         _selection = null;
 
-        _onClosed(selection);
+        _onClosed(selection, crop);
     }
 
     /// <summary>

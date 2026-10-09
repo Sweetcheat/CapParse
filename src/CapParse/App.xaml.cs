@@ -20,6 +20,7 @@ public partial class App : Application
     private GlobalHotkey? _hotkey;
     private FrozenOverlaySession? _overlaySession;
     private System.Drawing.Rectangle? _lastSelection;
+    private System.Drawing.Bitmap? _lastCrop;
     private bool _isShuttingDown;
 
     public CaptureCoordinator CaptureCoordinator => _captureCoordinator;
@@ -30,6 +31,15 @@ public partial class App : Application
     /// The M6 crop pipeline consumes this.
     /// </summary>
     public System.Drawing.Rectangle? LastSelection => _lastSelection;
+
+    /// <summary>
+    /// The cropped bitmap of the last finished capture (32bpp ARGB, exactly
+    /// the selection's size), or null if it was cancelled, had no area, or
+    /// the crop failed. The application owns the bitmap: a new capture
+    /// result (including a cancel) disposes the previous crop, and the
+    /// application disposes it on exit. The next milestone consumes this.
+    /// </summary>
+    public System.Drawing.Bitmap? LastCrop => _lastCrop;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -58,10 +68,15 @@ public partial class App : Application
         try
         {
             var result = _captureCoordinator.StartCapture();
-            _overlaySession = new FrozenOverlaySession(result, selection =>
+            _overlaySession = new FrozenOverlaySession(result, (selection, crop) =>
             {
                 _overlaySession = null;
                 _lastSelection = selection;
+
+                // A finished attempt (including a cancel) replaces the
+                // previous crop: dispose it so no bitmap is left orphaned.
+                _lastCrop?.Dispose();
+                _lastCrop = crop;
             });
         }
         catch
@@ -160,6 +175,11 @@ public partial class App : Application
         // End any active capture session before the process terminates.
         _overlaySession?.Dispose();
         _overlaySession = null;
+
+        // Release the last crop; the session dispose above may have just
+        // stored a new one through the callback.
+        _lastCrop?.Dispose();
+        _lastCrop = null;
 
         // Release the global hotkey before the process terminates.
         _hotkey?.Dispose();
