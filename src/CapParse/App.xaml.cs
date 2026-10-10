@@ -19,6 +19,13 @@ public partial class App : Application
     private MainWindow? _mainWindow;
     private GlobalHotkey? _hotkey;
     private FrozenOverlaySession? _overlaySession;
+    // True from the first trigger of a capture until the attempt ends
+    // (session closed, or the attempt failed). Unlike _overlaySession,
+    // which is only assigned after the constructor returns, this guard
+    // also covers the construction: the constructor pumps the UI thread,
+    // so a second hotkey/tray trigger can reenter StartCapture while one
+    // is in flight.
+    private bool _captureInFlight;
     private System.Drawing.Rectangle? _lastSelection;
     private System.Drawing.Bitmap? _lastCrop;
     private bool _isShuttingDown;
@@ -58,19 +65,23 @@ public partial class App : Application
 
     private void StartCapture()
     {
-        // While a session is active the overlays cover the desktop; further
-        // triggers are ignored until it ends (Idle -> Capturing).
-        if (_overlaySession is not null)
+        // While a capture attempt is in flight (GDI capture, session
+        // construction, active overlays) further triggers are ignored
+        // until it ends (Idle -> Capturing).
+        if (_captureInFlight)
         {
             return;
         }
 
+        _captureInFlight = true;
+
         try
         {
             var result = _captureCoordinator.StartCapture();
-            _overlaySession = new FrozenOverlaySession(result, (selection, crop) =>
+            var session = new FrozenOverlaySession(result, (selection, crop) =>
             {
                 _overlaySession = null;
+                _captureInFlight = false;
                 _lastSelection = selection;
 
                 // A finished attempt (including a cancel) replaces the
@@ -78,12 +89,23 @@ public partial class App : Application
                 _lastCrop?.Dispose();
                 _lastCrop = crop;
             });
+
+            // The constructor pumps the UI thread, so the session may have
+            // already closed itself (a deferred close) before returning:
+            // in that case the callback has already reset the guard and no
+            // live session remains, so do not keep a stale reference.
+            _overlaySession = session.Closed ? null : session;
         }
         catch
         {
             // The session cleaned up after itself (overlays closed, captured
-            // bitmap disposed). Show a user-friendly message; technical
-            // details are intentionally not shown.
+            // bitmap disposed). Reset the guard here too, so a failed
+            // attempt can never leave the app permanently blocked. Show a
+            // user-friendly message; technical details are intentionally
+            // not shown.
+            _overlaySession = null;
+            _captureInFlight = false;
+
             MessageBox.Show(
                 "Could not capture the screen.\n\nTry again.",
                 "CapParse",

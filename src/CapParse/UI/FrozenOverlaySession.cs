@@ -52,6 +52,19 @@ public sealed class FrozenOverlaySession : IDisposable
     private Point? _dragStart;
     private Rectangle? _selection;
     private bool _closed;
+    // False while the constructor is running: input events are ignored and
+    // close requests are deferred until the session is fully constructed,
+    // so a close cannot tear down a partially built session (which would
+    // fire the callback and release the app's capture guard before the
+    // constructor finishes, orphaning the windows created afterwards).
+    private bool _constructed;
+    private bool _closeRequested;
+
+    /// <summary>
+    /// True once the session has closed: all windows are closed, resources
+    /// are released and the closed callback has run.
+    /// </summary>
+    public bool Closed => _closed;
 
     public FrozenOverlaySession(CaptureResult capture, Action<Rectangle?, Bitmap?> onClosed)
     {
@@ -108,6 +121,18 @@ public sealed class FrozenOverlaySession : IDisposable
             // Take keyboard focus so Esc can end the session. M5-A has no
             // other exit: Esc is the only way out of a freeze-frame session.
             _windows[0].Activate();
+
+            // Construction is complete: from now on input events and close
+            // requests take effect immediately.
+            _constructed = true;
+
+            if (_closeRequested)
+            {
+                // A close request (Esc, an overlay window closed) arrived
+                // while the session was still being built: process it now,
+                // with the full window list, so no window is orphaned.
+                CloseCore();
+            }
         }
         catch
         {
@@ -118,6 +143,22 @@ public sealed class FrozenOverlaySession : IDisposable
 
     public void Close()
     {
+        if (_closed)
+        {
+            return;
+        }
+
+        if (!_constructed)
+        {
+            // A close request that arrives while the session is still being
+            // constructed cannot tear the session down yet: it would fire
+            // the callback and release the app's capture guard before the
+            // constructor finishes, orphaning the windows created after it.
+            // Defer it until the construction ends.
+            _closeRequested = true;
+            return;
+        }
+
         CloseCore();
     }
 
@@ -140,10 +181,20 @@ public sealed class FrozenOverlaySession : IDisposable
 
     private void OnWindowKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape)
+        if (e.Key != Key.Escape)
         {
-            Close();
+            return;
         }
+
+        if (!_constructed)
+        {
+            // Esc while the session is still being built: defer the close
+            // so it runs once all overlays are registered (see Close).
+            _closeRequested = true;
+            return;
+        }
+
+        Close();
     }
 
     /// <summary>
@@ -151,7 +202,7 @@ public sealed class FrozenOverlaySession : IDisposable
     /// </summary>
     private void BeginDrag(Point point)
     {
-        if (_closed)
+        if (!_constructed || _closed)
         {
             return;
         }
@@ -167,7 +218,7 @@ public sealed class FrozenOverlaySession : IDisposable
     /// </summary>
     private void UpdateDrag(Point point)
     {
-        if (_closed || _dragStart is not { } start)
+        if (!_constructed || _closed || _dragStart is not { } start)
         {
             return;
         }
@@ -183,7 +234,7 @@ public sealed class FrozenOverlaySession : IDisposable
     /// </summary>
     private void EndDrag(Point point)
     {
-        if (_closed || _dragStart is not { } start)
+        if (!_constructed || _closed || _dragStart is not { } start)
         {
             return;
         }
@@ -385,18 +436,59 @@ public sealed class FrozenOverlaySession : IDisposable
 
     /// <summary>
     /// Runs the dispatcher until all queued Win32 messages (WM_DPICHANGED,
-    /// WM_WINDOWPOSCHANGED) have been processed on the UI thread. Bounded:
-    /// a timeout cannot stall the capture flow.
+    /// WM_WINDOWPOSCHANGED) have been processed on the UI thread.
+    ///
+    /// A pushed DispatcherFrame pumps the UI thread (keeping it responsive
+    /// and able to run the completion operation) instead of blocking it
+    /// with Task.Wait, which deadlocks against the same Dispatcher and
+    /// made every pump time out. The timer bounds the pump so a missing
+    /// message cannot stall the capture flow. A late completion operation
+    /// from a previous pump only writes Continue on an already finished
+    /// frame and cannot affect a later one. A timeout is surfaced as an
+    /// exception, never as a silent success.
     /// </summary>
     private static void PumpDispatcher()
     {
-        var done = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var frame = new DispatcherFrame { Continue = true };
+        var timedOut = false;
 
-        Dispatcher.CurrentDispatcher.BeginInvoke(
-            DispatcherPriority.Background,
-            new Action(() => done.TrySetResult(true)));
+        // Safety bound: a missing message cannot stall the capture flow.
+        var timer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromSeconds(2)
+        };
 
-        done.Task.Wait(TimeSpan.FromSeconds(2));
+        void OnTick(object? sender, EventArgs e)
+        {
+            timedOut = true;
+            frame.Continue = false;
+        }
+
+        try
+        {
+            timer.Tick += OnTick;
+            timer.Start();
+
+            Dispatcher.CurrentDispatcher.BeginInvoke(
+                DispatcherPriority.Background,
+                new Action(() => frame.Continue = false));
+
+            Dispatcher.PushFrame(frame);
+        }
+        finally
+        {
+            // The frame is always ended before the timer is released, even
+            // if the pump threw: no tick can fire after this pump returns.
+            timer.Stop();
+            timer.Tick -= OnTick;
+        }
+
+        if (timedOut)
+        {
+            throw new TimeoutException(
+                "The dispatcher did not process the window messages in time; " +
+                "an overlay may be positioned at the wrong DPI.");
+        }
     }
 
     [DllImport("user32.dll", SetLastError = true)]
