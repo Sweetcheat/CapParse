@@ -8,6 +8,11 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- RapidOcrNet is built without nullable annotations, so assigning to
+         its properties from nullable-enabled test code raises CS8601/CS8625
+         noise that does not reflect a real nullability contract; CS8604 is
+         raised by the deliberate null-argument tests. -->
+    <NoWarn>$(NoWarn);CS8601;CS8604;CS8625</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,6 +28,17 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!-- The OCR smoke tests run the real engine, which resolves its models
+       relative to the test process's base directory. -->
+  <Import Project="..\..\build\OcrModels.targets" />
+
+  <!-- The M7-C reference collection (manifest, committed PNGs) next to the
+        test binary so the generator and the evaluation harness find it
+        regardless of the working directory. -->
+  <ItemGroup>
+    <None Include="TestData\Ocr\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

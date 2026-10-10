@@ -21,4 +21,10 @@
     <Resource Include="Assets\tray.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="RapidOcrNet" Version="4.2.0" />
+  </ItemGroup>
+
+  <Import Project="..\..\build\OcrModels.targets" />
+
 </Project>

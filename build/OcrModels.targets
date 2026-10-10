@@ -1,0 +1,30 @@
+<Project>
+
+  <!-- Copies the model files the engine needs into the build and publish
+       output, in the layout the engine expects next to the binary:
+
+       models/v6/*  — the PP-OCRv6 Small files committed to the repository;
+       models/v5/ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx — the v5
+       orientation classifier distributed inside the RapidOcrNet package.
+
+       For the application project the RapidOcrNet package's own targets
+       already copy its whole models/v5 set; copying the single classifier
+       again is idempotent (same file, same destination). The test project
+       has no direct package reference, so without this file its output
+       would be missing the classifier. Imported by both projects. -->
+  <ItemGroup>
+    <OcrModelsV6 Include="$(MSBuildThisFileDirectory)..\models\v6\*.*" />
+    <OcrClassifier Include="$(NuGetPackageRoot)rapidocrnet/4.2.0/models/v5/ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx" />
+  </ItemGroup>
+
+  <Target Name="CopyOcrModelsBuild" AfterTargets="Build">
+    <Copy SourceFiles="@(OcrModelsV6)" DestinationFolder="$(TargetDir)models\v6\" />
+    <Copy SourceFiles="@(OcrClassifier)" DestinationFolder="$(TargetDir)models\v5\" />
+  </Target>
+
+  <Target Name="CopyOcrModelsPublish" AfterTargets="Publish">
+    <Copy SourceFiles="@(OcrModelsV6)" DestinationFolder="$(PublishDir)models\v6\" />
+    <Copy SourceFiles="@(OcrClassifier)" DestinationFolder="$(PublishDir)models\v5\" />
+  </Target>
+
+</Project>
