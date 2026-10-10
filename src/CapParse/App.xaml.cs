@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Windows;
 using CapParse.Capture;
+using CapParse.OCR;
 using CapParse.Platform;
 using CapParse.UI;
 using Application = System.Windows.Application;
@@ -15,6 +16,9 @@ namespace CapParse;
 public partial class App : Application
 {
     private readonly CaptureCoordinator _captureCoordinator = new();
+    // The OCR engine is created lazily on the first recognition, so
+    // starting the app costs nothing; the coordinator releases it on exit.
+    private readonly OcrCoordinator _ocrCoordinator = new();
     private WinForms.NotifyIcon? _trayIcon;
     private MainWindow? _mainWindow;
     private GlobalHotkey? _hotkey;
@@ -28,6 +32,11 @@ public partial class App : Application
     private bool _captureInFlight;
     private System.Drawing.Rectangle? _lastSelection;
     private System.Drawing.Bitmap? _lastCrop;
+    // Cancellation token of the in-flight recognition, if any. A new
+    // capture cancels it so a stale recognition can never publish its
+    // result over a newer one.
+    private CancellationTokenSource? _ocrCancellation;
+    private OcrResult? _lastOcrResult;
     private bool _isShuttingDown;
 
     public CaptureCoordinator CaptureCoordinator => _captureCoordinator;
@@ -47,6 +56,15 @@ public partial class App : Application
     /// application disposes it on exit. The next milestone consumes this.
     /// </summary>
     public System.Drawing.Bitmap? LastCrop => _lastCrop;
+
+    /// <summary>
+    /// The OCR result of the last capture whose crop was recognized,
+    /// or null if none has completed yet, the last capture had no crop,
+    /// its recognition was cancelled, or it failed. An image without
+    /// text is a valid, empty result and is exposed like any other.
+    /// M8-B presents this result to the user.
+    /// </summary>
+    public OcrResult? LastOcrResult => _lastOcrResult;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -83,11 +101,17 @@ public partial class App : Application
                 _overlaySession = null;
                 _captureInFlight = false;
                 _lastSelection = selection;
+                _lastOcrResult = null;
 
                 // A finished attempt (including a cancel) replaces the
                 // previous crop: dispose it so no bitmap is left orphaned.
                 _lastCrop?.Dispose();
                 _lastCrop = crop;
+
+                if (crop is not null)
+                {
+                    RecognizeCropAsync(crop);
+                }
             });
 
             // The constructor pumps the UI thread, so the session may have
@@ -111,6 +135,62 @@ public partial class App : Application
                 "CapParse",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
+        }
+    }
+
+    /// <summary>
+    /// Runs the OCR engine over the crop of a finished capture without
+    /// blocking the UI thread: the engine is created lazily (first use
+    /// only) and the recognition itself is asynchronous. A recognition
+    /// already in flight is cancelled first, and only a non-cancelled
+    /// result is published, so a stale recognition can never overwrite
+    /// the result of a newer capture.
+    ///
+    /// Cancellation (a new capture superseded this one) is not an error
+    /// and is reported silently. A real failure surfaces with the same
+    /// user-friendly style the capture flow uses; the captured text and
+    /// image are never logged.
+    /// </summary>
+    private async void RecognizeCropAsync(System.Drawing.Bitmap crop)
+    {
+        _ocrCancellation?.Cancel();
+        _ocrCancellation?.Dispose();
+        var cancellation = new CancellationTokenSource();
+        _ocrCancellation = cancellation;
+
+        try
+        {
+            var result = await _ocrCoordinator.RecognizeAsync(
+                new ImageData(crop), cancellation.Token);
+
+            if (!cancellation.IsCancellationRequested)
+            {
+                _lastOcrResult = result;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer capture: nothing to report.
+        }
+        catch (Exception) when (!cancellation.IsCancellationRequested)
+        {
+            // The token check keeps a failure that raced the cancellation
+            // (for example the previous crop being disposed while the
+            // engine was still reading it) from surfacing as an error.
+            MessageBox.Show(
+                "Could not read the text in the captured region.\n\nTry again.",
+                "CapParse",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+        finally
+        {
+            if (ReferenceEquals(_ocrCancellation, cancellation))
+            {
+                _ocrCancellation = null;
+            }
+
+            cancellation.Dispose();
         }
     }
 
@@ -194,9 +274,22 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        // Stop any in-flight recognition before its engine is released
+        // below. The library cancels between its pipeline stages, so the
+        // native inference is normally interrupted promptly; if it is
+        // still running when the process terminates, the process exit is
+        // the final cleanup.
+        _ocrCancellation?.Cancel();
+        _ocrCancellation?.Dispose();
+        _ocrCancellation = null;
+
         // End any active capture session before the process terminates.
         _overlaySession?.Dispose();
         _overlaySession = null;
+
+        // Release the OCR engine (and the models it loaded) if it was
+        // ever created.
+        _ocrCoordinator.Dispose();
 
         // Release the last crop; the session dispose above may have just
         // stored a new one through the callback.
