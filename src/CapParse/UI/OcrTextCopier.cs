@@ -32,7 +32,7 @@ public sealed class OcrTextCopier
 
         if (!state.CanCopy)
         {
-            return new CopyOutcome(false, "There is no recognized text to copy.");
+            return new CopyOutcome(false, "Não há texto reconhecido para copiar.");
         }
 
         try
@@ -44,7 +44,7 @@ public sealed class OcrTextCopier
         {
             return new CopyOutcome(
                 false,
-                "Could not copy the text. The clipboard may be in use by another application.");
+                "Não foi possível copiar o texto. A área de transferência pode estar em uso por outro aplicativo.");
         }
     }
 }

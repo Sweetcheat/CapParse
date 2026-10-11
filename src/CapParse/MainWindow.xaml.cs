@@ -49,20 +49,20 @@ public partial class MainWindow : Window
         switch (state.Phase)
         {
             case OcrPhase.Idle:
-                ShowStatus("No result yet. Capture a region to recognize its text.");
+                ShowStatus("Ainda não há resultado. Capture uma região para reconhecer o texto.");
                 break;
 
             case OcrPhase.Processing:
-                ShowStatus("Recognizing the selected region…");
+                ShowStatus("Reconhecendo a região selecionada…");
                 break;
 
             // An image without text is a valid, empty result, not an error.
             case OcrPhase.NoText:
-                ShowStatus("No text was found in this region.");
+                ShowStatus("Nenhum texto foi encontrado nesta região.");
                 break;
 
             case OcrPhase.Failed:
-                ShowStatus("Could not read the text in the captured region.");
+                ShowStatus("Não foi possível reconhecer o texto na região capturada.");
                 break;
 
             case OcrPhase.Succeeded:
@@ -88,7 +88,7 @@ public partial class MainWindow : Window
 
         if (outcome.Succeeded)
         {
-            CopyFeedback.Text = "Copied";
+            CopyFeedback.Text = "Texto copiado!";
             return;
         }
 

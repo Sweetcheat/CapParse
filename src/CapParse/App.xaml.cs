@@ -147,7 +147,7 @@ public partial class App : Application
             _captureInFlight = false;
 
             MessageBox.Show(
-                "Could not capture the screen.\n\nTry again.",
+                "Não foi possível capturar a tela.\n\nTente novamente.",
                 "CapParse",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -212,7 +212,7 @@ public partial class App : Application
             {
                 PublishOcrState();
                 MessageBox.Show(
-                    "Could not read the text in the captured region.\n\nTry again.",
+                    "Não foi possível reconhecer o texto na região capturada.\n\nTente novamente.",
                     "CapParse",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -257,9 +257,9 @@ public partial class App : Application
         if (!_hotkey.Register(GlobalHotkey.Modifier.Control | GlobalHotkey.Modifier.Shift, GlobalHotkey.KeyX))
         {
             MessageBox.Show(
-                "CapParse could not register the global hotkey Ctrl + Shift + X.\n" +
-                "Another application may already be using this shortcut.\n\n" +
-                "Capture is still available from the tray icon.",
+                "O CapParse não conseguiu registrar o atalho global Ctrl + Shift + X.\n" +
+                "Outro aplicativo pode já estar usando esse atalho.\n\n" +
+                "A captura continua disponível pelo ícone da bandeja.",
                 "CapParse",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -276,9 +276,9 @@ public partial class App : Application
         };
 
         var menu = new WinForms.ContextMenuStrip();
-        menu.Items.Add("Capture", null, (_, _) => StartCapture());
-        menu.Items.Add("Settings", null, (_, _) => ShowSettings());
-        menu.Items.Add("Exit", null, (_, _) => ExitApplication());
+        menu.Items.Add("Capturar", null, (_, _) => StartCapture());
+        menu.Items.Add("Configurações", null, (_, _) => ShowSettings());
+        menu.Items.Add("Sair", null, (_, _) => ExitApplication());
         _trayIcon.ContextMenuStrip = menu;
 
         // Left double-click on the tray icon starts the capture workflow.
@@ -306,7 +306,7 @@ public partial class App : Application
     private void ShowSettings()
     {
         // Placeholder: the Settings window arrives in M13.
-        MessageBox.Show(_mainWindow, "Settings are not implemented yet.", "CapParse",
+        MessageBox.Show(_mainWindow, "As configurações ainda não foram implementadas.", "CapParse",
             MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
