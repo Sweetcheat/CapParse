@@ -19,6 +19,8 @@ public partial class App : Application
     // The OCR engine is created lazily on the first recognition, so
     // starting the app costs nothing; the coordinator releases it on exit.
     private readonly OcrCoordinator _ocrCoordinator = new();
+    // Explicit state of the OCR runs; the main window is a view of it.
+    private readonly OcrRunState _ocrState = new();
     private WinForms.NotifyIcon? _trayIcon;
     private MainWindow? _mainWindow;
     private GlobalHotkey? _hotkey;
@@ -65,6 +67,20 @@ public partial class App : Application
     /// M8-B presents this result to the user.
     /// </summary>
     public OcrResult? LastOcrResult => _lastOcrResult;
+
+    /// <summary>
+    /// The explicit state of the OCR runs (initial, processing, text,
+    /// no text, failed). Views read it; only <see cref="RecognizeCropAsync"/>
+    /// changes it.
+    /// </summary>
+    public OcrRunState OcrState => _ocrState;
+
+    /// <summary>
+    /// Raised on the UI thread whenever <see cref="OcrState"/> changes, so
+    /// views can refresh. Recognition completes on a thread-pool thread,
+    /// so the publication is marshaled to the dispatcher.
+    /// </summary>
+    public event EventHandler? OcrStateChanged;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -141,18 +157,27 @@ public partial class App : Application
     /// <summary>
     /// Runs the OCR engine over the crop of a finished capture without
     /// blocking the UI thread: the engine is created lazily (first use
-    /// only) and the recognition itself is asynchronous. A recognition
-    /// already in flight is cancelled first, and only a non-cancelled
-    /// result is published, so a stale recognition can never overwrite
-    /// the result of a newer capture.
+    /// only) and the recognition itself is asynchronous.
     ///
-    /// Cancellation (a new capture superseded this one) is not an error
-    /// and is reported silently. A real failure surfaces with the same
-    /// user-friendly style the capture flow uses; the captured text and
-    /// image are never logged.
+    /// The run is tracked in <see cref="OcrState"/> by the id
+    /// <see cref="OcrRunState.BeginRun"/> returns: a recognition already in
+    /// flight is cancelled first, and only the most recent run may complete
+    /// or fail the state, so a stale (superseded or cancelled) recognition
+    /// can never overwrite a newer one, and a cancellation never leaves the
+    /// interface stuck in the processing state.
+    ///
+    /// Cancellation (a new capture superseded this one) is not an error and
+    /// is reported silently. A real failure is shown in the window's state
+    /// and with the same user-friendly message the capture flow uses; the
+    /// captured text and image are never logged.
     /// </summary>
     private async void RecognizeCropAsync(System.Drawing.Bitmap crop)
     {
+        // Called on the UI thread (the session's closed callback), so the
+        // state move to Processing is observed by the window immediately.
+        var runId = _ocrState.BeginRun();
+        PublishOcrState();
+
         _ocrCancellation?.Cancel();
         _ocrCancellation?.Dispose();
         var cancellation = new CancellationTokenSource();
@@ -163,9 +188,15 @@ public partial class App : Application
             var result = await _ocrCoordinator.RecognizeAsync(
                 new ImageData(crop), cancellation.Token);
 
-            if (!cancellation.IsCancellationRequested)
+            if (cancellation.IsCancellationRequested)
+            {
+                return;
+            }
+
+            if (_ocrState.CompleteRun(runId, result))
             {
                 _lastOcrResult = result;
+                PublishOcrState();
             }
         }
         catch (OperationCanceledException)
@@ -177,11 +208,15 @@ public partial class App : Application
             // The token check keeps a failure that raced the cancellation
             // (for example the previous crop being disposed while the
             // engine was still reading it) from surfacing as an error.
-            MessageBox.Show(
-                "Could not read the text in the captured region.\n\nTry again.",
-                "CapParse",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            if (_ocrState.FailRun(runId))
+            {
+                PublishOcrState();
+                MessageBox.Show(
+                    "Could not read the text in the captured region.\n\nTry again.",
+                    "CapParse",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
         finally
         {
@@ -191,6 +226,25 @@ public partial class App : Application
             }
 
             cancellation.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Notifies the views that <see cref="OcrState"/> changed. Recognition
+    /// completes on a thread-pool thread, so the notification is marshaled
+    /// to the WPF dispatcher: subscribers always run on the UI thread.
+    /// </summary>
+    private void PublishOcrState()
+    {
+        void Raise() => OcrStateChanged?.Invoke(this, EventArgs.Empty);
+
+        if (Dispatcher.CheckAccess())
+        {
+            Raise();
+        }
+        else
+        {
+            Dispatcher.BeginInvoke(Raise);
         }
     }
 

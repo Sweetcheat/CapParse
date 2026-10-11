@@ -6,16 +6,69 @@
         xmlns:local="clr-namespace:CapParse"
         mc:Ignorable="d"
         Title="CapParse" Height="450" Width="800">
-    <Grid>
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-            <TextBlock Text="CapParse"
-                       FontSize="24"
-                       FontWeight="SemiBold"
-                       HorizontalAlignment="Center" />
-            <TextBlock Text="CapParse is running."
-                       Margin="0,8,0,0"
-                       Foreground="Gray"
-                       HorizontalAlignment="Center" />
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="CapParse"
+                   FontSize="24"
+                   FontWeight="SemiBold"
+                   HorizontalAlignment="Center" />
+
+        <TextBlock Grid.Row="1"
+                   Text="Capture a region (Ctrl + Shift + X) to recognize its text."
+                   Margin="0,8,0,16"
+                   Foreground="Gray"
+                   HorizontalAlignment="Center" />
+
+        <!-- Status of the current run: initial, processing, no text, or
+             failure. Hidden while a result with text is shown. -->
+        <TextBlock x:Name="StatusText"
+                   Grid.Row="2"
+                   FontSize="14"
+                   Foreground="Gray"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center" />
+
+        <!-- Recognized text: read-only and selectable, keeps the line
+             breaks and spacing the engine reported. -->
+        <Border x:Name="ResultPanel"
+                Grid.Row="3"
+                Margin="0,12,0,0"
+                BorderBrush="#808080"
+                BorderThickness="1"
+                Visibility="Collapsed">
+            <TextBox x:Name="ResultText"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     FontFamily="Consolas"
+                     Padding="8" />
+        </Border>
+
+        <StackPanel Grid.Row="4"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Margin="0,12,0,0">
+            <Button x:Name="CopyButton"
+                    Content="Copy text"
+                    MinWidth="120"
+                    Padding="12,6"
+                    IsEnabled="False"
+                    Click="CopyText_Click" />
+            <TextBlock x:Name="CopyFeedback"
+                       Margin="8,0,0,0"
+                       VerticalAlignment="Center"
+                       Foreground="Gray" />
         </StackPanel>
     </Grid>
 </Window>
