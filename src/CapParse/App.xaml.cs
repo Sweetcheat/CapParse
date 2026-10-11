@@ -39,6 +39,10 @@ public partial class App : Application
     // result over a newer one.
     private CancellationTokenSource? _ocrCancellation;
     private OcrResult? _lastOcrResult;
+    // The in-memory OCR history of the session. A run adds an entry only
+    // when it completes validly (see RecognizeCropAsync), so a superseded or
+    // cancelled run never records a stale result here.
+    private readonly OcrHistory _history = new();
     private bool _isShuttingDown;
 
     public CaptureCoordinator CaptureCoordinator => _captureCoordinator;
@@ -74,6 +78,16 @@ public partial class App : Application
     /// changes it.
     /// </summary>
     public OcrRunState OcrState => _ocrState;
+
+    /// <summary>
+    /// The in-memory OCR history of the session: the recognized results of
+    /// previous captures, most recent first, at most
+    /// <see cref="OcrHistory.MaxEntries"/> entries. Independent of
+    /// <see cref="LastOcrResult"/> and <see cref="OcrState"/>: consulting a
+    /// history entry never changes the current result or the run state. The
+    /// main window is a view of this.
+    /// </summary>
+    public OcrHistory History => _history;
 
     /// <summary>
     /// Raised on the UI thread whenever <see cref="OcrState"/> changes, so
@@ -196,6 +210,13 @@ public partial class App : Application
             if (_ocrState.CompleteRun(runId, result))
             {
                 _lastOcrResult = result;
+
+                // Only a run that validly completes the state records an
+                // entry: a superseded or cancelled run returns false above
+                // and is never added, and a run adds at most one entry, so
+                // the history can never grow from stale or repeated results.
+                _history.Add(runId, result.Text, DateTime.Now);
+
                 PublishOcrState();
             }
         }
