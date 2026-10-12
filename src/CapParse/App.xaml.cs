@@ -201,11 +201,18 @@ public partial class App : Application
             _overlaySession = null;
             _captureInFlight = false;
 
-            MessageBox.Show(
-                "Não foi possível capturar a tela.\n\nTente novamente.",
-                "CapParse",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            // A failure that raced the app's own shutdown (the tray "Sair"
+            // can be processed while the session constructor pumps the UI
+            // thread) must not pop an error dialog over an app that is
+            // quitting: the user asked to exit, not to capture.
+            if (!Dispatcher.HasShutdownStarted)
+            {
+                MessageBox.Show(
+                    "Não foi possível capturar a tela.\n\nTente novamente.",
+                    "CapParse",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
     }
 
