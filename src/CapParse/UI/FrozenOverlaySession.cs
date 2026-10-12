@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -59,6 +61,12 @@ public sealed class FrozenOverlaySession : IDisposable
     // constructor finishes, orphaning the windows created afterwards).
     private bool _constructed;
     private bool _closeRequested;
+    // Two-stage reveal state: set when the first CompositionTarget.Rendering
+    // after the images were assigned has run (the frame containing the
+    // images has been handed to the render thread). The overlays are only
+    // revealed on the following event, once that frame is in the DWM
+    // surface (see RevealOnNextRenderFrame).
+    private bool _imageFrameRendered;
 
     /// <summary>
     /// True once the session has closed: all windows are closed, resources
@@ -79,26 +87,44 @@ public sealed class FrozenOverlaySession : IDisposable
 
             foreach (var monitor in monitors)
             {
-                // The window is created and placed on its monitor (opacity 0)
-                // before its image is built: placement establishes the
-                // window's DpiScale, which the image needs so its natural
-                // size matches the window size exactly.
                 var window = new MonitorOverlayWindow(DimOpacity)
                 {
-                    // Invisible while placed: the window is created, moved
-                    // onto its monitor and sized, then revealed exactly once
-                    // after all overlays are ready.
+                    // Invisible while prepared: the window is shown offscreen,
+                    // painted, placed on its monitor and sized, then revealed
+                    // exactly once after all overlays are ready.
                     Opacity = 0
                 };
 
                 window.Closed += OnWindowClosed;
                 window.KeyDown += OnWindowKeyDown;
+
+                // The window is made visible offscreen first, and its first
+                // frame is waited for, before it is moved onto the monitor:
+                // from Show() until WPF's render thread paints the window's
+                // surface, DWM presents the unpainted surface, which is
+                // black. Opacity = 0 does not protect it, because the
+                // opacity is only applied by WPF's own rendering. Showing
+                // offscreen lets that first (transparent) frame be painted
+                // where the user cannot see it, so no black surface is ever
+                // presented on a monitor. The window is visible (albeit
+                // transparent) during placement, exactly as before, so the
+                // PerMonitorV2 DPI nudge in PlaceOnMonitor behaves
+                // identically.
+                window.Left = -32000;
+                window.Top = -32000;
                 window.Show();
+                PumpUntilFirstRender(window);
+                Trace($"{monitor.DeviceName} shown offscreen, first frame painted");
+                TraceWindowStates($"{monitor.DeviceName} after offscreen show");
+
                 PlaceOnMonitor(window, monitor.Bounds);
+                Trace($"{monitor.DeviceName} placed");
+                TraceWindowStates($"{monitor.DeviceName} after placement");
 
                 int dpi = (int)Math.Round(VisualTreeHelper.GetDpi(window).DpiScaleX * 96.0);
                 var image = CreateMonitorImage(capture.Image, monitor, capture.VirtualBounds, dpi);
                 window.SetFrozenImage(image);
+                Trace($"{monitor.DeviceName} image set ({dpi} dpi)");
 
                 // The window only reports global physical cursor positions;
                 // the session owns the selection state, so the drag logic
@@ -113,14 +139,10 @@ public sealed class FrozenOverlaySession : IDisposable
                 _targets.Add(new Target(window, monitor.Bounds, dpi));
             }
 
-            foreach (var window in _windows)
-            {
-                window.Opacity = 1;
-            }
-
-            // Take keyboard focus so Esc can end the session. M5-A has no
-            // other exit: Esc is the only way out of a freeze-frame session.
-            _windows[0].Activate();
+            // The windows stay invisible until their frozen image has been
+            // composed (see RevealOnNextRenderFrame).
+            RevealOnNextRenderFrame();
+            Trace("reveal scheduled");
 
             // Construction is complete: from now on input events and close
             // requests take effect immediately.
@@ -140,6 +162,234 @@ public sealed class FrozenOverlaySession : IDisposable
             throw;
         }
     }
+
+    /// <summary>
+    /// Makes every overlay visible two composition frames after the frozen
+    /// images were assigned (black-flash fix).
+    ///
+    /// Window.Opacity is implemented natively (WS_EX_LAYERED +
+    /// SetLayeredWindowAttributes), so the alpha 0 -> 1 switch runs
+    /// synchronously on the UI thread, while the image reaches the DWM
+    /// surface only when the render thread composes and presents its
+    /// frame. The previous single-stage reveal raised the alpha in the
+    /// first CompositionTarget.Rendering after the images were set -
+    /// i.e. before that frame was composed: when the DWM v-sync landed in
+    /// between, it presented the last surface content (black background
+    /// plus the dim layer, i.e. black) at full alpha on every monitor -
+    /// the observed black flash.
+    ///
+    /// Two stages remove the race: the first event only records that the
+    /// frame containing the images has been rendered; the WPF render loop
+    /// schedules the next event only after that frame was presented to
+    /// the DWM surface. Raising the alpha on the second event therefore
+    /// always presents a surface that already contains the frozen image:
+    /// the first visible frame is the correct one.
+    ///
+    /// The handler is an instance method (not a local function) so
+    /// CloseCore can unhook it on every teardown path (Esc, window
+    /// closed, Dispose, constructor failure); a stale subscription would
+    /// otherwise pin the closed session until the next render frame.
+    /// </summary>
+    private void RevealOnNextRenderFrame()
+    {
+        _imageFrameRendered = false;
+        CompositionTarget.Rendering += OnRevealRendering;
+    }
+
+    private void OnRevealRendering(object? sender, EventArgs e)
+    {
+        if (_closed)
+        {
+            // The session was torn down before the reveal completed: drop
+            // the subscription, nothing to reveal.
+            CompositionTarget.Rendering -= OnRevealRendering;
+            return;
+        }
+
+        if (!_imageFrameRendered)
+        {
+            // Stage 1: this event precedes the frame that contains the
+            // frozen images; keep the overlays hidden and remember that
+            // the frame has been rendered.
+            _imageFrameRendered = true;
+            Trace("reveal stage 1: image frame rendered");
+            return;
+        }
+
+        // Stage 2: the image frame is already presented in the DWM
+        // surface, so the alpha switch can no longer expose the old
+        // (dark) surface content.
+        CompositionTarget.Rendering -= OnRevealRendering;
+
+        foreach (var window in _windows)
+        {
+            window.Opacity = 1;
+        }
+
+        Trace("overlays revealed (opacity 1)");
+        TraceWindowStates("at reveal");
+
+        // TEMPORARY diagnostics: one snapshot shortly after the reveal,
+        // to record the window state of the frames in which the black
+        // flash is observed.
+        var postReveal = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+        postReveal.Tick += (_, _) =>
+        {
+            postReveal.Stop();
+            if (!_closed)
+            {
+                TraceWindowStates("200ms after reveal");
+            }
+        };
+        postReveal.Start();
+
+        // Take keyboard focus so Esc can end the session. M5-A has no
+        // other exit: Esc is the only way out of a freeze-frame session.
+        _windows[0].Activate();
+    }
+
+    /// <summary>
+    /// Pumps the dispatcher until the window's first frame has actually
+    /// been painted by the render thread.
+    ///
+    /// A dispatcher pump only hands the render work to the render thread;
+    /// the composition itself completes asynchronously. The
+    /// ContentRendered event fires on the UI thread after that composition
+    /// finishes, so it is the only reliable signal that the window's DWM
+    /// surface is no longer the unpainted (black) one. Bounded: a missing
+    /// render is surfaced as an exception, never as a silent stall.
+    /// </summary>
+    private static void PumpUntilFirstRender(Window window)
+    {
+        bool rendered = false;
+
+        void OnContentRendered(object? sender, EventArgs e)
+        {
+            window.ContentRendered -= OnContentRendered;
+            rendered = true;
+        }
+
+        window.ContentRendered += OnContentRendered;
+
+        const int maxPumps = 10;
+
+        for (int attempt = 0; rendered is false && attempt < maxPumps; attempt++)
+        {
+            PumpDispatcher();
+        }
+
+        window.ContentRendered -= OnContentRendered;
+
+        if (!rendered)
+        {
+            throw new TimeoutException(
+                "The overlay window did not render its first frame in time; " +
+                "its unpainted (black) surface could be presented on the monitor.");
+        }
+    }
+
+    // TEMPORARY diagnostics for the black-flash investigation: when the
+    // CAPPARSE_TRACE environment variable points to a file, the capture
+    // timeline (show, first render, placement, image set, reveal) is
+    // appended to it with millisecond timestamps. Remove once the fix is
+    // validated manually.
+    internal static void Trace(string message)
+    {
+        var path = Environment.GetEnvironmentVariable("CAPPARSE_TRACE");
+
+        if (string.IsNullOrEmpty(path))
+        {
+            return;
+        }
+
+        try
+        {
+            File.AppendAllText(path, $"{DateTime.Now:HH:mm:ss.fff} {message}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Diagnostics must never break the capture flow.
+        }
+    }
+
+    /// <summary>
+    /// TEMPORARY diagnostics (black-flash investigation): appends the state
+    /// of every top-level window of this process (visible flag, rectangle,
+    /// extended style) to the CAPPARSE_TRACE log. Note: IsWindowVisible
+    /// reflects WS_VISIBLE, not WPF's Opacity or the painted state of the
+    /// DWM surface; it answers "which of our windows was on a monitor at
+    /// this moment", which is what the recording cross-reference needs.
+    /// </summary>
+    private static void TraceWindowStates(string tag)
+    {
+        var path = Environment.GetEnvironmentVariable("CAPPARSE_TRACE");
+
+        if (string.IsNullOrEmpty(path))
+        {
+            return;
+        }
+
+        int pid = Process.GetCurrentProcess().Id;
+        var lines = new List<string>();
+
+        EnumWindows((hwnd, _) =>
+        {
+            GetWindowThreadProcessId(hwnd, out int windowPid);
+
+            if (windowPid != pid)
+            {
+                return true;
+            }
+
+            bool visible = IsWindowVisible(hwnd);
+            GetWindowRect(hwnd, out NativeRect rect);
+            int exStyle = GetWindowLong(hwnd, -20); // GWL_EXSTYLE
+
+            lines.Add($"{DateTime.Now:HH:mm:ss.fff} WINDOW {tag} hwnd=0x{hwnd.ToInt64():X} " +
+                $"visible={visible} rect=({rect.Left},{rect.Top})-{rect.Right - rect.Left}x{rect.Bottom - rect.Top} " +
+                $"exstyle=0x{exStyle:X8}");
+            return true;
+        }, IntPtr.Zero);
+
+        if (lines.Count > 0)
+        {
+            try
+            {
+                File.AppendAllText(path, string.Join(Environment.NewLine, lines) + Environment.NewLine);
+            }
+            catch
+            {
+                // Diagnostics must never break the capture flow.
+            }
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc proc, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out int processId);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hWnd, out NativeRect rect);
+
+    [DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hWnd, int index);
 
     public void Close()
     {
@@ -274,6 +524,13 @@ public sealed class FrozenOverlaySession : IDisposable
         }
 
         _closed = true;
+
+        // Drop the (possibly still pending) two-stage reveal subscription
+        // on every teardown path: Esc, an overlay window closed, Dispose
+        // and constructor failures all funnel through here. Without this,
+        // a close that lands between the two render events would leave the
+        // handler subscribed (pinning the session) until the next frame.
+        CompositionTarget.Rendering -= OnRevealRendering;
 
         var selection = _selection;
 
