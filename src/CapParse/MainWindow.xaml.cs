@@ -55,8 +55,24 @@ public partial class MainWindow : Window
 
     private void Refresh()
     {
+        RefreshHint();
         RefreshOcrState();
         RefreshHistory();
+    }
+
+    /// <summary>
+    /// Keeps the window's hint in sync with the hotkey that is active
+    /// right now (the shortcut is configurable in Settings), falling back
+    /// to the tray menu when no global hotkey is registered.
+    /// </summary>
+    private void RefreshHint()
+    {
+        var app = (App)Application.Current;
+        var active = app.ActiveHotkey;
+
+        HintText.Text = active is not null
+            ? $"Capture uma região ({active.DisplayString}) para reconhecer o texto."
+            : "Capture uma região pelo menu da bandeja para reconhecer o texto.";
     }
 
     private void RefreshOcrState()

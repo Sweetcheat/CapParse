@@ -284,13 +284,15 @@ V0.1 should provide a minimal settings interface.
 
 The first configurable setting is the global capture hotkey.
 
-The default hotkey may initially be:
+The default hotkey is:
 
 `Ctrl + Shift + X`
 
 The user must be able to change the shortcut through the Settings interface.
 
 Additional configuration should only be introduced when required by a future feature.
+
+**Status (M13): implemented.** The Settings window (tray menu → "Configurações") shows the active capture hotkey and lets the user record a new combination (with validation and cancel), reset it to the default, or close the window. The value is persisted locally in `%LOCALAPPDATA%\CapParse\settings.json` (the file holds only the key combination — no personal data). When the saved shortcut cannot be registered because another application owns it, the application activates the default `Ctrl + Shift + X` and informs the user; the settings file only ever stores a combination the application can actually register.
 
 ---
 
@@ -427,8 +429,9 @@ The user should never need to become a programmer just to extract useful informa
 
 This summary helps orient readers; `docs/development.md` (section 50) is the single source of truth for milestone status, releases and validation evidence.
 
-- **Implemented and published** (mainline, in the `v0.1.0-beta.1` line): application shell; tray integration; global hotkey (`Ctrl + Shift + X`); multi-monitor freeze-frame capture; selection overlay; region cropping; local OCR engine (RapidOcrNet + PP-OCRv6 Small); OCR integrated into the capture flow with a processing state; result view in the main window; text copy; session history; single-instance guard; Brazilian Portuguese interface. **M11 Copy Image** is implemented and published on `main` (commit `3bed7be`) but postdates the `v0.1.0-beta.1` tag. **M12 Save Image** is implemented on `main` (commit `feat: add save image action`, local until published) and also postdates the tag.
-- **Planned (V0.1):** Settings (M13); UX Polish (M14); V0.1 validation (M15).
+- **Implemented and published** (mainline, in the `v0.1.0-beta.1` line): application shell; tray integration; global hotkey (`Ctrl + Shift + X` by default); multi-monitor freeze-frame capture; selection overlay; region cropping; local OCR engine (RapidOcrNet + PP-OCRv6 Small); OCR integrated into the capture flow with a processing state; result view in the main window; text copy; session history; single-instance guard; Brazilian Portuguese interface. **M11 Copy Image** is implemented and published on `main` (commit `3bed7be`) but postdates the `v0.1.0-beta.1` tag. **M12 Save Image** is implemented and published on `main` (commit `1edd9f1`) and also postdates the tag.
+- **Implemented (local on `main`, postdates the tag):** Settings (M13) — the capture hotkey is configurable in a dedicated Settings window (tray menu) and persisted in `%LOCALAPPDATA%\CapParse\settings.json`, with conflict recovery to the default shortcut.
+- **Planned (V0.1):** UX Polish (M14); V0.1 validation (M15).
 - **Future (not available):** HDR Capture & Tone Mapping; Spreadsheet Conversion; the list in section 9.
 
 Nothing in this section should be read as a feature being available if it is not listed under "Implemented".

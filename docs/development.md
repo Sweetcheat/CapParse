@@ -584,7 +584,7 @@ Implementação: `CropImageCopier` + `WpfImageClipboard` (DIB em memória, tag d
 
 # 25. M12 — Save Image
 
-**Status: concluído e verificado** (commit `feat: add save image action`, local em `main` sobre `6b1cb1f`; validação manual do diálogo de salvamento concluída pelo usuário no Windows; ainda não publicado no GitHub; ainda não incluído na release `v0.1.0-beta.1`).
+**Status: concluído e publicado** (commit `1edd9f1` em `main` no GitHub; validação manual do diálogo registrada em `6401b4b`; ainda não incluído na release `v0.1.0-beta.1`).
 
 ## Objetivo
 
@@ -603,6 +603,8 @@ Implementação: `CropImageSaver` + `WpfCropImageSaveDialog` (diálogo padrão `
 ---
 
 # 26. M13 — Settings
+
+**Status: concluído** (commit `feat: add application settings`, local em `main` sobre `6401b4b`; 296/296 testes em Debug e Release; startup validado no Windows — a abertura da janela via menu do tray fica a cargo da validação manual do usuário).
 
 ## Objetivo
 
@@ -624,6 +626,14 @@ Capture Hotkey
 - restaurar padrão se necessário.
 
 Não adicionar outras configurações sem necessidade.
+
+## Implementação (M13)
+
+- `SettingsWindow` (janela própria, pt-BR, aberta pelo menu do tray "Configurações"): mostra o atalho ativo, grava uma nova combinação (tecla pressionada; `Esc` cancela; combinações inválidas são rejeitadas com mensagem), confirma com Salvar/Cancelar, e oferece "Restaurar padrão".
+- Validação: letra, número, F1–F6 ou F13–F24 (F7–F12 são excluídos porque o Win32 lhes atribui os mesmos códigos de tecla virtual das letras A–F) + pelo menos um de Ctrl/Alt/Windows.
+- Persistência: `%LOCALAPPDATA%\CapParse\settings.json` (JSON mínimo, escrita atômica). Arquivo ausente/inválido → padrões; leitura nunca lança e nunca modifica o arquivo; falha de gravação não encerra a aplicação.
+- Integração: o atalho é registrado no startup a partir da configuração; ao alterar, o app tenta registrar a nova combinação e, em conflito, recupera na ordem anterior ativo → padrão (`HotkeyRecovery`), persistindo apenas quando a combinação escolhida realmente ficou ativa.
+- Testes: 68 novos (validação, exibição, recuperação, persistência/leitura inválida).
 
 ---
 
@@ -1174,12 +1184,12 @@ Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidaç
 - **Repositório principal de trabalho: `C:\Dev\CapParseIntegI`** (branch `main`, remoto `https://github.com/Sweetcheat/CapParse.git`).
 - `C:\Dev\CapParse` é um **clone obsoleto** (HEAD `3324900`, 13 commits atrás da linha principal). Ele serviu apenas como fonte de comparação documental na auditoria de 2026-10-12. **Não trabalhar, não commitar e não fazer push a partir dele** (o `origin/main` local dele está desatualizado; um force-push a partir dele apagaria a linha publicada do GitHub).
 
-## 50.2 Estado do repositório (consolidação pós-M12)
+## 50.2 Estado do repositório (consolidação pós-M13)
 
-- Branch: `main`; `origin/main` = `6b1cb1f` (último commit publicado no GitHub); o commit do M12 (`feat: add save image action`) é local e ainda não publicado.
-- HEAD: commit do M12 (`feat: add save image action`), sobre `6b1cb1f` — "docs: consolidate project documentation post-M11".
+- Branch: `main`; `origin/main` = `6401b4b` (docs: record M12 manual validation) — M11 e M12 publicados no GitHub.
+- HEAD: commit do M13 (`feat: add application settings`), sobre `6401b4b` — local, ainda não publicado.
 - Working tree: limpo.
-- Tag `v0.1.0-beta.1` → `86e3d17` (README bilíngue): a release beta publicada **não inclui** o M11 nem o M12.
+- Tag `v0.1.0-beta.1` → `86e3d17` (README bilíngue): a release beta publicada **não inclui** o M11, o M12 nem o M13.
 - `.gitignore` ignora `build/dist/` (pacotes de publicação, ex.: `CapParse-v0.1.0-beta.1-win-x64.zip`).
 
 ## 50.3 Milestones — status
@@ -1200,8 +1210,8 @@ Statuses: **CV** = concluído e verificado (commitado + testes + evidência de v
 | M9/M10 — Resultado + Generate Text | CV (commitado; o commit agrupa apresentação e cópia de texto) | `61379b7` | resultado na janela principal + `OcrTextCopier` + `WpfTextClipboard` |
 | — Trabalhos adicionais publicados no beta | CV (commitados) | `f2c1036` (pt-BR), `a097cfa` (histórico de sessão), `f67b3a3` (instância única), `d9bdef1` (double-click do tray restaura a janela), `86e3d17` (README bilíngue, tag da beta) | — |
 | M11 — Copy Image | CV (commitado e **publicado**; 209/209 testes em Debug e Release) | `3bed7be` | `CropImageCopier` + `WpfImageClipboard` (DIB em memória, DPI efetivo), botão "Copiar imagem", 8 testes com fake; **fora da release `v0.1.0-beta.1`** |
-| M12 — Save Image | CV (commitado; 228/228 testes em Debug e Release; validação manual do diálogo concluída pelo usuário) | `feat: add save image action` (local, sobre `6b1cb1f`) | `CropImageSaver` + `WpfCropImageSaveDialog` (diálogo padrão, PNG c/ tag de DPI, nome sugerido único), botão "Salvar imagem", 19 testes com fake do diálogo; **fora da release `v0.1.0-beta.1`** |
-| M13 — Settings | P | — | placeholder no tray ("As configurações ainda não foram implementadas.") |
+| M12 — Save Image | CV (commitado e **publicado** em `1edd9f1`; validação manual do diálogo registrada em `6401b4b`) | `1edd9f1` | `CropImageSaver` + `WpfCropImageSaveDialog` (diálogo padrão, PNG c/ tag de DPI, nome sugerido único), botão "Salvar imagem", 19 testes com fake do diálogo; **fora da release `v0.1.0-beta.1`** |
+| M13 — Settings | CV (commitado; 296/296 testes em Debug e Release; startup validado no Windows) | `feat: add application settings` (local, sobre `6401b4b`) | `SettingsWindow` (tray → Configurações), `Configuration/` (`HotkeySetting`, `HotkeyRecovery`, `AppSettings`), persistência em `%LOCALAPPDATA%\CapParse\settings.json`, 68 testes novos; **fora da release `v0.1.0-beta.1`** |
 | M14 — UX Polish | P | — | interface principal, primeira execução, refinamento + consolidação de erros (§27) |
 | M15 — V0.1 Validation | P | — | — |
 | Futuro — HDR Capture & Tone Mapping | FI | — | `product.md` §9; `architecture.md` §45.1 |
@@ -1229,24 +1239,25 @@ Decisões de produto tomadas na linha principal (registradas aqui para evitar "c
 4. **Interface em pt-BR** (janela, tray, mensagens de erro).
 5. **Instância única** por mutex (`CapParse.SingleInstance.v1`); segunda instância exibe mensagem e encerra.
 6. **Histórico de OCR em memória**, por sessão (máximo de entradas, imutável, mais recente primeiro).
+7. **Settings (M13)**: o atalho de captura é configurável na janela `SettingsWindow` (menu do tray "Configurações") e persistido em `%LOCALAPPDATA%\CapParse\settings.json`. O arquivo guarda somente a combinação (modificadores + tecla virtual) — nenhum dado pessoal. Quando o atalho salvo não pode ser registrado (outro aplicativo o está usando), o app ativa o padrão `Ctrl + Shift + X` e informa o usuário; o arquivo passa a ser gravado apenas com o atalho efetivamente ativo. F7–F12 não são oferecidos (código de tecla virtual compartilhado com as letras A–F no Win32).
 
 ## 50.5 Evidências de build e testes
 
+- M13 (sessão do commit): `dotnet build` e `dotnet test` em Debug e Release — 0 erros, **296/296 aprovados** em ambas as configurações; apenas os 3 avisos preexistentes do M11 (CS8625 em `FrozenOverlaySession.cs` contado duas vezes + xUnit2020 em `OcrCollectionGeneratorTests.cs`) — nenhum aviso novo; startup da aplicação validado no Windows (processo estável por ~12 s, encerramento limpo); a gravação do arquivo de configuração e a gravação de teclas na `SettingsWindow` exigem interação com o tray e permanecem como validação manual do usuário.
 - M12 (sessão do commit, 2026-10): `dotnet build` e `dotnet test` em Debug e Release — 0 erros, **228/228 aprovados** em ambas as configurações; rebuild completo (`--no-incremental`) confirma apenas os 3 avisos preexistentes.
 - M11 (sessão de commit, 2026-10): `dotnet build` e `dotnet test` em Debug e Release — 0 erros, **209/209 aprovados** em ambas as configurações.
 - M7 (registro histórico): 146/146 em Debug e Release na época do commit `3c0da24`; avaliação de qualidade do modelo em `docs/ocr-integration.md` §10 e `tests/CapParse.Tests/TestData/Ocr/reports/`.
-- A suíte cresce com os milestones (146 → 209 → 228 entre M7, M11 e M12): comparar sempre com o total da suíte atual, não com números históricos.
+- A suíte cresce com os milestones (146 → 209 → 228 → 296 entre M7, M11, M12 e M13): comparar sempre com o total da suíte atual, não com números históricos.
 
 ## 50.6 Próximo milestone recomendado
 
-**M13 — Settings** (§26): criar a tela mínima de configurações.
+**M14 — UX Polish** (§27): consolidar a experiência e a qualidade do V0.1 — interface principal, primeira execução (apresentação curta e não obrigatória, `ui.md` §23), refinamento da experiência e consolidação do tratamento de erros.
 
-- **Por que faz sentido agora:** o M12 encerrou as três ações do escopo V0.1 (Generate Text, Copy Image, Save Image); o placeholder "Configurações" do menu do tray ("As configurações ainda não foram implementadas.") é a próxima lacuna visível do produto.
-- **Escopo:** janela de settings mínima (inicialmente: capture hotkey — visualizar, alterar, cancelar, salvar, validar, restaurar padrão); persistência local da configuração.
-- **Critérios de conclusão:** os do §26 + testes automatizados da lógica isolável (validação do atalho) + validação manual real.
+- **Por que faz sentido agora:** o M13 fechou as telas e o fluxo de configuração do V0.1 (hotkey configurável + persistência); restam o polimento de UX e a validação final antes de uma nova release.
+- **Escopo:** o checklist do §27 (erros de captura/OCR/clipboard/gravação, fechamento durante processamento, múltiplas capturas simultâneas, overlays residuais, recursos não liberados, UI travando, DPI, múltiplos monitores) + atalhos pós-seleção (`ui.md` §22, combinações ainda não definitivas).
 - **Dependências:** nenhuma técnica aberta.
 
-Sequência prática após o M13: M14 (UX Polish, incluindo primeira execução e atalhos pós-seleção) → M15 (validação V0.1) → nova release beta incluindo o M11+M12 (a tag `v0.1.0-beta.1` ficou para trás em `86e3d17`).
+Sequência prática após o M14: M15 (validação V0.1, incluindo as validações manuais pendentes de multi-monitor/DPI/overlay) → nova release beta incluindo o M11+M12+M13 (a tag `v0.1.0-beta.1` ficou para trás em `86e3d17`).
 
 ## 50.7 Problemas conhecidos, riscos e limitações
 
@@ -1265,7 +1276,7 @@ Sequência prática após o M13: M14 (UX Polish, incluindo primeira execução e
 ## 50.9 Como iniciar uma nova sessão
 
 1. Ler `AGENTS.md` e esta seção.
-2. Trabalhar somente em `C:\Dev\CapParseIntegI`; conferir `git status` / `git log` (HEAD deve ser o commit do M12 — `feat: add save image action` — ou descendente; working tree limpo ou com trabalho declarado).
+2. Trabalhar somente em `C:\Dev\CapParseIntegI`; conferir `git status` / `git log` (HEAD deve ser o commit do M13 — `feat: add application settings` — ou descendente; working tree limpo ou com trabalho declarado).
 3. Executar `dotnet build` e `dotnet test`.
 4. Trabalhar apenas no milestone atual; não criar commit, tag ou push sem aprovação explícita.
 5. Atualizar esta seção ao final da sessão (estado, evidências, pendências).

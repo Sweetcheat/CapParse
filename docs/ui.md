@@ -140,7 +140,7 @@ Starts the same capture workflow as the global hotkey.
 
 ### Configurações
 
-Placeholder until M13 (Settings window).
+Opens the Settings window (implemented in M13): a small window with the capture hotkey as its single setting — see section 14.
 
 ### Sair
 
@@ -344,31 +344,22 @@ No capture files are created unless the user explicitly chooses to save one.
 
 # 14. Settings
 
-The V0.1 Settings window should remain intentionally small.
+**Status (M13): implemented.** The V0.1 Settings window is intentionally small: a single setting — the capture hotkey.
 
-The primary setting is the capture hotkey.
+The window (title "Configurações", opened from the tray menu; one instance at a time) has three states:
 
-Conceptual layout:
+1. **Current:** shows the combination that is active right now (e.g. `Ctrl + Shift + X`), with a note when the saved combination is unavailable (the active one is the default) or when no global hotkey could be registered at all (capture stays available through the tray menu). Actions: **Alterar atalho**, **Restaurar padrão**, **Fechar**.
+2. **Recording:** a dashed target area receives the keyboard focus and the user presses the new combination. `Esc` cancels the change. Invalid combinations (no Ctrl/Alt/Windows, or a key outside letters/digits/F1–F6/F13–F24) are rejected with an inline message and recording continues.
+3. **Confirm:** shows the recorded combination with **Salvar** / **Cancelar**.
 
-```text
-┌─────────────────────────────────────┐
-│ Settings                            │
-│                                     │
-│ Capture Hotkey                      │
-│                                     │
-│ [ Ctrl + Shift + X ]  [ Change ]   │
-│                                     │
-│                                     │
-│                          [ Close ]  │
-└─────────────────────────────────────┘
-```
+Applying a new combination:
 
-When changing the hotkey:
+- the combination is validated (at least one of Ctrl/Alt/Windows, plus a letter, digit, F1–F6 or F13–F24);
+- the application tries to register it globally; on success it becomes the active hotkey and is persisted to `%LOCALAPPDATA%\CapParse\settings.json`;
+- when the combination is taken by another application, the application recovers (previous active combination, then the default) and shows a friendly message; the settings are left unchanged;
+- a settings-file write failure is reported without rolling the (already active) hotkey back.
 
-- the user should be prompted to press a key combination;
-- invalid combinations should be rejected;
-- `Esc` should cancel the change;
-- the application should detect conflicts where possible.
+F7–F12 are not offered: Win32 assigns them the same virtual key codes as the letters A–F, so they would be registered as those letters.
 
 Additional settings should not be added unless required by a future feature.
 
@@ -566,7 +557,7 @@ No first-run experience may be created beyond this.
 
 # 24. Future Settings (direction only — not implemented)
 
-When the Settings window is implemented (M13), its initial content is the capture hotkey. The direction for later growth:
+The Settings window (M13) ships with a single setting: the capture hotkey. The direction for later growth:
 
 - configurable post-selection shortcuts (section 22);
 - image save directory (default location for Save Image);

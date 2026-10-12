@@ -19,8 +19,8 @@
                    FontWeight="SemiBold"
                    HorizontalAlignment="Center" />
 
-        <TextBlock Grid.Row="1"
-                   Text="Capture uma região (Ctrl + Shift + X) para reconhecer o texto."
+        <TextBlock x:Name="HintText"
+                   Grid.Row="1"
                    Margin="0,8,0,16"
                    Foreground="Gray"
                    HorizontalAlignment="Center" />

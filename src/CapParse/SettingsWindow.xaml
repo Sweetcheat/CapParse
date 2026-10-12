@@ -1,0 +1,130 @@
+<Window x:Class="CapParse.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Configurações"
+        Width="460" Height="280"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="Configurações"
+                   FontSize="20"
+                   FontWeight="SemiBold" />
+
+        <TextBlock Grid.Row="1"
+                   Margin="0,12,0,0"
+                   Text="Atalho de captura"
+                   FontSize="14"
+                   FontWeight="SemiBold" />
+
+        <!-- State: current. Shows the hotkey that is active right now
+             (or the saved one, with a note, when none could be
+             registered) and the actions to change or reset it. -->
+        <Grid Grid.Row="2" x:Name="CurrentPanel" Margin="0,8,0,0">
+            <StackPanel>
+                <Border BorderBrush="#808080"
+                        BorderThickness="1"
+                        Padding="12,8"
+                        HorizontalAlignment="Left">
+                    <TextBlock x:Name="CurrentHotkeyText" FontSize="16" />
+                </Border>
+                <TextBlock x:Name="CurrentNote"
+                           Margin="0,8,0,0"
+                           Foreground="Gray"
+                           TextWrapping="Wrap"
+                           Visibility="Collapsed" />
+            </StackPanel>
+        </Grid>
+
+        <!-- State: recording. The dashed border is a focusable target that
+             captures the key combination the user presses. -->
+        <Grid Grid.Row="2" x:Name="RecordingPanel" Margin="0,8,0,0" Visibility="Collapsed">
+            <!-- The dashed outline is decorative; the focusable Grid
+                 receives the keyboard focus and captures the keys. -->
+            <Grid x:Name="KeyCaptureTarget" Focusable="True" Background="Transparent">
+                <Rectangle Stroke="#808080"
+                           StrokeThickness="1"
+                           StrokeDashArray="4 3"
+                           IsHitTestVisible="False" />
+                <StackPanel Margin="12,8">
+                    <TextBlock Text="Pressione a combinação de teclas do novo atalho."
+                               FontSize="14"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="Esc cancela."
+                               Margin="0,4,0,0"
+                               Foreground="Gray" />
+                    <TextBlock x:Name="RecordingError"
+                               Margin="0,8,0,0"
+                               Foreground="#B00020"
+                               TextWrapping="Wrap"
+                               Visibility="Collapsed" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+        <!-- State: confirm. Shows the recorded combination and lets the
+             user apply it or discard it. -->
+        <Grid Grid.Row="2" x:Name="ConfirmPanel" Margin="0,8,0,0" Visibility="Collapsed">
+            <StackPanel>
+                <Border BorderBrush="#808080"
+                        BorderThickness="1"
+                        Padding="12,8"
+                        HorizontalAlignment="Left">
+                    <TextBlock x:Name="CandidateText" FontSize="16" />
+                </Border>
+                <TextBlock Margin="0,8,0,0"
+                           Foreground="Gray"
+                           TextWrapping="Wrap"
+                           Text="Salvar para aplicar o novo atalho." />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="3" Margin="0,16,0,0">
+            <StackPanel x:Name="CurrentButtons"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Left">
+                <Button x:Name="ChangeButton"
+                        Content="Alterar atalho"
+                        MinWidth="120"
+                        Padding="12,6"
+                        Click="ChangeButton_Click" />
+                <Button x:Name="ResetButton"
+                        Content="Restaurar padrão"
+                        MinWidth="130"
+                        Padding="12,6"
+                        Margin="8,0,0,0"
+                        Click="ResetButton_Click" />
+            </StackPanel>
+            <StackPanel x:Name="ConfirmButtons"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Left"
+                        Visibility="Collapsed">
+                <Button x:Name="SaveButton"
+                        Content="Salvar"
+                        MinWidth="100"
+                        Padding="12,6"
+                        Click="SaveButton_Click" />
+                <Button x:Name="CancelButton"
+                        Content="Cancelar"
+                        MinWidth="100"
+                        Padding="12,6"
+                        Margin="8,0,0,0"
+                        Click="CancelButton_Click" />
+            </StackPanel>
+            <Button x:Name="CloseButton"
+                    Content="Fechar"
+                    MinWidth="90"
+                    Padding="12,6"
+                    HorizontalAlignment="Right"
+                    Click="CloseButton_Click" />
+        </Grid>
+    </Grid>
+</Window>

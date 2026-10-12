@@ -51,9 +51,7 @@ O objetivo é criar uma base sólida para o V0.1 sem dificultar sua evolução p
 
 ## Persistência
 
-Não existe persistência de dados no V0.1.
-
-Configurações simples podem ser armazenadas localmente conforme necessário.
+A única persistência do V0.1 é a de configurações: o atalho de captura é gravado em `%LOCALAPPDATA%\CapParse\settings.json` (implementado no M13, ver §29). Não há persistência de resultados, histórico ou imagens capturadas.
 
 ---
 
@@ -530,7 +528,7 @@ O hotkey padrão será:
 Ctrl + Shift + X
 ```
 
-O sistema deve permitir alterar o atalho nas configurações.
+O sistema deve permitir alterar o atalho nas configurações (implementado no M13: a janela `SettingsWindow` grava uma nova combinação, valida, registra globalmente com recuperação em caso de conflito e persiste o valor — ver §29).
 
 A implementação pode utilizar Win32 interop.
 
@@ -576,7 +574,7 @@ StartCapture()
 
 ### Configurações
 
-Placeholder até o M13.
+Abre a janela de configurações (`SettingsWindow`; implementado no M13).
 
 ### Sair
 
@@ -710,6 +708,14 @@ A configuração deve:
 - validar o hotkey.
 
 Não criar dezenas de opções de configuração.
+
+**Implementação (M13):** a pasta `Configuration/` do projeto principal contém:
+
+- `HotkeySetting` — o valor persistido (flags de modificador do Win32 + código de tecla virtual), com validação (pelo menos um de Ctrl/Alt/Windows + letra, dígito, F1–F6 ou F13–F24) e exibição (`"Ctrl + Shift + X"`); F7–F12 são excluídos porque o Win32 lhes atribui os mesmos códigos de tecla virtual das letras A–F;
+- `HotkeyRecovery` — a cadeia de recuperação pura (solicitada → anterior ativo → padrão → nenhum atalho), usada pelo startup e pela janela de Settings; a aplicação fornece a função que executa os `RegisterHotKey`;
+- `AppSettings` — leitura/gravação de `%LOCALAPPDATA%\CapParse\settings.json` (JSON mínimo, escrita atômica via arquivo temporário). A leitura nunca lança: arquivo ausente, ilegível, com parse inválido ou valores inválidos produzem os padrões, sem modificar o arquivo. A gravação falha sem lançar (retorna `false`), o que a janela de Settings reporta como mensagem amigável.
+
+O arquivo contém somente a combinação de teclas — nenhum dado pessoal nem conteúdo capturado.
 
 ---
 
@@ -1046,9 +1052,14 @@ Seção de continuidade: o que realmente existe no código versus o que este doc
 
 ```text
 src/CapParse/
-├── App.xaml.cs            tray (WinForms NotifyIcon), hotkey, StartCapture,
-│                          OcrCoordinator/OcrRunState/OcrHistory, SingleInstanceGuard,
+├── App.xaml.cs            tray (WinForms NotifyIcon), hotkey (a partir da
+│                          configuração persistida), StartCapture,
+│                          ApplyCaptureHotkey/SaveSettings, OcrCoordinator/
+│                          OcrRunState/OcrHistory, SingleInstanceGuard,
 │                          Restauração da janela principal, mensagens pt-BR
+├── SettingsWindow.xaml(.cs)  janela de configurações (M13): atalho de
+│                          captura — visualizar, gravar, validar, cancelar,
+│                          salvar, restaurar padrão
 ├── MainWindow.xaml(.cs)   janela principal = view do resultado: status, texto
 │                          reconhecido, Copiar texto / Copiar imagem / Salvar imagem,
 │                          histórico
@@ -1070,9 +1081,16 @@ src/CapParse/
 │   ├── ICropImageSaveDialog.cs  seam do diálogo de salvar (WpfCropImageSaveDialog)
 │   └── CropImageSaver.cs        crop → PNG c/ DPI no arquivo escolhido (diálogo padrão)
 ├── Platform/
-│   ├── GlobalHotkey.cs        RegisterHotkey (Ctrl+Shift+X por padrão)
+│   ├── GlobalHotkey.cs        RegisterHotkey (registra a combinação
+│   │                          configurada; Re-register libera a anterior)
 │   ├── MonitorDiscovery.cs    EnumDisplayMonitors + DPI + GetEffectiveDpiForSelection
 │   └── SingleInstanceGuard.cs mutex de instância única (CapParse.SingleInstance.v1)
+├── Configuration/
+│   ├── HotkeySetting.cs       valor persistido (modificadores + tecla virtual),
+│   │                          validação e exibição
+│   ├── HotkeyRecovery.cs      cadeia de recuperação (solicitada → anterior → padrão)
+│   └── AppSettings.cs         %LOCALAPPDATA%\CapParse\settings.json (JSON,
+│                              leitura nunca lança, escrita atômica)
 └── OCR/
     ├── IOcrEngine.cs          contrato Image → OcrResult
     ├── ImageData.cs           wrapper do Bitmap do consumidor (não descarta)
@@ -1090,13 +1108,11 @@ Modelos: `models/v6/` no repositório (3 arquivos, SHA256 verificados) + classif
 
 ## 44.2 Documentado mas AINDA NÃO existente
 
-- janela de Settings e atalhos configuráveis (M13; o menu do tray mostra um placeholder);
 - apresentação curta de primeira execução (M14, `ui.md` §23);
 - atalhos pós-seleção para copiar/salvar imagem (M14, `ui.md` §22 — combinações não definitivas);
-- persistência de configurações;
 - refinamento visual geral (M14).
 
-Esses componentes pertencem aos milestones M13–M15 (ver `development.md`). Não tratá-los como existentes.
+Esses componentes pertencem aos milestones M14–M15 (ver `development.md`). Não tratá-los como existentes.
 
 ---
 

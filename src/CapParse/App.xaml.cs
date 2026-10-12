@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Windows;
 using CapParse.Capture;
+using CapParse.Configuration;
 using CapParse.OCR;
 using CapParse.Platform;
 using CapParse.UI;
@@ -16,6 +17,9 @@ namespace CapParse;
 public partial class App : Application
 {
     private readonly CaptureCoordinator _captureCoordinator = new();
+    // The persisted settings, loaded once at construction. A missing or
+    // invalid file yields the defaults, so this never throws.
+    private readonly AppSettings _settings = AppSettings.Load();
     // The OCR engine is created lazily on the first recognition, so
     // starting the app costs nothing; the coordinator releases it on exit.
     private readonly OcrCoordinator _ocrCoordinator = new();
@@ -23,7 +27,11 @@ public partial class App : Application
     private readonly OcrRunState _ocrState = new();
     private WinForms.NotifyIcon? _trayIcon;
     private MainWindow? _mainWindow;
+    private SettingsWindow? _settingsWindow;
     private GlobalHotkey? _hotkey;
+    // The hotkey that is currently registered globally, or null when no
+    // combination could be registered (the tray menu keeps working).
+    private HotkeySetting? _activeHotkey;
     private FrozenOverlaySession? _overlaySession;
     // True from the first trigger of a capture until the attempt ends
     // (session closed, or the attempt failed). Unlike _overlaySession,
@@ -55,6 +63,21 @@ public partial class App : Application
     private const string SingleInstanceName = "CapParse.SingleInstance.v1";
 
     public CaptureCoordinator CaptureCoordinator => _captureCoordinator;
+
+    /// <summary>
+    /// The capture hotkey that is currently registered globally, or null
+    /// when no combination could be registered. Views read this to display
+    /// the active shortcut.
+    /// </summary>
+    public HotkeySetting? ActiveHotkey => _activeHotkey;
+
+    /// <summary>
+    /// The hotkey persisted in the settings file (what the application
+    /// will try to register at the next startup). It can differ from
+    /// <see cref="ActiveHotkey"/> when the saved combination is currently
+    /// taken by another application and the default is active instead.
+    /// </summary>
+    public HotkeySetting SavedCaptureHotkey => _settings.CaptureHotkey;
 
     /// <summary>
     /// The selection of the last finished capture, in virtual-desktop
@@ -328,18 +351,81 @@ public partial class App : Application
     {
         _hotkey = new GlobalHotkey(StartCapture);
 
-        // Single attempt: if another application owns this shortcut, CapParse
-        // keeps working through the tray instead of retrying in a loop.
-        if (!_hotkey.Register(GlobalHotkey.Modifier.Control | GlobalHotkey.Modifier.Shift, GlobalHotkey.KeyX))
+        var configured = _settings.CaptureHotkey;
+        _activeHotkey = HotkeyRecovery.Resolve(null, configured, TryRegisterHotkey);
+
+        if (_activeHotkey is not null && _activeHotkey.Equals(configured))
         {
+            return;
+        }
+
+        if (_activeHotkey is not null)
+        {
+            // The saved combination is unavailable right now (another
+            // application owns it); the default is active instead.
             MessageBox.Show(
-                "O CapParse não conseguiu registrar o atalho global Ctrl + Shift + X.\n" +
-                "Outro aplicativo pode já estar usando esse atalho.\n\n" +
-                "A captura continua disponível pelo ícone da bandeja.",
+                $"O atalho salvo ({configured.DisplayString}) não pôde ser registrado agora.\n" +
+                $"Outro aplicativo pode já estar usando esse atalho.\n\n" +
+                $"O atalho padrão ({HotkeySetting.Default.DisplayString}) está ativo.",
                 "CapParse",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
+            return;
         }
+
+        // Nothing could be registered: the app keeps working through the
+        // tray instead of retrying in a loop.
+        MessageBox.Show(
+            $"O CapParse não conseguiu registrar o atalho global {configured.DisplayString}.\n" +
+            "Outro aplicativo pode já estar usando esse atalho.\n\n" +
+            "A captura continua disponível pelo ícone da bandeja.",
+            "CapParse",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
+    }
+
+    private bool TryRegisterHotkey(HotkeySetting setting)
+        => _hotkey is not null
+            && _hotkey.Register((GlobalHotkey.Modifier)setting.Modifiers, setting.Key);
+
+    /// <summary>
+    /// Re-registers the global capture hotkey with the given combination.
+    /// When the new combination cannot be registered, the previous active
+    /// combination is restored first and, if that is also unavailable, the
+    /// default (see <see cref="HotkeyRecovery"/>). Returns the hotkey that
+    /// is active afterwards, or null when nothing could be registered. The
+    /// views are notified so they can refresh the displayed shortcut.
+    /// </summary>
+    public HotkeySetting? ApplyCaptureHotkey(HotkeySetting requested)
+    {
+        if (_hotkey is null)
+        {
+            return _activeHotkey;
+        }
+
+        _activeHotkey = HotkeyRecovery.Resolve(_activeHotkey, requested, TryRegisterHotkey);
+
+        // The same publication event the OCR flow uses: the views simply
+        // refresh, which also updates the displayed capture shortcut.
+        PublishOcrState();
+
+        return _activeHotkey;
+    }
+
+    /// <summary>
+    /// Persists the settings. The saved hotkey is the one that is active
+    /// right now, so the settings file always describes a combination the
+    /// application can actually use. Returns false when the file could not
+    /// be written; the in-memory settings are left as they were.
+    /// </summary>
+    public bool SaveSettings()
+    {
+        if (_activeHotkey is not null)
+        {
+            _settings.CaptureHotkey = _activeHotkey;
+        }
+
+        return _settings.TrySave();
     }
 
     private void CreateTrayIcon()
@@ -413,9 +499,16 @@ public partial class App : Application
 
     private void ShowSettings()
     {
-        // Placeholder: the Settings window arrives in M13.
-        MessageBox.Show(_mainWindow, "As configurações ainda não foram implementadas.", "CapParse",
-            MessageBoxButton.OK, MessageBoxImage.Information);
+        // One settings window at a time: a second request activates the
+        // window that is already open (which re-reads the app's state).
+        if (_settingsWindow is null)
+        {
+            _settingsWindow = new SettingsWindow();
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            _settingsWindow.Show();
+        }
+
+        _settingsWindow.Activate();
     }
 
     private void ExitApplication()

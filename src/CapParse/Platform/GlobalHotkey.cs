@@ -55,11 +55,20 @@ public sealed class GlobalHotkey : IDisposable
     }
 
     /// <summary>
-    /// Registers the hotkey globally.
+    /// Registers the hotkey globally. A previously registered combination
+    /// (any combination) is unregistered first, so the same instance can
+    /// be re-pointed to a new one — the Settings window relies on this to
+    /// change the shortcut while the application is running.
     /// </summary>
     /// <returns>False when the combination is already taken by another application.</returns>
     public bool Register(Modifier modifiers, uint virtualKey)
     {
+        if (_registered)
+        {
+            UnregisterHotKey(_hwndSource.Handle, HotkeyId);
+            _registered = false;
+        }
+
         _registered = RegisterHotKey(_hwndSource.Handle, HotkeyId, (uint)modifiers, virtualKey);
         return _registered;
     }
