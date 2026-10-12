@@ -53,12 +53,21 @@ public sealed class MonitorOverlayWindow : Window
     public MonitorOverlayWindow(double dimOpacity)
     {
         WindowStyle = WindowStyle.None;
+        // Layered window from birth (MewuAI's approach): the DWM surface of
+        // a transparent window is transparent in every state, including the
+        // unpainted one. With the previous opaque window plus a black
+        // background, any frame presented before the frozen image was
+        // painted showed a black rectangle on the monitors (the observed
+        // flash); with a transparent background the worst case is the live
+        // desktop showing through for a frame, which is indistinguishable
+        // from the frozen one.
+        AllowsTransparency = true;
         ResizeMode = ResizeMode.NoResize;
         WindowStartupLocation = WindowStartupLocation.Manual;
         ShowInTaskbar = false;
         Topmost = true;
         ShowActivated = false;
-        Background = Brushes.Black;
+        Background = Brushes.Transparent;
         // WPF on .NET 8 has no Cursors.Crosshair (it was dropped in the
         // .NET Core port); the cross cursor is the selection cursor.
         Cursor = System.Windows.Input.Cursors.Cross;

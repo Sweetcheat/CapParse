@@ -150,7 +150,22 @@ public partial class App : Application
 
         try
         {
+            FrozenOverlaySession.Trace("StartCapture: capturing desktop");
             var result = _captureCoordinator.StartCapture();
+            FrozenOverlaySession.Trace("StartCapture: desktop captured");
+
+            // TEMPORARY diagnostic (black-flash investigation): with
+            // CAPPARSE_NO_OVERLAY=1 the desktop is captured and logged but
+            // no overlay window is created at all. If the black frame still
+            // appears in this mode it cannot come from the overlay windows.
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CAPPARSE_NO_OVERLAY")))
+            {
+                FrozenOverlaySession.Trace("StartCapture: NO_OVERLAY diagnostic mode, no session created");
+                result.Dispose();
+                _captureInFlight = false;
+                return;
+            }
+
             var session = new FrozenOverlaySession(result, (selection, crop) =>
             {
                 _overlaySession = null;
@@ -174,6 +189,7 @@ public partial class App : Application
             // in that case the callback has already reset the guard and no
             // live session remains, so do not keep a stale reference.
             _overlaySession = session.Closed ? null : session;
+            FrozenOverlaySession.Trace("StartCapture: session constructed");
         }
         catch
         {
