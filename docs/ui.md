@@ -349,17 +349,17 @@ No capture files are created unless the user explicitly chooses to save one.
 The window (title "Configurações", opened from the tray menu; one instance at a time) has three states:
 
 1. **Current:** shows the combination that is active right now (e.g. `Ctrl + Shift + X`), with a note when the saved combination is unavailable (the active one is the default) or when no global hotkey could be registered at all (capture stays available through the tray menu). Actions: **Alterar atalho**, **Restaurar padrão**, **Fechar**.
-2. **Recording:** a dashed target area receives the keyboard focus and the user presses the new combination. `Esc` cancels the change. Invalid combinations (no Ctrl/Alt/Windows, or a key outside letters/digits/F1–F6/F13–F24) are rejected with an inline message and recording continues.
+2. **Recording:** a dashed target area receives the keyboard focus and the user presses the new combination. `Esc` cancels the change. Invalid combinations (no Ctrl/Alt/Windows, or a key outside letters/digits/F1–F24) are rejected with an inline message and recording continues.
 3. **Confirm:** shows the recorded combination with **Salvar** / **Cancelar**.
 
 Applying a new combination:
 
-- the combination is validated (at least one of Ctrl/Alt/Windows, plus a letter, digit, F1–F6 or F13–F24);
+- the combination is validated (at least one of Ctrl/Alt/Windows, plus a letter, digit or F key F1–F24);
 - the application tries to register it globally; on success it becomes the active hotkey and is persisted to `%LOCALAPPDATA%\CapParse\settings.json`;
 - when the combination is taken by another application, the application recovers (previous active combination, then the default) and shows a friendly message; the settings are left unchanged;
 - a settings-file write failure is reported without rolling the (already active) hotkey back.
 
-F7–F12 are not offered: Win32 assigns them the same virtual key codes as the letters A–F, so they would be registered as those letters.
+The key press interpretation (key, system key, modifier state → decision) is isolated in `Configuration/HotkeyInput` and unit-tested; the window only applies the decision to its states.
 
 Additional settings should not be added unless required by a future feature.
 

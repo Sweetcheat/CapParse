@@ -711,7 +711,7 @@ Não criar dezenas de opções de configuração.
 
 **Implementação (M13):** a pasta `Configuration/` do projeto principal contém:
 
-- `HotkeySetting` — o valor persistido (flags de modificador do Win32 + código de tecla virtual), com validação (pelo menos um de Ctrl/Alt/Windows + letra, dígito, F1–F6 ou F13–F24) e exibição (`"Ctrl + Shift + X"`); F7–F12 são excluídos porque o Win32 lhes atribui os mesmos códigos de tecla virtual das letras A–F;
+- `HotkeySetting` — o valor persistido (flags de modificador do Win32 + código de tecla virtual), com validação (pelo menos um de Ctrl/Alt/Windows + letra, dígito ou F1–F24; os códigos de tecla virtual das F-keys, 0x70–0x87, não colidem com nenhuma outra tecla) e exibição (`"Ctrl + Shift + X"`);
 - `HotkeyRecovery` — a cadeia de recuperação pura (solicitada → anterior ativo → padrão → nenhum atalho), usada pelo startup e pela janela de Settings; a aplicação fornece a função que executa os `RegisterHotKey`;
 - `AppSettings` — leitura/gravação de `%LOCALAPPDATA%\CapParse\settings.json` (JSON mínimo, escrita atômica via arquivo temporário). A leitura nunca lança: arquivo ausente, ilegível, com parse inválido ou valores inválidos produzem os padrões, sem modificar o arquivo. A gravação falha sem lançar (retorna `false`), o que a janela de Settings reporta como mensagem amigável.
 

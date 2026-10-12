@@ -48,8 +48,12 @@
              captures the key combination the user presses. -->
         <Grid Grid.Row="2" x:Name="RecordingPanel" Margin="0,8,0,0" Visibility="Collapsed">
             <!-- The dashed outline is decorative; the focusable Grid
-                 receives the keyboard focus and captures the keys. -->
-            <Grid x:Name="KeyCaptureTarget" Focusable="True" Background="Transparent">
+                 receives the keyboard focus and, through the
+                 PreviewKeyDown handler below, captures the keys. -->
+            <Grid x:Name="KeyCaptureTarget"
+                  Focusable="True"
+                  Background="Transparent"
+                  PreviewKeyDown="KeyCaptureTarget_PreviewKeyDown">
                 <Rectangle Stroke="#808080"
                            StrokeThickness="1"
                            StrokeDashArray="4 3"

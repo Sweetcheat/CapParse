@@ -77,17 +77,18 @@ public sealed class HotkeySetting : IEquatable<HotkeySetting>
     }
 
     /// <summary>
-    /// The keys the settings UI can offer: digits, letters, F1-F6 and
-    /// F13-F24. F7-F12 are excluded because Win32 gives them the same
-    /// virtual key codes as the letters A-F (F7 is 0x41, like "A"), so a
-    /// global hotkey registered for F7 would actually fire on the letter
-    /// and vice versa.
+    /// The keys the settings UI can offer: digits, letters and F1-F24.
+    /// The range is deliberately small; it covers the combinations users
+    /// actually choose for a capture shortcut and keeps the validation
+    /// and the display names trivial. The virtual key codes are the Win32
+    /// RegisterHotKey values (the same ones WPF's KeyInterop produces):
+    /// 0-9 = 0x30-0x39, A-Z = 0x41-0x5A, F1-F12 = 0x70-0x7B,
+    /// F13-F24 = 0x7C-0x87.
     /// </summary>
     public static bool IsSupportedKey(uint virtualKey)
         => (virtualKey >= 0x30 && virtualKey <= 0x39)   // 0-9
-        || (virtualKey >= 0x3B && virtualKey <= 0x40)   // F1-F6
         || (virtualKey >= 0x41 && virtualKey <= 0x5A)   // A-Z
-        || (virtualKey >= 0x5D && virtualKey <= 0x68);  // F13-F24
+        || (virtualKey >= 0x70 && virtualKey <= 0x87);  // F1-F24
 
     /// <summary>The human-readable combination, e.g. "Ctrl + Shift + X".</summary>
     public string DisplayString
@@ -138,14 +139,14 @@ public sealed class HotkeySetting : IEquatable<HotkeySetting>
                 return ((char)Key).ToString();
             }
 
-            if (Key >= 0x3B && Key <= 0x40)
+            if (Key >= 0x70 && Key <= 0x7B)
             {
-                return "F" + (Key - 0x3B + 1);
+                return "F" + (Key - 0x70 + 1);
             }
 
-            if (Key >= 0x5D && Key <= 0x68)
+            if (Key >= 0x7C && Key <= 0x87)
             {
-                return "F" + (Key - 0x5D + 13);
+                return "F" + (Key - 0x7C + 13);
             }
 
             return "?";

@@ -1,7 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
 using CapParse.Configuration;
-using CapParse.Platform;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MessageBox = System.Windows.MessageBox;
 using Application = System.Windows.Application;
@@ -128,51 +127,33 @@ public partial class SettingsWindow : Window
     }
 
     /// <summary>
-    /// Handles a key press while recording a new combination. Modifier keys
-    /// on their own only change the pending combination (the handler keeps
-    /// listening for the actual key); a real key completes the attempt.
+    /// Handles a key press while recording a new combination. The
+    /// interpretation (key/system key/modifier state → decision) lives in
+    /// <see cref="HotkeyInput"/> so it is testable without a window; this
+    /// handler only applies the decision to the window's states.
     /// </summary>
     private void KeyCaptureTarget_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         e.Handled = true;
 
-        // When Alt is part of the combination, WPF reports the key through
-        // SystemKey instead of Key.
-        var key = e.Key == Key.System ? e.SystemKey : e.Key;
-        if (key == Key.None)
+        switch (HotkeyInput.Interpret(e.Key, e.SystemKey, Keyboard.Modifiers, out var candidate))
         {
-            return;
-        }
+            case HotkeyInput.Interpretation.Waiting:
+                break;
 
-        if (IsModifierKey(key))
-        {
-            return;
-        }
-
-        if (key == Key.Escape)
-        {
-            // Esc without other modifiers cancels the change; with
-            // modifiers it is an invalid combination (Esc is not a
-            // supported hotkey key).
-            if (CurrentModifiers() == (uint)GlobalHotkey.Modifier.None)
-            {
+            case HotkeyInput.Interpretation.Canceled:
                 ShowCurrent();
-                return;
-            }
+                break;
 
-            ShowRecordingError();
-            return;
+            case HotkeyInput.Interpretation.Invalid:
+                ShowRecordingError();
+                break;
+
+            case HotkeyInput.Interpretation.Recorded:
+                _candidate = candidate;
+                ShowConfirm();
+                break;
         }
-
-        var candidate = new HotkeySetting(CurrentModifiers(), (uint)KeyInterop.VirtualKeyFromKey(key));
-        if (!candidate.IsValid)
-        {
-            ShowRecordingError();
-            return;
-        }
-
-        _candidate = candidate;
-        ShowConfirm();
     }
 
     private void ShowRecordingError()
@@ -183,40 +164,6 @@ public partial class SettingsWindow : Window
 
         // Keep the focus on the capture target so the user can retry.
         KeyCaptureTarget.Focus();
-    }
-
-    private static bool IsModifierKey(Key key)
-        => key is Key.LeftCtrl or Key.RightCtrl
-            or Key.LeftShift or Key.RightShift
-            or Key.LeftAlt or Key.RightAlt
-            or Key.LWin or Key.RWin;
-
-    private static uint CurrentModifiers()
-    {
-        var modifiers = GlobalHotkey.Modifier.None;
-        var state = Keyboard.Modifiers;
-
-        if (state.HasFlag(ModifierKeys.Control))
-        {
-            modifiers |= GlobalHotkey.Modifier.Control;
-        }
-
-        if (state.HasFlag(ModifierKeys.Shift))
-        {
-            modifiers |= GlobalHotkey.Modifier.Shift;
-        }
-
-        if (state.HasFlag(ModifierKeys.Alt))
-        {
-            modifiers |= GlobalHotkey.Modifier.Alt;
-        }
-
-        if (state.HasFlag(ModifierKeys.Windows))
-        {
-            modifiers |= GlobalHotkey.Modifier.Win;
-        }
-
-        return (uint)modifiers;
     }
 
     /// <summary>
