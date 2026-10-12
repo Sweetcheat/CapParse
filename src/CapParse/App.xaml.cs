@@ -43,7 +43,16 @@ public partial class App : Application
     // when it completes validly (see RecognizeCropAsync), so a superseded or
     // cancelled run never records a stale result here.
     private readonly OcrHistory _history = new();
+    // Single-instance guard: acquired on the UI thread in OnStartup and
+    // released on the same thread in OnExit; the OS also reclaims the mutex
+    // if the process terminates unexpectedly.
+    private SingleInstanceGuard? _singleInstance;
     private bool _isShuttingDown;
+
+    // Stable, session-scoped (no "Global\" prefix) name for the single-
+    // instance mutex. The suffix lets the name evolve if the semantics ever
+    // change, without colliding with an older build.
+    private const string SingleInstanceName = "CapParse.SingleInstance.v1";
 
     public CaptureCoordinator CaptureCoordinator => _captureCoordinator;
 
@@ -99,6 +108,22 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Single instance per user/session: acquire the guard on this (UI)
+        // thread before any exclusive resource (window, tray, hotkey) is
+        // created. A second instance shows a message and shuts down without
+        // starting a functional instance.
+        _singleInstance = new SingleInstanceGuard(SingleInstanceName);
+        if (!_singleInstance.TryAcquire())
+        {
+            MessageBox.Show(
+                "Já existe uma instância do CapParse em execução.",
+                "CapParse",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            Shutdown();
+            return;
+        }
 
         // Tray utility: the app keeps running while the main window is closed.
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
@@ -374,6 +399,12 @@ public partial class App : Application
         // Release the global hotkey before the process terminates.
         _hotkey?.Dispose();
         _hotkey = null;
+
+        // Release the single-instance mutex on the owning (UI) thread. The OS
+        // would also reclaim it on process exit, so this additionally covers
+        // the crash path.
+        _singleInstance?.Dispose();
+        _singleInstance = null;
 
         base.OnExit(e);
     }
