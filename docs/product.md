@@ -82,6 +82,14 @@ AI functionality will be added later as an optional capability and should not be
 
 The user should not be exposed to unnecessary technical configuration.
 
+### Minimal clicks and interruptions
+
+Every capability should be reachable with as few clicks and interruptions as possible. The common path (capture a region, get text or an image) should not require navigating through application screens.
+
+### Simple for regular users
+
+The experience must be usable by non-technical users without documentation. Technical depth must stay hidden behind a simple surface.
+
 ### Fast interaction
 
 The application should behave like a desktop utility rather than a traditional application that requires navigating through multiple screens.
@@ -102,8 +110,10 @@ The first version should focus on the fundamental workflow:
 
 The user can start a capture in two ways:
 
-1. A configurable global keyboard shortcut.
-2. Double-clicking the left mouse button on the CapParse system tray icon.
+1. The global keyboard shortcut (`Ctrl + Shift + X` by default; configurable in Settings, M13).
+2. Choosing **Capturar** in the system tray context menu.
+
+Double-clicking the tray icon restores the main window; it does not start a capture.
 
 When capture begins:
 
@@ -149,25 +159,23 @@ The OCR result should retain useful information such as:
 
 ### Actions
 
-After processing, the user is presented with a simple action selector.
-
-V0.1 should provide:
+V0.1 provides three actions with the captured content:
 
 - Generate Text;
 - Copy Image;
 - Save Image.
 
-When the user chooses **Generate Text**, CapParse displays the OCR result in a dedicated result view.
+The shipped interaction (no separate selector dialog): after processing, the main window presents the result — a status line, the recognized text in a read-only panel, and the explicit actions **Copiar texto** and **Copiar imagem** — plus the session's history of recognized results. Each action is an explicit user action; the application never copies to the clipboard on its own.
 
-The result view should allow the user to:
+**Status:** Generate Text (result view + text copy) and Copy Image are implemented (M9/M10 and M11). Save Image is planned (M12): the captured region is saved as an image file through the standard Windows save dialog.
+
+The result view lets the user:
 
 - inspect the extracted text;
 - copy the text to the system clipboard;
-- close the result.
-
-When the user chooses **Copy Image**, the captured region is placed on the system clipboard as an image so it can be pasted into other applications.
-
-When the user chooses **Save Image**, the captured region can be saved as an image file.
+- copy the captured image to the clipboard;
+- consult and re-copy previous results from the session history;
+- close the result (the window hides to the tray).
 
 ---
 
@@ -180,7 +188,7 @@ User
  ↓
 Global Hotkey
      OR
-Tray Double Click
+Tray Menu (Capturar)
  ↓
 Freeze Desktop
  ↓
@@ -214,37 +222,35 @@ Processing / Loading
  ↓
 Local OCR
  ↓
-Action Selector
+Result view (main window)
 ```
 
 ### Text Flow
 
 ```text
-Action Selector
+Result view
  ↓
-Generate Text
+Recognized text
  ↓
-OCR Result
+Copiar texto
  ↓
-Text Result View
- ↓
-Copy / Close
+Text on clipboard
 ```
 
 ### Image Flow
 
 ```text
-Action Selector
+Result view
  ↓
-Copy Image
+Copiar imagem
  ↓
 Image available on Clipboard
 ```
 
-or:
+or (planned, M12):
 
 ```text
-Action Selector
+Result view
  ↓
 Save Image
  ↓
@@ -259,13 +265,13 @@ Image file
 
 CapParse runs primarily as a desktop utility and should remain available from the Windows system tray.
 
-The initial tray menu should contain:
+The initial tray menu contains:
 
-- Capture;
-- Settings;
-- Exit.
+- Capturar;
+- Configurações;
+- Sair.
 
-Double-clicking the left mouse button on the tray icon should immediately start the capture workflow.
+Double-clicking the left mouse button on the tray icon restores the main window (it does not start a capture). Capture is started from the global hotkey or the tray menu.
 
 The tray should not expose unnecessary functionality in V0.1.
 
@@ -290,6 +296,11 @@ Additional configuration should only be introduced when required by a future fea
 ## 9. Future Direction
 
 The architecture should allow CapParse to evolve from a simple OCR utility into a general visual information extraction and action tool.
+
+Two initiatives are already identified (not available, not implemented — architecture and feasibility still to be investigated):
+
+- **HDR Capture & Tone Mapping** — option to preserve HDR when technically supported; HDR→SDR conversion when preservation is disabled; tone mapping, content peak and SDR paper white as future options. The current capture pipeline (GDI `BitBlt`) does not preserve HDR data; any solution must be validated in an isolated prototype before entering the production pipeline.
+- **Spreadsheet Conversion** — extract tables from captures and export them to spreadsheet formats. Output formats, header handling and column structure still need to be defined; preferences would live in a dedicated settings section.
 
 Potential future capabilities include:
 
@@ -375,6 +386,7 @@ The following are explicitly outside the V0.1 scope:
 - table-to-spreadsheet conversion;
 - video recording;
 - scrolling screenshots;
+- HDR capture / tone mapping;
 - screen annotation;
 - image editing;
 - screenshot history;
@@ -407,3 +419,15 @@ Act
 The application should make technically complex capabilities feel simple to the user.
 
 The user should never need to become a programmer just to extract useful information from something visible on their screen.
+
+---
+
+## 14. Current Implementation Status (summary)
+
+This summary helps orient readers; `docs/development.md` (section 50) is the single source of truth for milestone status, releases and validation evidence.
+
+- **Implemented and published** (mainline, in the `v0.1.0-beta.1` line): application shell; tray integration; global hotkey (`Ctrl + Shift + X`); multi-monitor freeze-frame capture; selection overlay; region cropping; local OCR engine (RapidOcrNet + PP-OCRv6 Small); OCR integrated into the capture flow with a processing state; result view in the main window; text copy; session history; single-instance guard; Brazilian Portuguese interface. **M11 Copy Image** is implemented and published on `main` (commit `3bed7be`) but postdates the `v0.1.0-beta.1` tag.
+- **Planned (V0.1):** Save Image (M12); Settings (M13); UX Polish (M14); V0.1 validation (M15).
+- **Future (not available):** HDR Capture & Tone Mapping; Spreadsheet Conversion; the list in section 9.
+
+Nothing in this section should be read as a feature being available if it is not listed under "Implemented".

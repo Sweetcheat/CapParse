@@ -104,13 +104,9 @@ Criar somente os arquivos necessários para o milestone atual.
 O fluxo do V0.1 é:
 
 ```text
-Global Hotkey
-      │
-      ▼
-Tray Double Click
-      │
-      ▼
-StartCapture()
+Global Hotkey  ────┐
+                   ├──► StartCapture()
+Tray Menu (Capturar) ─┘
       │
       ▼
 Freeze Desktop
@@ -139,17 +135,17 @@ OCR Engine
 OcrResult
       │
       ▼
-Action Selector
+Result view (main window)
       │
-      ├── Generate Text
+      ├── Generate Text (recognized text + Copiar texto)
       │       ▼
-      │   Result Window
+      │   Text on clipboard
       │
       ├── Copy Image
       │       ▼
-      │   Clipboard
+      │   Clipboard (in-memory DIB, DPI-tagged)
       │
-      └── Save Image
+      └── Save Image  (planned, M12)
               ▼
           Save Dialog
 ```
@@ -390,45 +386,28 @@ O OCR deve ser independente da interface gráfica.
 
 # 15. Inicialização do OCR
 
-O modelo de OCR não deve ser carregado repetidamente a cada captura.
-
-A inicialização deve ocorrer uma vez durante a vida da aplicação ou por meio de uma inicialização controlada.
-
-O comportamento esperado é:
+Decisão implementada: **lazy loading via `OcrCoordinator`**.
 
 ```text
 Application Start
       │
       ▼
-Initialize OCR
+Application Ready (nenhum modelo carregado)
       │
       ▼
-Ready
+First Recognition
+      │
+      ▼
+OcrCoordinator creates the engine (thread-pool thread)
+      │
+      ▼
+Recognize (engine reused for all later runs)
 ```
 
-ou, caso a inicialização seja atrasada:
-
-```text
-Application Start
-      │
-      ▼
-Application Ready
-      │
-      ▼
-First OCR Request
-      │
-      ▼
-Initialize OCR
-      │
-      ▼
-Recognize
-```
-
-A escolha entre inicialização antecipada ou lazy loading deve considerar principalmente:
-
-- tempo de inicialização;
-- memória;
-- simplicidade.
+- o engine (`RapidOcrEngine`) é criado uma única vez, na primeira requisição de reconhecimento, em uma thread da pool (nunca na UI thread — o carregamento dos modelos leva centenas de ms);
+- inicialização falha deixa o coordenador utilizável: a próxima requisição tenta criar novamente;
+- reconhecimentos são serializados (`SemaphoreSlim`), pois a biblioteca não documenta inferência concorrente em uma instância;
+- o `App` descarta o coordenador (e o engine, se criado) no encerramento.
 
 Não criar um complexo sistema de gerenciamento de modelos.
 
@@ -461,9 +440,9 @@ As ações representam o que o usuário pode fazer com o resultado da captura.
 V0.1:
 
 ```text
-Generate Text
-Copy Image
-Save Image
+Generate Text   (implementado: resultado na janela principal + cópia de texto)
+Copy Image      (implementado: M11)
+Save Image      (planejado: M12)
 ```
 
 Cada ação deve receber somente os dados necessários para executá-la.
@@ -476,46 +455,35 @@ Uma abstração simples pode ser introduzida quando houver mais de uma implement
 
 # 18. Generate Text
 
-O fluxo:
+O fluxo (implementado): o resultado é apresentado no painel de resultado da janela principal (a janela principal é a view do `OcrRunState` do `App`), e `OcrTextCopier` copia o texto sob demanda.
 
-```text
-OcrResult
-    │
-    ▼
-Result Window
-```
-
-A janela deve:
+O painel deve:
 
 - exibir o texto extraído;
-- permitir seleção;
-- permitir edição;
-- permitir copiar o texto;
-- permitir fechar.
+- permitir seleção (somente leitura — o texto não é editado);
+- permitir copiar o texto (ação explícita);
+- nunca copiar automaticamente.
 
 O CapParse não deve substituir automaticamente o clipboard do usuário apenas por executar OCR.
-
-A cópia do texto deve ser uma ação explícita.
 
 ---
 
 # 19. Copy Image
 
-Copy Image deve:
+Implementação (M11): `CropImageCopier` converte o bitmap do crop em um `BitmapSource` Bgra32 congelado (pixels copiados verbatim; 32bpp ARGB mapeia 1:1) marcado com o DPI efetivo do monitor da seleção (`MonitorDiscovery.GetEffectiveDpiForSelection`, fallback 96), e `WpfImageClipboard` o coloca no clipboard do Windows como DIB em memória (a chamada deve ocorrer na UI thread/STA).
 
-1. utilizar a região capturada;
-2. colocar a imagem no clipboard do Windows;
-3. fornecer feedback visual de sucesso.
+Regras mantidas:
 
-Não salvar a imagem temporariamente em disco apenas para copiá-la.
-
-Sempre que possível, utilizar o clipboard diretamente em memória.
+- não salvar a imagem temporariamente em disco apenas para copiá-la;
+- o clipboard recebe sua própria cópia dos pixels; o crop continua pertencendo ao `App` (nunca é descartado pelo copier);
+- falhas de clipboard são relatadas como resultado com mensagem amigável, nunca lançadas;
+- feedback visual de sucesso na janela principal.
 
 ---
 
 # 20. Save Image
 
-Save Image deve:
+Planejado (M12). Save Image deve:
 
 1. abrir o diálogo padrão de salvar do Windows;
 2. permitir ao usuário escolher local e nome;
@@ -530,19 +498,22 @@ Não criar gerenciamento próprio de arquivos.
 
 # 21. Clipboard
 
-O acesso ao clipboard deve ficar isolado em uma pequena camada de plataforma.
-
-Exemplo conceitual:
+O acesso ao clipboard fica isolado em pequenas seams testáveis, já implementadas:
 
 ```text
-Platform/
-└── ClipboardService
+UI/
+├── ITextClipboard        (WpfTextClipboard)
+├── IImageClipboard       (WpfImageClipboard)
+├── OcrTextCopier         (copia o texto reconhecido; nunca copia vazio)
+└── CropImageCopier       (copia a imagem do crop, com DPI)
 ```
 
-Essa camada pode lidar com:
+Essa camada lida com:
 
 - texto;
 - imagem.
+
+As seams permitem que os testes substituam o clipboard real por fakes.
 
 Não criar um sistema genérico de integração com todos os formatos possíveis.
 
@@ -574,31 +545,27 @@ StartCapture()
 
 # 23. Tray
 
-O CapParse deve permanecer disponível na área de notificação do Windows.
+O CapParse permanece disponível na área de notificação do Windows.
 
-Menu:
+Menu (pt-BR):
 
 ```text
-Capture
-Settings
-Exit
+Capturar
+Configurações
+Sair
 ```
 
-Comportamento:
+Comportamento (implementado):
 
 ### Double Left Click
 
-Inicia:
-
-```text
-StartCapture()
-```
+Restaura a janela principal (`RestoreMainWindow()`): mostra uma janela oculta, restaura uma minimizada e ativa a janela. Nunca inicia captura.
 
 ### Right Click
 
 Exibe o menu.
 
-### Capture
+### Capturar
 
 Inicia:
 
@@ -606,15 +573,15 @@ Inicia:
 StartCapture()
 ```
 
-### Settings
+### Configurações
 
-Abre configurações.
+Placeholder até o M13.
 
-### Exit
+### Sair
 
 Encerra a aplicação e libera recursos.
 
-O hotkey e o tray devem compartilhar exatamente o mesmo fluxo de captura.
+O hotkey e o menu do tray devem compartilhar exatamente o mesmo fluxo de captura.
 
 Não implementar dois sistemas diferentes para iniciar captura.
 
@@ -646,31 +613,15 @@ Ela não deve conter toda a implementação detalhada de cada etapa.
 
 # 25. Estado da aplicação
 
-O V0.1 deve impedir estados inválidos simples.
+O V0.1 impede estados inválidos simples. Implementação atual:
 
-Exemplo:
-
-```text
-Idle
-  │
-  ▼
-Capturing
-  │
-  ▼
-Processing
-  │
-  ▼
-Result
-  │
-  ▼
-Idle
-```
-
-Enquanto uma captura estiver em andamento, outra captura não deve ser iniciada.
+- **Captura:** a flag `_captureInFlight` no `App` bloqueia novos gatilhos enquanto uma tentativa está em andamento (incluindo a construção da sessão, cujo construtor bombeia a UI thread); falhas nunca deixam a aplicação bloqueada.
+- **OCR:** `OcrRunState` é o estado explícito das execuções — `Idle`, `Processing`, `Succeeded`, `NoText`, `Failed` — com ids de execução: apenas a execução mais recente pode completar, falhar ou cancelar o estado, então um reconhecimento obsoleto jamais sobrescreve um mais novo nem deixa a interface presa em `Processing`.
+- **Histórico:** `OcrHistory` guarda, em memória e por sessão, os resultados reconhecidos (mais recente primeiro, com limite de entradas); apenas execuções que completam validamente gravam entrada.
 
 Não criar uma máquina de estados complexa.
 
-Um enum ou controle equivalente é suficiente.
+Um enum e controles equivalentes são suficientes.
 
 ---
 
@@ -1083,3 +1034,90 @@ Se não, não deve ser adicionado.
 O objetivo do V0.1 é estabelecer uma fundação pequena, funcional e confiável.
 
 Não construir o CapParse inteiro antecipadamente.
+
+---
+
+# 44. Estado da implementação (verificado)
+
+Seção de continuidade: o que realmente existe no código versus o que este documento apenas descreve como alvo. Atualizada na consolidação documental pós-M11 (2026-10; detalhes, evidências e histórico em `development.md`, seção 50).
+
+## 44.1 Componentes existentes
+
+```text
+src/CapParse/
+├── App.xaml.cs            tray (WinForms NotifyIcon), hotkey, StartCapture,
+│                          OcrCoordinator/OcrRunState/OcrHistory, SingleInstanceGuard,
+│                          Restauração da janela principal, mensagens pt-BR
+├── MainWindow.xaml(.cs)   janela principal = view do resultado: status, texto
+│                          reconhecido, Copiar texto / Copiar imagem, histórico
+├── Capture/
+│   ├── ScreenCapture.cs       GDI BitBlt do desktop virtual
+│   ├── DesktopCapture.cs      captura completa do desktop virtual
+│   ├── CaptureResult.cs       imagem capturada em memória (disponível p/ crop)
+│   ├── CaptureCropper.cs      crop da seleção em coordenadas físicas
+│   ├── SelectionGeometry.cs   validação/conversão da seleção
+│   └── CaptureCoordinator.cs  StartCapture() — entrada única do fluxo
+├── UI/
+│   ├── FrozenOverlaySession.cs  sessão de overlay congelado (1 janela/monitor)
+│   ├── MonitorOverlayWindow.cs  janela de overlay por monitor
+│   ├── MonitorGeometry.cs       geometria dos monitores em coords. físicas
+│   ├── ITextClipboard.cs        seam de clipboard de texto (WpfTextClipboard)
+│   ├── OcrTextCopier.cs         copia o texto reconhecido (nunca vazio)
+│   ├── IImageClipboard.cs       seam de clipboard de imagem (WpfImageClipboard)
+│   └── CropImageCopier.cs       crop → BitmapSource Bgra32 congelado c/ DPI → clipboard
+├── Platform/
+│   ├── GlobalHotkey.cs        RegisterHotkey (Ctrl+Shift+X por padrão)
+│   ├── MonitorDiscovery.cs    EnumDisplayMonitors + DPI + GetEffectiveDpiForSelection
+│   └── SingleInstanceGuard.cs mutex de instância única (CapParse.SingleInstance.v1)
+└── OCR/
+    ├── IOcrEngine.cs          contrato Image → OcrResult
+    ├── ImageData.cs           wrapper do Bitmap do consumidor (não descarta)
+    ├── OcrOptions.cs          sem campos no V0.1
+    ├── OcrResult.cs / OcrBlock.cs
+    ├── RapidOcrEngine.cs      RapidOcrNet 4.2.0 + PP-OCRv6 Small, local
+    ├── OcrCoordinator.cs      criação lazy do engine (thread pool), serialização,
+    │                          dispose no encerramento
+    ├── OcrRunState.cs         estado explícito das execuções (Idle/Processing/
+    │                          Succeeded/NoText/Failed) com ids de execução
+    └── OcrHistory.cs          histórico em memória da sessão (imutável, limitado)
+```
+
+Modelos: `models/v6/` no repositório (3 arquivos, SHA256 verificados) + classificador v5 do pacote RapidOcrNet; `build/OcrModels.targets` copia para a saída de build/publish.
+
+## 44.2 Documentado mas AINDA NÃO existente
+
+- Save Image e diálogo de salvamento (M12);
+- janela de Settings e atalhos configuráveis (M13; o menu do tray mostra um placeholder);
+- apresentação curta de primeira execução (M14, `ui.md` §23);
+- atalhos pós-seleção para copiar/salvar imagem (M14, `ui.md` §22 — combinações não definitivas);
+- persistência de configurações;
+- refinamento visual geral (M14).
+
+Esses componentes pertencem aos milestones M12–M15 (ver `development.md`). Não tratá-los como existentes.
+
+---
+
+# 45. Iniciativas futuras a investigar
+
+Possibilidades futuras cuja arquitetura e viabilidade ainda precisam ser investigadas. Nenhuma delas possui design definido, dependência escolhida ou código implementado.
+
+## 45.1 HDR Capture & Tone Mapping
+
+- opção futura para preservar HDR quando tecnicamente suportado;
+- conversão HDR → SDR quando a preservação estiver desativada;
+- investigação do código-fonte do ShareX-HDR como referência;
+- análise da API de captura (a captura atual usa GDI `BitBlt`, que não preserva dados HDR — não presumir recuperação de dados perdidos) e dos formatos de pixel disponíveis;
+- opções futuras de tone mapping, content peak e SDR paper white;
+- avaliação de processamento por CPU, GPU ou modo automático;
+- critérios de qualidade visual, compatibilidade e desempenho.
+
+A solução só entrará no pipeline de produção após validação em protótipo isolado.
+
+## 45.2 Spreadsheet Conversion
+
+- extração de tabelas de capturas;
+- conversão e exportação para formatos de planilha;
+- preferências futuras em uma seção específica de configurações;
+- formatos de saída, tratamento de cabeçalhos e estrutura de colunas ainda precisam ser definidos.
+
+Nenhuma dependência ou código deve ser adicionado antes de um milestone dedicado.

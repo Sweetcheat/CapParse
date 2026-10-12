@@ -34,6 +34,10 @@ Their responsibilities are:
 - `architecture.md` — technical architecture and boundaries.
 - `development.md` — development process, milestones, validation and Git workflow.
 
+Supplementary records (historical detail, not primary):
+
+- `docs/ocr-integration.md` — OCR engine integration record (M6-A/M7-A/M7-B/M7-C): package and model validation, measured quality results.
+
 When implementing a feature, follow all four when applicable.
 
 Do not modify these documents merely to justify an implementation that deviates from the current requirements.
@@ -508,6 +512,10 @@ Do not pretend that a successful compilation proves Windows behavior is correct.
 
 Treat Git as part of the development process.
 
+Do not create commits, tags, or pushes without explicit approval.
+
+Preserve all local changes. Never discard, overwrite, or revert uncommitted work.
+
 Before committing:
 
 1. check the current status;
@@ -759,6 +767,8 @@ The initial application should have predictable local behavior.
 
 # 34. Documentation Consistency
 
+When a decision is made or the project state changes (milestone finished, local work produced, requirement changed), update the documentation to match — especially `docs/development.md`, which is the continuity document for the next session.
+
 When code and documentation disagree, do not automatically change either one.
 
 Determine why the disagreement exists.
@@ -853,6 +863,8 @@ Avoid opportunistic cleanup.
 ---
 
 # 38. No Fake Completion
+
+Never invent requirements, features, test results, or validations that were not actually observed.
 
 Never claim:
 

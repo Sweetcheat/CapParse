@@ -20,6 +20,8 @@ Este documento define:
 - como lidar com decisões arquiteturais;
 - como evitar complexidade desnecessária.
 
+Para o estado atual do projeto (milestones, releases, evidências e próximo passo), leia a seção 50 — Estado atual do projeto (continuidade entre sessões).
+
 ---
 
 # 2. Princípio central
@@ -45,7 +47,7 @@ Um milestone concluído é um checkpoint.
 
 # 3. Agente de desenvolvimento
 
-O agente principal de desenvolvimento será utilizado para implementar o projeto, principalmente através do OpenCode.
+O agente principal de desenvolvimento será utilizado para implementar o projeto (ex.: OpenCode, Pi).
 
 O agente deve atuar como um desenvolvedor supervisionado.
 
@@ -255,7 +257,7 @@ M10 — Generate Text
 M11 — Copy Image
 M12 — Save Image
 M13 — Settings
-M14 — Error Handling and Polish
+M14 — UX Polish
 M15 — V0.1 Validation
 ```
 
@@ -525,7 +527,7 @@ Erros devem ser apresentados ao usuário.
 
 ---
 
-# 22. M9 — Action Selector
+# 22. M9 — Action Selector (entregue como a view de resultado na janela principal — ver §50.4)
 
 ## Objetivo
 
@@ -563,6 +565,8 @@ Não copiar automaticamente o texto.
 
 # 24. M11 — Copy Image
 
+**Status: concluído e publicado** (commit `3bed7be`, em `main` no GitHub; ainda não incluído na release `v0.1.0-beta.1`).
+
 ## Objetivo
 
 Copiar a região capturada para o clipboard.
@@ -573,6 +577,8 @@ Copiar a região capturada para o clipboard.
 - nenhuma gravação temporária desnecessária;
 - feedback de sucesso;
 - erro tratado de maneira amigável.
+
+Implementação: `CropImageCopier` + `WpfImageClipboard` (DIB em memória, tag de DPI efetivo do monitor da seleção), botão "Copiar imagem" na janela principal, 8 testes automatizados com fake de clipboard.
 
 ---
 
@@ -617,11 +623,11 @@ Não adicionar outras configurações sem necessidade.
 
 ---
 
-# 27. M14 — Error Handling and Polish
+# 27. M14 — UX Polish
 
 ## Objetivo
 
-Consolidar qualidade do V0.1.
+Consolidar a experiência e a qualidade do V0.1: interface principal, primeira execução (apresentação curta e não obrigatória), refinamento da experiência e consolidação do tratamento de erros.
 
 Verificar:
 
@@ -861,6 +867,8 @@ Após milestones importantes, o estado local deve ser sincronizado com o reposit
 
 O objetivo é manter uma versão recuperável do projeto.
 
+Releases públicas são marcadas com tags (ex.: `v0.1.0-beta.1`, apontando para `86e3d17`). Commits publicados após a tag (ex.: o M11 em `3bed7be`) fazem parte de `main` mas não daquela release, até uma nova release ser criada.
+
 Não reescrever histórico remoto sem necessidade.
 
 ---
@@ -876,7 +884,8 @@ docs/
 ├── product.md
 ├── ui.md
 ├── architecture.md
-└── development.md
+├── development.md
+└── ocr-integration.md   (registro histórico da integração do OCR: M6-A/M7-A/M7-B/M7-C)
 ```
 
 Não atualizar documentos apenas para refletir uma implementação ruim.
@@ -1149,3 +1158,103 @@ Depois disso, expandir.
 Cada milestone deve deixar o projeto melhor, mais funcional e ainda fácil de entender.
 
 Se uma mudança torna o projeto significativamente mais complexo sem entregar valor imediato ao usuário, ela provavelmente não pertence ao milestone atual.
+
+---
+
+# 50. Estado atual do projeto (continuidade entre sessões)
+
+Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidação documental pós-M11 (2026-10), substitui a versão da auditoria de 2026-10-12 (que descrevia o estado de um clone obsoleto). O que está marcado como "executado" tem evidência de comando na sessão indicada; o restante vem do histórico Git e da documentação verificada contra o código.
+
+## 50.1 Repositório de referência
+
+- **Repositório principal de trabalho: `C:\Dev\CapParseIntegI`** (branch `main`, remoto `https://github.com/Sweetcheat/CapParse.git`).
+- `C:\Dev\CapParse` é um **clone obsoleto** (HEAD `3324900`, 13 commits atrás da linha principal). Ele serviu apenas como fonte de comparação documental na auditoria de 2026-10-12. **Não trabalhar, não commitar e não fazer push a partir dele** (o `origin/main` local dele está desatualizado; um force-push a partir dele apagaria a linha publicada do GitHub).
+
+## 50.2 Estado do repositório (consolidação pós-M11)
+
+- Branch: `main`, sincronizada com `origin/main`.
+- HEAD: `3bed7be` — "feat: add copy image action with DPI-tagged clipboard copy" (publicado no GitHub).
+- Working tree: limpo.
+- Tag `v0.1.0-beta.1` → `86e3d17` (README bilíngue): a release beta publicada **não inclui** o M11.
+- `.gitignore` ignora `build/dist/` (pacotes de publicação, ex.: `CapParse-v0.1.0-beta.1-win-x64.zip`).
+
+## 50.3 Milestones — status
+
+Statuses: **CV** = concluído e verificado (commitado + testes + evidência de validação); **I** = implementado/commitado, validação manual pendente; **P** = planejado; **FI** = investigação futura.
+
+| Milestone | Status | Commit(s) | Observação |
+| --- | --- | --- | --- |
+| M0 — Repository Foundation | CV | `ab09abf` | — |
+| M1 — WPF Application Shell | CV | `c142ecb` | — |
+| M2 — Tray Integration | CV | `47a403d` | — |
+| M3 — Global Hotkey | CV | `a1306d5` | `Ctrl + Shift + X` |
+| M4 — Monitor Discovery and Capture | I (código + testes; validação manual multi-monitor/DPI sem evidência no repositório) | `7325645`, `3657169`, `69653dd`, `8596164` | — |
+| M5 — Freeze-Frame Selection Overlay | I (código + testes; validação manual de overlay/DPI sem evidência no repositório) | `7fc544a`, `ea059bf` | fixes posteriores: `2de9f78`, `d13e5a4`, `3fc8ee7`, `a32b480`, `a79724d` |
+| M6 — Image Crop Pipeline | CV (código + testes) | `3324900` | — |
+| M7 — OCR Engine | CV (commitado; 146/146 testes na época; avaliação M7-C registrada) | `3c0da24` | engine + modelos + coleção de qualidade; registro em `docs/ocr-integration.md` |
+| M8 — Processing/Loading UX | CV (commitado) | `e383d90` | `OcrCoordinator` (engine lazy em thread pool), `OcrRunState`, cancelamento de execução obsoleta, estado de processamento na janela |
+| M9/M10 — Resultado + Generate Text | CV (commitado; o commit agrupa apresentação e cópia de texto) | `61379b7` | resultado na janela principal + `OcrTextCopier` + `WpfTextClipboard` |
+| — Trabalhos adicionais publicados no beta | CV (commitados) | `f2c1036` (pt-BR), `a097cfa` (histórico de sessão), `f67b3a3` (instância única), `d9bdef1` (double-click do tray restaura a janela), `86e3d17` (README bilíngue, tag da beta) | — |
+| M11 — Copy Image | CV (commitado e **publicado**; 209/209 testes em Debug e Release) | `3bed7be` | `CropImageCopier` + `WpfImageClipboard` (DIB em memória, DPI efetivo), botão "Copiar imagem", 8 testes com fake; **fora da release `v0.1.0-beta.1`** |
+| M12 — Save Image | P | — | próximo milestone recomendado (ver 50.6) |
+| M13 — Settings | P | — | placeholder no tray ("As configurações ainda não foram implementadas.") |
+| M14 — UX Polish | P | — | interface principal, primeira execução, refinamento + consolidação de erros (§27) |
+| M15 — V0.1 Validation | P | — | — |
+| Futuro — HDR Capture & Tone Mapping | FI | — | `product.md` §9; `architecture.md` §45.1 |
+| Futuro — Spreadsheet Conversion | FI | — | `product.md` §9; `architecture.md` §45.2 |
+
+Notas sobre o M11:
+
+- validação automatizada: build Debug/Release com 0 erros e **209/209 testes aprovados em ambas as configurações** (sessão de commit, 2026-10);
+- um rebuild completo (`--no-incremental`) identificou **3 avisos preexistentes** em arquivos fora do escopo do M11 (`FrozenOverlaySession.cs` CS8625 e `OcrCollectionGeneratorTests.cs` xUnit2020) — não atribuir esses avisos ao novo recurso;
+- validação manual do paste em aplicações de destino (Discord, Paint etc.) ainda pendente.
+
+## 50.4 Comportamentos publicados que difere dos documentos originais
+
+Decisões de produto tomadas na linha principal (registradas aqui para evitar "corretivas" involuntárias em sessões futuras):
+
+1. **Double-click do tray restaura a janela principal** — não inicia captura (a captura é por hotkey ou menu "Capturar"). Diferente do `product.md`/`ui.md` originais.
+2. **A janela principal é a view do resultado** — não há um "action selector" separado nem uma janela de resultado dedicada; as ações são explícitas na própria janela (Copiar texto / Copiar imagem) + histórico da sessão.
+3. **Inicialização do OCR é lazy** via `OcrCoordinator` (thread pool, primeira execução), não antecipada na startup.
+4. **Interface em pt-BR** (janela, tray, mensagens de erro).
+5. **Instância única** por mutex (`CapParse.SingleInstance.v1`); segunda instância exibe mensagem e encerra.
+6. **Histórico de OCR em memória**, por sessão (máximo de entradas, imutável, mais recente primeiro).
+
+## 50.5 Evidências de build e testes
+
+- M11 (sessão de commit, 2026-10): `dotnet build` e `dotnet test` em Debug e Release — 0 erros, **209/209 aprovados** em ambas as configurações.
+- M7 (registro histórico): 146/146 em Debug e Release na época do commit `3c0da24`; avaliação de qualidade do modelo em `docs/ocr-integration.md` §10 e `tests/CapParse.Tests/TestData/Ocr/reports/`.
+- A suíte cresce com os milestones (146 → 209 entre M7 e M11): comparar sempre com o total da suíte atual, não com números históricos.
+
+## 50.6 Próximo milestone recomendado
+
+**M12 — Save Image** (§25): salvar a região capturada via diálogo padrão de salvar do Windows.
+
+- **Por que faz sentido agora:** é a terceira e última ação do escopo V0.1 (product.md §5); o M11 acabou de entregar a contraparte de clipboard (mesma fonte de dados: `App.LastCrop`), então o M12 reutiliza o estado existente sem novas dependências (o `Microsoft.Win32.SaveFileDialog` do WPF já está disponível).
+- **Escopo:** diálogo de salvar; nome de arquivo único/sugestão; diretório padrão; formato de imagem; confirmação de sucesso; cancelamento ≠ erro; erro de gravação com mensagem amigável; **nunca salvar automaticamente**.
+- **Critérios de conclusão:** os do §25 + testes automatizados da lógica isolável (nomes, validação) + validação manual real (salvar em disco e abrir o arquivo).
+- **Dependências:** nenhuma técnica aberta; `LastCrop` já é mantido vivo pelo `App` até a próxima captura.
+
+Sequência prática após o M12: M13 (Settings: atalho configurável, diretório de saída) → M14 (UX Polish, incluindo primeira execução e atalhos pós-seleção) → M15 (validação V0.1) → nova release beta incluindo o M11+ (a tag `v0.1.0-beta.1` ficou para trás em `86e3d17`).
+
+## 50.7 Problemas conhecidos, riscos e limitações
+
+- OCR (PP-OCRv6 Small, medido no M7-C): fonte pequena em fundo escuro degrada severamente; espaços entre palavras/tokens são frequentemente perdidos no texto reconstruído.
+- A arena de memória do ONNX Runtime cresce durante execuções (WorkingSet do processo ~2 GB na avaliação M7-C; não é memória exclusiva do OCR).
+- 31 MB de modelos no repositório (aceitável para app local-first).
+- A validação manual de multi-monitor/DPI/overlay (M4/M5) não tem evidência registrada no repositório — priorizar na M15.
+- A coleção M7-C é sintética (anti-aliasing em cinza, 96 DPI): não representa capturas reais (ClearType, escalas, DPI ≠ 100%).
+- O clone obsoleto `C:\Dev\CapParse` continua existindo em disco com 43 arquivos M7 staged e docs da auditoria — risco de trabalho acidental; arquivá-lo quando o trabalho documental estiver consolidado aqui.
+
+## 50.8 Fora do escopo atual (explícito)
+
+- Lista completa: `product.md` §12 (non-goals do V0.1) e `AGENTS.md` §35 (funcionalidades futuras).
+- Em particular: HDR, planilhas, IA, cloud, histórico persistente, outras plataformas, e qualquer milestone não explicitamente solicitado.
+
+## 50.9 Como iniciar uma nova sessão
+
+1. Ler `AGENTS.md` e esta seção.
+2. Trabalhar somente em `C:\Dev\CapParseIntegI`; conferir `git status` / `git log` (HEAD deve ser `3bed7be` ou descendente; working tree limpo ou com trabalho declarado).
+3. Executar `dotnet build` e `dotnet test`.
+4. Trabalhar apenas no milestone atual; não criar commit, tag ou push sem aprovação explícita.
+5. Atualizar esta seção ao final da sessão (estado, evidências, pendências).

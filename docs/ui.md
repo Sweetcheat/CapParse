@@ -106,18 +106,16 @@ The tray icon is the primary persistent entry point.
 
 ## Left Double Click
 
-Double-clicking the left mouse button on the tray icon starts the capture workflow immediately.
+Double-clicking the left mouse button on the tray icon restores the main window: a hidden window is shown again, a minimized one returns to the normal state, and the window is activated. It does not start a capture.
 
-It must perform the same operation as the global capture hotkey.
-
-Both inputs must call the same capture entry point.
+Capture is started from the global hotkey or the tray menu, which must call the same capture entry point.
 
 Conceptually:
 
 ```text
-Global Hotkey ─────┐
-                   ├──> StartCapture()
-Tray Double Click ─┘
+Global Hotkey ──────────> StartCapture()
+Tray Menu "Capturar" ───> StartCapture()
+Tray Double Click ──────> RestoreMainWindow()
 ```
 
 There must not be two separate capture implementations.
@@ -126,25 +124,25 @@ There must not be two separate capture implementations.
 
 Right-clicking the tray icon opens the context menu.
 
-Initial menu:
+Initial menu (pt-BR):
 
 ```text
-Capture
+Capturar
 ────────────
-Settings
+Configurações
 ────────────
-Exit
+Sair
 ```
 
-### Capture
+### Capturar
 
 Starts the same capture workflow as the global hotkey.
 
-### Settings
+### Configurações
 
-Opens the Settings window.
+Placeholder until M13 (Settings window).
 
-### Exit
+### Sair
 
 Terminates the application cleanly.
 
@@ -259,75 +257,36 @@ If processing fails, the application must display a clear error state and provid
 
 ---
 
-# 10. Action Selector
+# 10. Result view (main window)
 
-After processing completes, CapParse displays the available actions.
+After processing, the main window presents the result of the current run. There is no separate selector dialog: the user sees the outcome and chooses an explicit action.
 
-The action selector should be simple and visually prominent.
+The shipped layout (two panes):
 
-Initial actions:
+- **Left pane (current run):** a status line (idle, processing, text found, no text, failed), the recognized text in a read-only panel, and the actions **Copiar texto** and **Copiar imagem** with inline success feedback.
+- **Right pane (session history):** the recognized results of the session, most recent first; selecting an entry shows its full text and allows copying it again. Consulting history never changes the current result or the run state.
 
-```text
-Generate Text
-Copy Image
-Save Image
-```
+Rules:
 
-The interface should make clear that the user is choosing what to do with the captured content.
+- each action is an explicit user action; the application never copies to the clipboard on its own;
+- **Copiar texto** is enabled only when the last run produced text; an empty (no-text) result is never copied;
+- **Copiar imagem** is enabled whenever a crop exists (including captures without recognized text) and disabled after a cancelled capture;
+- a new capture invalidates the previous result and image.
 
-Example conceptual layout:
-
-```text
-┌─────────────────────────────────────┐
-│                                     │
-│       What do you want to do?       │
-│                                     │
-│   ┌─────────────┐ ┌─────────────┐   │
-│   │             │ │             │   │
-│   │ Generate    │ │ Copy Image  │   │
-│   │ Text        │ │             │   │
-│   └─────────────┘ └─────────────┘   │
-│                                     │
-│           ┌─────────────┐           │
-│           │ Save Image  │           │
-│           └─────────────┘           │
-│                                     │
-└─────────────────────────────────────┘
-```
-
-The exact visual layout may be adjusted during implementation to achieve a compact and polished result.
+The exact visual layout may be refined (M14) to achieve a compact and polished result, without changing the behavior above.
 
 ---
 
 # 11. Generate Text
 
-When the user selects **Generate Text**, the OCR result is displayed in a text result view.
+The OCR result is displayed in the main window's result pane (section 10).
 
-The result view should contain:
+The result pane contains:
 
-- extracted text;
-- a clear text area;
-- Copy button;
-- Close button.
+- extracted text in a read-only, selectable text area;
+- a **Copiar texto** button.
 
-Conceptually:
-
-```text
-┌─────────────────────────────────────┐
-│ Extracted Text                      │
-│                                     │
-│ ┌─────────────────────────────────┐ │
-│ │ Recognized text...              │ │
-│ │                                 │ │
-│ │ More recognized text...         │ │
-│ │                                 │ │
-│ └─────────────────────────────────┘ │
-│                                     │
-│ [ Copy ]                    [Close] │
-└─────────────────────────────────────┘
-```
-
-The text should remain editable/selectable by the user.
+The text is selectable so the user can copy it manually, but it is not editable: the pane shows what the engine recognized, verbatim.
 
 Copying the text places it into the Windows system clipboard.
 
@@ -335,15 +294,18 @@ The application should not automatically overwrite the clipboard merely because 
 
 ---
 
-# 12. Copy Image
+# 12. Copy Image (implemented, M11)
 
-When the user selects **Copy Image**:
+When the user clicks **Copiar imagem**:
 
-1. The captured region is placed into the Windows clipboard.
-2. The action completes without requiring the user to save a file.
-3. The user can immediately paste the image into another application.
+1. The captured region (the exact crop of the selection) is placed into the Windows clipboard as an in-memory image (DIB) — no temporary file is written.
+2. The image is tagged with the effective DPI of the monitor the selection came from, so DPI-aware applications paste it at its on-screen size.
+3. The action completes without requiring the user to save a file; the user can immediately paste the image into another application.
+4. The inline feedback shows **Imagem copiada!** on success.
 
-Examples:
+If the clipboard is unavailable (for example locked by another application), a friendly error message is shown and the application keeps running.
+
+Examples of paste targets:
 
 - Discord;
 - WhatsApp;
@@ -353,22 +315,22 @@ Examples:
 - image editors;
 - email clients.
 
-The user should receive clear visual feedback that the operation succeeded.
-
 ---
 
-# 13. Save Image
+# 13. Save Image (planned, M12)
 
-When the user selects **Save Image**:
+When the user chooses **Save Image**:
 
 1. Open the standard Windows save dialog.
-2. Allow the user to choose the destination.
+2. Allow the user to choose the destination and the file name.
 3. Save the captured region as an image.
 4. Confirm successful saving.
 
 The application should not save screenshots automatically.
 
 No capture files should be created unless the user explicitly chooses to save one.
+
+This action is not implemented yet; do not build its UI before M12.
 
 ---
 
@@ -401,6 +363,13 @@ When changing the hotkey:
 - the application should detect conflicts where possible.
 
 Additional settings should not be added unless required by a future feature.
+
+Future settings (not part of the current UI, documented for direction only):
+
+- configurable shortcuts for the post-selection image actions (section 22);
+- image save directory (section 24);
+- spreadsheet preferences (section 24);
+- advanced HDR options in their own section (section 24).
 
 ---
 
@@ -444,6 +413,8 @@ Try selecting the region again.
 ```
 
 Technical information may be logged for debugging without being shown directly to normal users.
+
+The shipped interface is in Brazilian Portuguese (the examples above are conceptual; the actual messages are in pt-BR, e.g. "Não foi possível capturar a tela.\n\nTente novamente.").
 
 ---
 
@@ -501,14 +472,14 @@ Do not rely exclusively on color to communicate state.
 
 # 20. Future Action System
 
-The action selector is intentionally designed to grow.
+The result view is intentionally designed to grow.
 
 V0.1:
 
 ```text
-Generate Text
-Copy Image
-Save Image
+Generate Text   (implemented)
+Copy Image      (implemented)
+Save Image      (planned, M12)
 ```
 
 Future versions may add:
@@ -548,3 +519,50 @@ Prioritize:
 Do not add visual effects merely for decoration.
 
 Every UI element should have a functional reason to exist.
+
+---
+
+# 22. Post-Selection Shortcuts (proposed — not finalized)
+
+After the user completes a region selection, the intended flow runs OCR automatically (`Ctrl + Shift + X` captures a region and executes OCR). On top of the result view actions (section 10), the product direction includes configurable shortcuts that act on the just-selected region:
+
+- a configurable shortcut to **copy the image** to the clipboard;
+- a configurable shortcut to **save the image**.
+
+These shortcuts are part of the intent to minimize clicks and interruptions.
+
+**The proposed key combinations are not final.** They still need ergonomic validation and a conflict check against the capture hotkey, the `Esc` cancel key and common system/application shortcuts. Do not implement or document a specific combination as definitive until that validation is done.
+
+Both shortcuts must be configurable in Settings (section 24) once implemented.
+
+---
+
+# 23. First-Run Presentation
+
+On the first run only, CapParse may show a short presentation:
+
+- what the application does;
+- how to start a capture (hotkey and tray);
+- what happens after a selection.
+
+It must be:
+
+- short;
+- non-blocking and skippable (not mandatory);
+- shown only on the first run; it must not appear again;
+- dismissible without any configuration step.
+
+No first-run experience may be created beyond this.
+
+---
+
+# 24. Future Settings (direction only — not implemented)
+
+When the Settings window is implemented (M13), its initial content is the capture hotkey. The direction for later growth:
+
+- configurable post-selection shortcuts (section 22);
+- image save directory (default location for Save Image);
+- spreadsheet preferences (dedicated section, when spreadsheet conversion exists);
+- advanced HDR options in a dedicated section (only when the HDR initiative becomes available).
+
+None of these settings exist today. Do not build UI for them before the corresponding feature is implemented.
