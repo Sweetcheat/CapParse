@@ -584,6 +584,8 @@ Implementação: `CropImageCopier` + `WpfImageClipboard` (DIB em memória, tag d
 
 # 25. M12 — Save Image
 
+**Status: concluído e commitado** (commit `feat: add save image action`, local em `main` sobre `6b1cb1f`; ainda não publicado no GitHub; ainda não incluído na release `v0.1.0-beta.1`).
+
 ## Objetivo
 
 Salvar a captura usando o diálogo padrão do Windows.
@@ -595,6 +597,8 @@ Salvar a captura usando o diálogo padrão do Windows.
 - imagem é salva corretamente;
 - cancelamento não é tratado como erro;
 - erro de gravação é apresentado de maneira amigável.
+
+Implementação: `CropImageSaver` + `WpfCropImageSaveDialog` (diálogo padrão `Microsoft.Win32.SaveFileDialog`, PNG com tag de DPI, nome sugerido único, pasta Imagens como diretório padrão), botão "Salvar imagem" na janela principal, 19 testes automatizados com fake do diálogo.
 
 ---
 
@@ -1170,12 +1174,12 @@ Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidaç
 - **Repositório principal de trabalho: `C:\Dev\CapParseIntegI`** (branch `main`, remoto `https://github.com/Sweetcheat/CapParse.git`).
 - `C:\Dev\CapParse` é um **clone obsoleto** (HEAD `3324900`, 13 commits atrás da linha principal). Ele serviu apenas como fonte de comparação documental na auditoria de 2026-10-12. **Não trabalhar, não commitar e não fazer push a partir dele** (o `origin/main` local dele está desatualizado; um force-push a partir dele apagaria a linha publicada do GitHub).
 
-## 50.2 Estado do repositório (consolidação pós-M11)
+## 50.2 Estado do repositório (consolidação pós-M12)
 
-- Branch: `main`, sincronizada com `origin/main`.
-- HEAD: `3bed7be` — "feat: add copy image action with DPI-tagged clipboard copy" (publicado no GitHub).
+- Branch: `main`; `origin/main` = `6b1cb1f` (último commit publicado no GitHub); o commit do M12 (`feat: add save image action`) é local nesta sessão e ainda não publicado.
+- HEAD: commit do M12 (`feat: add save image action`), sobre `6b1cb1f` — "docs: consolidate project documentation post-M11".
 - Working tree: limpo.
-- Tag `v0.1.0-beta.1` → `86e3d17` (README bilíngue): a release beta publicada **não inclui** o M11.
+- Tag `v0.1.0-beta.1` → `86e3d17` (README bilíngue): a release beta publicada **não inclui** o M11 nem o M12.
 - `.gitignore` ignora `build/dist/` (pacotes de publicação, ex.: `CapParse-v0.1.0-beta.1-win-x64.zip`).
 
 ## 50.3 Milestones — status
@@ -1196,7 +1200,7 @@ Statuses: **CV** = concluído e verificado (commitado + testes + evidência de v
 | M9/M10 — Resultado + Generate Text | CV (commitado; o commit agrupa apresentação e cópia de texto) | `61379b7` | resultado na janela principal + `OcrTextCopier` + `WpfTextClipboard` |
 | — Trabalhos adicionais publicados no beta | CV (commitados) | `f2c1036` (pt-BR), `a097cfa` (histórico de sessão), `f67b3a3` (instância única), `d9bdef1` (double-click do tray restaura a janela), `86e3d17` (README bilíngue, tag da beta) | — |
 | M11 — Copy Image | CV (commitado e **publicado**; 209/209 testes em Debug e Release) | `3bed7be` | `CropImageCopier` + `WpfImageClipboard` (DIB em memória, DPI efetivo), botão "Copiar imagem", 8 testes com fake; **fora da release `v0.1.0-beta.1`** |
-| M12 — Save Image | P | — | próximo milestone recomendado (ver 50.6) |
+| M12 — Save Image | CV (commitado; 228/228 testes em Debug e Release) | `feat: add save image action` (local, sobre `6b1cb1f`) | `CropImageSaver` + `WpfCropImageSaveDialog` (diálogo padrão, PNG c/ tag de DPI, nome sugerido único), botão "Salvar imagem", 19 testes com fake do diálogo; **fora da release `v0.1.0-beta.1`**; validação manual do fluxo do diálogo pendente |
 | M13 — Settings | P | — | placeholder no tray ("As configurações ainda não foram implementadas.") |
 | M14 — UX Polish | P | — | interface principal, primeira execução, refinamento + consolidação de erros (§27) |
 | M15 — V0.1 Validation | P | — | — |
@@ -1209,12 +1213,18 @@ Notas sobre o M11:
 - um rebuild completo (`--no-incremental`) identificou **3 avisos preexistentes** em arquivos fora do escopo do M11 (`FrozenOverlaySession.cs` CS8625 e `OcrCollectionGeneratorTests.cs` xUnit2020) — não atribuir esses avisos ao novo recurso;
 - validação manual do paste em aplicações de destino (Discord, Paint etc.) ainda pendente.
 
+Notas sobre o M12:
+
+- validação automatizada: build Debug/Release com 0 erros e **228/228 testes aprovados em ambas as configurações** (sessão do M12); os testes gravam PNGs reais em disco (diretório temporário) e os decodificam de volta para verificar pixels e DPI;
+- um rebuild completo (`--no-incremental`) em ambas as configurações confirma apenas os 3 avisos preexistentes do M11 (o CS8625 de `FrozenOverlaySession.cs` é contado duas vezes — projeto principal e projeto temporário do WPF) — nenhum aviso novo foi introduzido;
+- a aplicação foi iniciada em sessão interativa com a nova janela (evidência de startup); o fluxo completo do diálogo de salvar (escolher caminho, salvar, cancelar) ainda exige validação manual por um humano.
+
 ## 50.4 Comportamentos publicados que difere dos documentos originais
 
 Decisões de produto tomadas na linha principal (registradas aqui para evitar "corretivas" involuntárias em sessões futuras):
 
 1. **Double-click do tray restaura a janela principal** — não inicia captura (a captura é por hotkey ou menu "Capturar"). Diferente do `product.md`/`ui.md` originais.
-2. **A janela principal é a view do resultado** — não há um "action selector" separado nem uma janela de resultado dedicada; as ações são explícitas na própria janela (Copiar texto / Copiar imagem) + histórico da sessão.
+2. **A janela principal é a view do resultado** — não há um "action selector" separado nem uma janela de resultado dedicada; as ações são explícitas na própria janela (Copiar texto / Copiar imagem / Salvar imagem) + histórico da sessão.
 3. **Inicialização do OCR é lazy** via `OcrCoordinator` (thread pool, primeira execução), não antecipada na startup.
 4. **Interface em pt-BR** (janela, tray, mensagens de erro).
 5. **Instância única** por mutex (`CapParse.SingleInstance.v1`); segunda instância exibe mensagem e encerra.
@@ -1222,20 +1232,21 @@ Decisões de produto tomadas na linha principal (registradas aqui para evitar "c
 
 ## 50.5 Evidências de build e testes
 
+- M12 (sessão do commit, 2026-10): `dotnet build` e `dotnet test` em Debug e Release — 0 erros, **228/228 aprovados** em ambas as configurações; rebuild completo (`--no-incremental`) confirma apenas os 3 avisos preexistentes.
 - M11 (sessão de commit, 2026-10): `dotnet build` e `dotnet test` em Debug e Release — 0 erros, **209/209 aprovados** em ambas as configurações.
 - M7 (registro histórico): 146/146 em Debug e Release na época do commit `3c0da24`; avaliação de qualidade do modelo em `docs/ocr-integration.md` §10 e `tests/CapParse.Tests/TestData/Ocr/reports/`.
-- A suíte cresce com os milestones (146 → 209 entre M7 e M11): comparar sempre com o total da suíte atual, não com números históricos.
+- A suíte cresce com os milestones (146 → 209 → 228 entre M7, M11 e M12): comparar sempre com o total da suíte atual, não com números históricos.
 
 ## 50.6 Próximo milestone recomendado
 
-**M12 — Save Image** (§25): salvar a região capturada via diálogo padrão de salvar do Windows.
+**M13 — Settings** (§26): criar a tela mínima de configurações.
 
-- **Por que faz sentido agora:** é a terceira e última ação do escopo V0.1 (product.md §5); o M11 acabou de entregar a contraparte de clipboard (mesma fonte de dados: `App.LastCrop`), então o M12 reutiliza o estado existente sem novas dependências (o `Microsoft.Win32.SaveFileDialog` do WPF já está disponível).
-- **Escopo:** diálogo de salvar; nome de arquivo único/sugestão; diretório padrão; formato de imagem; confirmação de sucesso; cancelamento ≠ erro; erro de gravação com mensagem amigável; **nunca salvar automaticamente**.
-- **Critérios de conclusão:** os do §25 + testes automatizados da lógica isolável (nomes, validação) + validação manual real (salvar em disco e abrir o arquivo).
-- **Dependências:** nenhuma técnica aberta; `LastCrop` já é mantido vivo pelo `App` até a próxima captura.
+- **Por que faz sentido agora:** o M12 encerrou as três ações do escopo V0.1 (Generate Text, Copy Image, Save Image); o placeholder "Configurações" do menu do tray ("As configurações ainda não foram implementadas.") é a próxima lacuna visível do produto.
+- **Escopo:** janela de settings mínima (inicialmente: capture hotkey — visualizar, alterar, cancelar, salvar, validar, restaurar padrão); persistência local da configuração.
+- **Critérios de conclusão:** os do §26 + testes automatizados da lógica isolável (validação do atalho) + validação manual real.
+- **Dependências:** nenhuma técnica aberta.
 
-Sequência prática após o M12: M13 (Settings: atalho configurável, diretório de saída) → M14 (UX Polish, incluindo primeira execução e atalhos pós-seleção) → M15 (validação V0.1) → nova release beta incluindo o M11+ (a tag `v0.1.0-beta.1` ficou para trás em `86e3d17`).
+Sequência prática após o M13: M14 (UX Polish, incluindo primeira execução e atalhos pós-seleção) → M15 (validação V0.1) → nova release beta incluindo o M11+M12 (a tag `v0.1.0-beta.1` ficou para trás em `86e3d17`).
 
 ## 50.7 Problemas conhecidos, riscos e limitações
 
@@ -1254,7 +1265,7 @@ Sequência prática após o M12: M13 (Settings: atalho configurável, diretório
 ## 50.9 Como iniciar uma nova sessão
 
 1. Ler `AGENTS.md` e esta seção.
-2. Trabalhar somente em `C:\Dev\CapParseIntegI`; conferir `git status` / `git log` (HEAD deve ser `3bed7be` ou descendente; working tree limpo ou com trabalho declarado).
+2. Trabalhar somente em `C:\Dev\CapParseIntegI`; conferir `git status` / `git log` (HEAD deve ser o commit do M12 — `feat: add save image action` — ou descendente; working tree limpo ou com trabalho declarado).
 3. Executar `dotnet build` e `dotnet test`.
 4. Trabalhar apenas no milestone atual; não criar commit, tag ou push sem aprovação explícita.
 5. Atualizar esta seção ao final da sessão (estado, evidências, pendências).

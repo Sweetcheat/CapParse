@@ -24,20 +24,25 @@ public partial class MainWindow : Window
 {
     private readonly OcrTextCopier _copier;
     private readonly CropImageCopier _imageCopier;
+    private readonly CropImageSaver _imageSaver;
 
     public MainWindow()
-        : this(new WpfTextClipboard(), new WpfImageClipboard())
+        : this(new WpfTextClipboard(), new WpfImageClipboard(), new WpfCropImageSaveDialog())
     {
     }
 
     /// <summary>
-    /// Creates the window with explicit clipboards, so tests can
-    /// substitute fakes.
+    /// Creates the window with explicit clipboards and save dialog, so
+    /// tests can substitute fakes.
     /// </summary>
-    public MainWindow(ITextClipboard clipboard, IImageClipboard imageClipboard)
+    public MainWindow(
+        ITextClipboard clipboard,
+        IImageClipboard imageClipboard,
+        ICropImageSaveDialog saveDialog)
     {
         _copier = new OcrTextCopier(clipboard);
         _imageCopier = new CropImageCopier(imageClipboard);
+        _imageSaver = new CropImageSaver(saveDialog);
         InitializeComponent();
 
         var app = (App)Application.Current;
@@ -62,11 +67,14 @@ public partial class MainWindow : Window
         // A new run clears any "Copied" feedback from the previous one.
         CopyFeedback.Text = string.Empty;
         ImageCopyFeedback.Text = string.Empty;
+        ImageSaveFeedback.Text = string.Empty;
 
-        // The image button follows the last crop, not the OCR phase: a
+        // The image buttons follow the last crop, not the OCR phase: a
         // capture without recognized text (or a failed recognition) still
-        // leaves an image to copy, and a cancelled capture leaves none.
+        // leaves an image to copy or save, and a cancelled capture leaves
+        // none.
         CopyImageButton.IsEnabled = app.LastCrop is not null;
+        SaveImageButton.IsEnabled = app.LastCrop is not null;
 
         switch (state.Phase)
         {
@@ -196,6 +204,38 @@ public partial class MainWindow : Window
 
         MessageBox.Show(this, outcome.Message, "CapParse",
             MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    private void SaveImage_Click(object sender, RoutedEventArgs e)
+    {
+        var app = (App)Application.Current;
+        var crop = app.LastCrop;
+
+        // Same DPI convention as the clipboard copy: the effective DPI of
+        // the monitor the selection came from, so the saved file carries
+        // the same DPI tag. 96 when the selection is unknown.
+        var dpi = app.LastSelection is { } selection
+            ? MonitorDiscovery.GetEffectiveDpiForSelection(selection)
+            : 96;
+
+        var outcome = _imageSaver.TrySave(crop, dpi);
+
+        switch (outcome.Status)
+        {
+            case SaveImageStatus.Saved:
+                ImageSaveFeedback.Text = "Imagem salva!";
+                break;
+
+            // Canceling the dialog is a normal operation, not an error:
+            // no file is written and nothing is reported.
+            case SaveImageStatus.Canceled:
+                break;
+
+            case SaveImageStatus.Failed:
+                MessageBox.Show(this, outcome.Message, "CapParse",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                break;
+        }
     }
 
     private void HistoryCopy_Click(object sender, RoutedEventArgs e)

@@ -145,9 +145,11 @@ Result view (main window)
       │       ▼
       │   Clipboard (in-memory DIB, DPI-tagged)
       │
-      └── Save Image  (planned, M12)
+      └── Save Image
               ▼
           Save Dialog
+              ▼
+          PNG file (DPI-tagged)
 ```
 
 O fluxo deve ser explícito.
@@ -442,7 +444,7 @@ V0.1:
 ```text
 Generate Text   (implementado: resultado na janela principal + cópia de texto)
 Copy Image      (implementado: M11)
-Save Image      (planejado: M12)
+Save Image      (implementado: M12)
 ```
 
 Cada ação deve receber somente os dados necessários para executá-la.
@@ -483,16 +485,15 @@ Regras mantidas:
 
 # 20. Save Image
 
-Planejado (M12). Save Image deve:
+Implementação (M12): `CropImageSaver` converte o bitmap do crop em `BitmapSource` Bgra32 congelada reaproveitando `CropImageCopier.ToBitmapSource` (mesmos pixels e tag de DPI da cópia de imagem), e a grava como PNG (`PngBitmapEncoder`, sem arquivo temporário). `WpfCropImageSaveDialog` (seam `ICropImageSaveDialog`) mostra o diálogo padrão de salvar do Windows (`Microsoft.Win32.SaveFileDialog`), com nome sugerido único (`CapParse-<data>-<hora>.png`), a pasta Imagens do usuário como diretório padrão (quando existe) e filtro apenas PNG; o nome escolhido é normalizado para extensão `.png` (o conteúdo é sempre PNG).
 
-1. abrir o diálogo padrão de salvar do Windows;
-2. permitir ao usuário escolher local e nome;
-3. salvar a imagem capturada;
-4. informar sucesso ou erro.
+Regras mantidas:
 
-Não salvar automaticamente.
-
-Não criar gerenciamento próprio de arquivos.
+- salvamento sempre explícito: a aplicação nunca salva automaticamente;
+- cancelamento do diálogo é um resultado normal (nenhum arquivo é gravado e nenhuma mensagem é exibida);
+- o crop continua pertencendo ao `App` (nunca é descartado pelo saver);
+- falhas de gravação (caminho inválido, acesso negado, arquivo em uso) são relatadas como resultado com mensagem amigável, nunca lançadas;
+- feedback visual de sucesso na janela principal ("Imagem salva!").
 
 ---
 
@@ -1049,7 +1050,8 @@ src/CapParse/
 │                          OcrCoordinator/OcrRunState/OcrHistory, SingleInstanceGuard,
 │                          Restauração da janela principal, mensagens pt-BR
 ├── MainWindow.xaml(.cs)   janela principal = view do resultado: status, texto
-│                          reconhecido, Copiar texto / Copiar imagem, histórico
+│                          reconhecido, Copiar texto / Copiar imagem / Salvar imagem,
+│                          histórico
 ├── Capture/
 │   ├── ScreenCapture.cs       GDI BitBlt do desktop virtual
 │   ├── DesktopCapture.cs      captura completa do desktop virtual
@@ -1064,7 +1066,9 @@ src/CapParse/
 │   ├── ITextClipboard.cs        seam de clipboard de texto (WpfTextClipboard)
 │   ├── OcrTextCopier.cs         copia o texto reconhecido (nunca vazio)
 │   ├── IImageClipboard.cs       seam de clipboard de imagem (WpfImageClipboard)
-│   └── CropImageCopier.cs       crop → BitmapSource Bgra32 congelado c/ DPI → clipboard
+│   ├── CropImageCopier.cs       crop → BitmapSource Bgra32 congelado c/ DPI → clipboard
+│   ├── ICropImageSaveDialog.cs  seam do diálogo de salvar (WpfCropImageSaveDialog)
+│   └── CropImageSaver.cs        crop → PNG c/ DPI no arquivo escolhido (diálogo padrão)
 ├── Platform/
 │   ├── GlobalHotkey.cs        RegisterHotkey (Ctrl+Shift+X por padrão)
 │   ├── MonitorDiscovery.cs    EnumDisplayMonitors + DPI + GetEffectiveDpiForSelection
@@ -1086,14 +1090,13 @@ Modelos: `models/v6/` no repositório (3 arquivos, SHA256 verificados) + classif
 
 ## 44.2 Documentado mas AINDA NÃO existente
 
-- Save Image e diálogo de salvamento (M12);
 - janela de Settings e atalhos configuráveis (M13; o menu do tray mostra um placeholder);
 - apresentação curta de primeira execução (M14, `ui.md` §23);
 - atalhos pós-seleção para copiar/salvar imagem (M14, `ui.md` §22 — combinações não definitivas);
 - persistência de configurações;
 - refinamento visual geral (M14).
 
-Esses componentes pertencem aos milestones M12–M15 (ver `development.md`). Não tratá-los como existentes.
+Esses componentes pertencem aos milestones M13–M15 (ver `development.md`). Não tratá-los como existentes.
 
 ---
 

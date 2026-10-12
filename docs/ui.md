@@ -263,14 +263,14 @@ After processing, the main window presents the result of the current run. There 
 
 The shipped layout (two panes):
 
-- **Left pane (current run):** a status line (idle, processing, text found, no text, failed), the recognized text in a read-only panel, and the actions **Copiar texto** and **Copiar imagem** with inline success feedback.
+- **Left pane (current run):** a status line (idle, processing, text found, no text, failed), the recognized text in a read-only panel, and the actions **Copiar texto**, **Copiar imagem** and **Salvar imagem** with inline success feedback.
 - **Right pane (session history):** the recognized results of the session, most recent first; selecting an entry shows its full text and allows copying it again. Consulting history never changes the current result or the run state.
 
 Rules:
 
 - each action is an explicit user action; the application never copies to the clipboard on its own;
 - **Copiar texto** is enabled only when the last run produced text; an empty (no-text) result is never copied;
-- **Copiar imagem** is enabled whenever a crop exists (including captures without recognized text) and disabled after a cancelled capture;
+- **Copiar imagem** and **Salvar imagem** are enabled whenever a crop exists (including captures without recognized text) and disabled after a cancelled capture;
 - a new capture invalidates the previous result and image.
 
 The exact visual layout may be refined (M14) to achieve a compact and polished result, without changing the behavior above.
@@ -317,20 +317,28 @@ Examples of paste targets:
 
 ---
 
-# 13. Save Image (planned, M12)
+# 13. Save Image (implemented, M12)
 
-When the user chooses **Save Image**:
+When the user clicks **Salvar imagem**:
 
-1. Open the standard Windows save dialog.
-2. Allow the user to choose the destination and the file name.
-3. Save the captured region as an image.
-4. Confirm successful saving.
+1. The standard Windows save dialog opens, pre-filled with a unique suggested
+   name (`CapParse-<data>-<hora>.png`) and, when it exists, the user's
+   Pictures folder as the default location.
+2. The user chooses the destination and the file name (or cancels).
+3. The captured region is saved as a PNG file, tagged with the effective DPI
+   of the monitor the selection came from (the same tag the clipboard copy
+   uses). The file name is normalized to a `.png` extension, since the
+   content is always PNG.
+4. The inline feedback shows **Imagem salva!** on success.
 
-The application should not save screenshots automatically.
+Cancelling the dialog is a normal operation: no file is written and no
+message is shown. If the file cannot be written (invalid path, access
+denied, file in use), a friendly error message is shown and the application
+keeps running.
 
-No capture files should be created unless the user explicitly chooses to save one.
+The application never saves screenshots automatically.
 
-This action is not implemented yet; do not build its UI before M12.
+No capture files are created unless the user explicitly chooses to save one.
 
 ---
 
@@ -479,7 +487,7 @@ V0.1:
 ```text
 Generate Text   (implemented)
 Copy Image      (implemented)
-Save Image      (planned, M12)
+Save Image      (implemented)
 ```
 
 Future versions may add:

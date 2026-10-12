@@ -90,6 +90,17 @@
                                Margin="8,0,0,0"
                                VerticalAlignment="Center"
                                Foreground="Gray" />
+                    <Button x:Name="SaveImageButton"
+                            Content="Salvar imagem"
+                            MinWidth="120"
+                            Padding="12,6"
+                            Margin="16,0,0,0"
+                            IsEnabled="False"
+                            Click="SaveImage_Click" />
+                    <TextBlock x:Name="ImageSaveFeedback"
+                               Margin="8,0,0,0"
+                               VerticalAlignment="Center"
+                               Foreground="Gray" />
                 </StackPanel>
             </Grid>
 
