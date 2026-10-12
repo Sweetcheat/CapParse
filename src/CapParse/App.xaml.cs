@@ -327,8 +327,9 @@ public partial class App : Application
         menu.Items.Add("Sair", null, (_, _) => ExitApplication());
         _trayIcon.ContextMenuStrip = menu;
 
-        // Left double-click on the tray icon starts the capture workflow.
-        _trayIcon.DoubleClick += (_, _) => StartCapture();
+        // Left double-click on the tray icon restores the main window
+        // (the capture workflow stays on the global hotkey and the menu).
+        _trayIcon.DoubleClick += (_, _) => RestoreMainWindow();
     }
 
     private static System.Drawing.Icon LoadTrayIcon()
@@ -347,6 +348,37 @@ public partial class App : Application
         // Closing the window only hides it; the app stays available from the tray.
         e.Cancel = true;
         _mainWindow?.Hide();
+    }
+
+    /// <summary>
+    /// Restores the main window from the tray: a hidden window is shown again,
+    /// a minimized one returns to the normal state, and the window is
+    /// activated so the user can immediately return to the app. Double-clicking
+    /// the tray icon calls this instead of starting a capture. It touches only
+    /// the window's visibility/state and never the OCR result, history, or run
+    /// state. Safe when no window exists: nothing is created and no capture is
+    /// started.
+    /// </summary>
+    private void RestoreMainWindow()
+    {
+        // The NotifyIcon events fire on the UI thread, so the window can be
+        // manipulated directly without a dispatcher hop.
+        if (_mainWindow is null)
+        {
+            return;
+        }
+
+        if (_mainWindow.WindowState == WindowState.Minimized)
+        {
+            _mainWindow.WindowState = WindowState.Normal;
+        }
+
+        if (!_mainWindow.IsVisible)
+        {
+            _mainWindow.Show();
+        }
+
+        _mainWindow.Activate();
     }
 
     private void ShowSettings()
