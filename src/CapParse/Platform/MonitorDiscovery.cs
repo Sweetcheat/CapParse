@@ -23,6 +23,13 @@ public static class MonitorDiscovery
 {
     private const int MonitorInfofPrimary = 0x00000001;
 
+    // MonitorFromRect flag: the nearest monitor to the rectangle, which
+    // always resolves to some monitor on a machine with displays.
+    private const uint MonitorDefaultTonearest = 2;
+
+    // GetDpiForMonitor type: the effective DPI (the user's scaling).
+    private const int DpiTypeEffective = 0;
+
     public static IReadOnlyList<MonitorInfo> GetMonitors()
     {
         var monitors = new List<MonitorInfo>();
@@ -117,6 +124,43 @@ public static class MonitorDiscovery
             monitor.Bounds.Top - virtualBounds.Top);
     }
 
+    /// <summary>
+    /// The effective DPI of the monitor nearest to the given virtual-
+    /// desktop rectangle (for example 144 at 150% scaling). Used to tag
+    /// the clipboard image so DPI-aware applications paste it at its
+    /// on-screen size. Falls back to 96 when no monitor is found or the
+    /// query fails, so the result is always usable.
+    /// </summary>
+    public static int GetEffectiveDpiForSelection(Rectangle selection)
+    {
+        try
+        {
+            var rect = new NativeRect
+            {
+                Left = selection.Left,
+                Top = selection.Top,
+                Right = selection.Right,
+                Bottom = selection.Bottom
+            };
+
+            var hMonitor = MonitorFromRect(ref rect, MonitorDefaultTonearest);
+
+            if (hMonitor != IntPtr.Zero
+                && GetDpiForMonitor(hMonitor, DpiTypeEffective, out uint dpiX, out _) == 0
+                && dpiX > 0)
+            {
+                return (int)dpiX;
+            }
+        }
+        catch
+        {
+            // A DPI query failure must never break an image copy: fall
+            // through to the 96 fallback below.
+        }
+
+        return 96;
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     private struct NativeRect
     {
@@ -144,4 +188,11 @@ public static class MonitorDiscovery
 
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MonitorInfoEx lpmi);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromRect(ref NativeRect lprcRect, uint dwFlags);
+
+    // shcore.dll exists on Windows 10 and later, the app's minimum target.
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hMonitor, int dpiType, out uint dpiX, out uint dpiY);
 }

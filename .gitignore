@@ -3,6 +3,9 @@ bin/
 obj/
 TestResults/
 
+# Published packages (beta builds)
+build/dist/
+
 # Visual Studio
 .vs/
 *.user

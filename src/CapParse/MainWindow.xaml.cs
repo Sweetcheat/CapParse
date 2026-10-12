@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using CapParse.OCR;
+using CapParse.Platform;
 using CapParse.UI;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
@@ -22,19 +23,21 @@ namespace CapParse;
 public partial class MainWindow : Window
 {
     private readonly OcrTextCopier _copier;
+    private readonly CropImageCopier _imageCopier;
 
     public MainWindow()
-        : this(new WpfTextClipboard())
+        : this(new WpfTextClipboard(), new WpfImageClipboard())
     {
     }
 
     /// <summary>
-    /// Creates the window with an explicit clipboard, so tests can
-    /// substitute a fake.
+    /// Creates the window with explicit clipboards, so tests can
+    /// substitute fakes.
     /// </summary>
-    public MainWindow(ITextClipboard clipboard)
+    public MainWindow(ITextClipboard clipboard, IImageClipboard imageClipboard)
     {
         _copier = new OcrTextCopier(clipboard);
+        _imageCopier = new CropImageCopier(imageClipboard);
         InitializeComponent();
 
         var app = (App)Application.Current;
@@ -53,10 +56,17 @@ public partial class MainWindow : Window
 
     private void RefreshOcrState()
     {
-        var state = ((App)Application.Current).OcrState;
+        var app = ((App)Application.Current);
+        var state = app.OcrState;
 
         // A new run clears any "Copied" feedback from the previous one.
         CopyFeedback.Text = string.Empty;
+        ImageCopyFeedback.Text = string.Empty;
+
+        // The image button follows the last crop, not the OCR phase: a
+        // capture without recognized text (or a failed recognition) still
+        // leaves an image to copy, and a cancelled capture leaves none.
+        CopyImageButton.IsEnabled = app.LastCrop is not null;
 
         switch (state.Phase)
         {
@@ -157,6 +167,30 @@ public partial class MainWindow : Window
         if (outcome.Succeeded)
         {
             CopyFeedback.Text = "Texto copiado!";
+            return;
+        }
+
+        MessageBox.Show(this, outcome.Message, "CapParse",
+            MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    private void CopyImage_Click(object sender, RoutedEventArgs e)
+    {
+        var app = (App)Application.Current;
+        var crop = app.LastCrop;
+
+        // Tag the clipboard image with the effective DPI of the monitor the
+        // selection came from, so DPI-aware applications paste it at its
+        // on-screen size. 96 when the selection is unknown.
+        var dpi = app.LastSelection is { } selection
+            ? MonitorDiscovery.GetEffectiveDpiForSelection(selection)
+            : 96;
+
+        var outcome = _imageCopier.TryCopy(crop, dpi);
+
+        if (outcome.Succeeded)
+        {
+            ImageCopyFeedback.Text = "Imagem copiada!";
             return;
         }
 

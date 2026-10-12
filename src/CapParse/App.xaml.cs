@@ -182,6 +182,13 @@ public partial class App : Application
                 {
                     RecognizeCropAsync(crop);
                 }
+                else
+                {
+                    // No crop (cancelled or empty selection): the OCR state
+                    // is untouched, so publish it explicitly to let the
+                    // views drop the now-invalidated image.
+                    PublishOcrState();
+                }
             });
 
             // The constructor pumps the UI thread, so the session may have
