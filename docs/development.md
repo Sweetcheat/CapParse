@@ -584,7 +584,7 @@ Implementação: `CropImageCopier` + `WpfImageClipboard` (DIB em memória, tag d
 
 # 25. M12 — Save Image
 
-**Status: concluído e commitado** (commit `feat: add save image action`, local em `main` sobre `6b1cb1f`; ainda não publicado no GitHub; ainda não incluído na release `v0.1.0-beta.1`).
+**Status: concluído e verificado** (commit `feat: add save image action`, local em `main` sobre `6b1cb1f`; validação manual do diálogo de salvamento concluída pelo usuário no Windows; ainda não publicado no GitHub; ainda não incluído na release `v0.1.0-beta.1`).
 
 ## Objetivo
 
@@ -1176,7 +1176,7 @@ Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidaç
 
 ## 50.2 Estado do repositório (consolidação pós-M12)
 
-- Branch: `main`; `origin/main` = `6b1cb1f` (último commit publicado no GitHub); o commit do M12 (`feat: add save image action`) é local nesta sessão e ainda não publicado.
+- Branch: `main`; `origin/main` = `6b1cb1f` (último commit publicado no GitHub); o commit do M12 (`feat: add save image action`) é local e ainda não publicado.
 - HEAD: commit do M12 (`feat: add save image action`), sobre `6b1cb1f` — "docs: consolidate project documentation post-M11".
 - Working tree: limpo.
 - Tag `v0.1.0-beta.1` → `86e3d17` (README bilíngue): a release beta publicada **não inclui** o M11 nem o M12.
@@ -1200,7 +1200,7 @@ Statuses: **CV** = concluído e verificado (commitado + testes + evidência de v
 | M9/M10 — Resultado + Generate Text | CV (commitado; o commit agrupa apresentação e cópia de texto) | `61379b7` | resultado na janela principal + `OcrTextCopier` + `WpfTextClipboard` |
 | — Trabalhos adicionais publicados no beta | CV (commitados) | `f2c1036` (pt-BR), `a097cfa` (histórico de sessão), `f67b3a3` (instância única), `d9bdef1` (double-click do tray restaura a janela), `86e3d17` (README bilíngue, tag da beta) | — |
 | M11 — Copy Image | CV (commitado e **publicado**; 209/209 testes em Debug e Release) | `3bed7be` | `CropImageCopier` + `WpfImageClipboard` (DIB em memória, DPI efetivo), botão "Copiar imagem", 8 testes com fake; **fora da release `v0.1.0-beta.1`** |
-| M12 — Save Image | CV (commitado; 228/228 testes em Debug e Release) | `feat: add save image action` (local, sobre `6b1cb1f`) | `CropImageSaver` + `WpfCropImageSaveDialog` (diálogo padrão, PNG c/ tag de DPI, nome sugerido único), botão "Salvar imagem", 19 testes com fake do diálogo; **fora da release `v0.1.0-beta.1`**; validação manual do fluxo do diálogo pendente |
+| M12 — Save Image | CV (commitado; 228/228 testes em Debug e Release; validação manual do diálogo concluída pelo usuário) | `feat: add save image action` (local, sobre `6b1cb1f`) | `CropImageSaver` + `WpfCropImageSaveDialog` (diálogo padrão, PNG c/ tag de DPI, nome sugerido único), botão "Salvar imagem", 19 testes com fake do diálogo; **fora da release `v0.1.0-beta.1`** |
 | M13 — Settings | P | — | placeholder no tray ("As configurações ainda não foram implementadas.") |
 | M14 — UX Polish | P | — | interface principal, primeira execução, refinamento + consolidação de erros (§27) |
 | M15 — V0.1 Validation | P | — | — |
@@ -1217,7 +1217,7 @@ Notas sobre o M12:
 
 - validação automatizada: build Debug/Release com 0 erros e **228/228 testes aprovados em ambas as configurações** (sessão do M12); os testes gravam PNGs reais em disco (diretório temporário) e os decodificam de volta para verificar pixels e DPI;
 - um rebuild completo (`--no-incremental`) em ambas as configurações confirma apenas os 3 avisos preexistentes do M11 (o CS8625 de `FrozenOverlaySession.cs` é contado duas vezes — projeto principal e projeto temporário do WPF) — nenhum aviso novo foi introduzido;
-- a aplicação foi iniciada em sessão interativa com a nova janela (evidência de startup); o fluxo completo do diálogo de salvar (escolher caminho, salvar, cancelar) ainda exige validação manual por um humano.
+- validação manual concluída pelo usuário no Windows: o fluxo completo funcionou corretamente — `Ctrl+Shift+X` congela a tela e inicia a seleção; após a seleção da região, o botão "Salvar imagem" abre o diálogo padrão do Windows; o diálogo sugere um nome `CapParse` com data/hora; o usuário escolhe o destino e salva; a imagem é gravada no arquivo escolhido. (O agente também registrou, na sessão do M12, evidência de startup da aplicação em sessão interativa.)
 
 ## 50.4 Comportamentos publicados que difere dos documentos originais
 
