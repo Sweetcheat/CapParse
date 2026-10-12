@@ -47,6 +47,11 @@ public sealed class FrozenOverlaySession : IDisposable
     private const uint SetWindowPosNoZOrder = 0x0004;
 
     private readonly Action<Rectangle?, Bitmap?> _onClosed;
+    // Test-only seam: when provided (internal constructor), invoked after the
+    // first overlay window has been created, shown and placed, so tests can
+    // fail the construction at that point and verify the cleanup of the
+    // already-created windows. Always null in production.
+    private readonly Action<MonitorOverlayWindow>? _failureHook;
     private readonly List<MonitorOverlayWindow> _windows = new();
     private readonly List<BitmapSource> _images = new();
     private readonly List<Target> _targets = new();
@@ -75,9 +80,25 @@ public sealed class FrozenOverlaySession : IDisposable
     public bool Closed => _closed;
 
     public FrozenOverlaySession(CaptureResult capture, Action<Rectangle?, Bitmap?> onClosed)
+        : this(capture, onClosed, null)
+    {
+    }
+
+    /// <summary>
+    /// Test-only constructor: <paramref name="failureHook">, when non-null,
+    /// is invoked right after the first overlay window has been created,
+    /// shown and placed on its monitor, letting tests fail the construction
+    /// at that exact point and verify that the already-created windows are
+    /// cleaned up (see FrozenOverlaySessionLeakTests).
+    /// </summary>
+    internal FrozenOverlaySession(
+        CaptureResult capture,
+        Action<Rectangle?, Bitmap?> onClosed,
+        Action<MonitorOverlayWindow> failureHook)
     {
         _capture = capture ?? throw new ArgumentNullException(nameof(capture));
         _onClosed = onClosed ?? throw new ArgumentNullException(nameof(onClosed));
+        _failureHook = failureHook;
 
         try
         {
@@ -94,6 +115,15 @@ public sealed class FrozenOverlaySession : IDisposable
                     // exactly once after all overlays are ready.
                     Opacity = 0
                 };
+
+                // Registered before any operation that can throw (Show, the
+                // dispatcher pumps, placement, image creation): CloseCore
+                // closes everything in _windows, so a failure partway
+                // through construction can never leave a created window
+                // orphaned on a monitor. Windows not yet shown are closed
+                // the same way; WPF's Close() on a never-shown window just
+                // marks it closed.
+                _windows.Add(window);
 
                 window.Closed += OnWindowClosed;
                 window.KeyDown += OnWindowKeyDown;
@@ -121,6 +151,8 @@ public sealed class FrozenOverlaySession : IDisposable
                 Trace($"{monitor.DeviceName} placed");
                 TraceWindowStates($"{monitor.DeviceName} after placement");
 
+                _failureHook?.Invoke(window);
+
                 int dpi = (int)Math.Round(VisualTreeHelper.GetDpi(window).DpiScaleX * 96.0);
                 var image = CreateMonitorImage(capture.Image, monitor, capture.VirtualBounds, dpi);
                 window.SetFrozenImage(image);
@@ -134,7 +166,6 @@ public sealed class FrozenOverlaySession : IDisposable
                 window.DragUpdated = UpdateDrag;
                 window.DragEnded = EndDrag;
 
-                _windows.Add(window);
                 _images.Add(image);
                 _targets.Add(new Target(window, monitor.Bounds, dpi));
             }
