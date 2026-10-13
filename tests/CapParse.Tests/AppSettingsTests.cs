@@ -30,6 +30,7 @@ public class AppSettingsTests : IDisposable
         var settings = AppSettings.Load(SettingsPath);
 
         Assert.Equal(HotkeySetting.Default, settings.CaptureHotkey);
+        Assert.False(settings.FirstRunPresented);
     }
 
     [Fact]
@@ -73,6 +74,44 @@ public class AppSettingsTests : IDisposable
         var settings = AppSettings.Load(SettingsPath);
 
         Assert.Equal(HotkeySetting.Default, settings.CaptureHotkey);
+    }
+
+    [Fact]
+    public void Save_ThenLoad_FirstRunPresented_RoundTrips()
+    {
+        var settings = new AppSettings
+        {
+            CaptureHotkey = HotkeySetting.Default,
+            FirstRunPresented = true
+        };
+
+        Assert.True(settings.TrySave(SettingsPath));
+
+        var loaded = AppSettings.Load(SettingsPath);
+        Assert.True(loaded.FirstRunPresented);
+    }
+
+    [Fact]
+    public void Load_LegacyFileWithoutTheFlag_FirstRunNotPresented()
+    {
+        // A file written before the flag existed must read as "first run
+        // not presented yet", so the presentation shows for upgrading
+        // users exactly once.
+        File.WriteAllText(SettingsPath,
+            "{ \"Version\": 1, \"CaptureHotkey\": { \"Modifiers\": 6, \"Key\": 88 } }");
+
+        var settings = AppSettings.Load(SettingsPath);
+
+        Assert.False(settings.FirstRunPresented);
+        Assert.Equal("Ctrl + Shift + X", settings.CaptureHotkey.DisplayString);
+    }
+
+    [Fact]
+    public void Load_InvalidFile_FirstRunNotPresented()
+    {
+        File.WriteAllText(SettingsPath, "{ this is not json ");
+
+        Assert.False(AppSettings.Load(SettingsPath).FirstRunPresented);
     }
 
     [Fact]
@@ -140,11 +179,16 @@ public class AppSettingsTests : IDisposable
     }
 
     [Fact]
-    public void ThePersistedFile_ContainsOnlyTheHotkey()
+    public void ThePersistedFile_ContainsNoPersonalData()
     {
         // The settings file must never grow personal data: it holds the
-        // version and the hotkey combination, and nothing else.
-        var settings = new AppSettings { CaptureHotkey = HotkeySetting.Default };
+        // version, the hotkey combination and the first-run flag, and
+        // nothing else.
+        var settings = new AppSettings
+        {
+            CaptureHotkey = HotkeySetting.Default,
+            FirstRunPresented = true
+        };
         Assert.True(settings.TrySave(SettingsPath));
 
         var content = File.ReadAllText(SettingsPath);
@@ -152,5 +196,6 @@ public class AppSettingsTests : IDisposable
         Assert.Contains("\"CaptureHotkey\"", content);
         Assert.Contains("\"Modifiers\"", content);
         Assert.Contains("\"Key\"", content);
+        Assert.Contains("\"FirstRunPresented\"", content);
     }
 }

@@ -253,6 +253,10 @@ The application must never appear frozen during OCR.
 
 A loading indicator should be displayed while processing.
 
+**Status (M14): implemented.** The shipped indicator is an indeterminate
+progress bar in the main window, visible only while a recognition is in
+flight (the `Processing` phase), above the status line.
+
 If processing fails, the application must display a clear error state and provide an option to retry or close.
 
 ---
@@ -537,6 +541,15 @@ Both shortcuts must be configurable in Settings (section 24) once implemented.
 ---
 
 # 23. First-Run Presentation
+
+**Status (M14): implemented.** On the first run only, a short window ("Bem-vindo
+ao CapParse") is shown: what the application does, how to start a capture (the
+active hotkey and the tray menu) and what happens after a selection. It is
+skippable (the window's close button dismisses it) and needs no configuration
+step — a single "Começar" button closes it. The "first run" state is persisted
+in the settings file (`FirstRunPresented`); a missing or legacy file reads as
+first run, so the presentation is shown exactly once per installation and never
+again.
 
 On the first run only, CapParse may show a short presentation:
 

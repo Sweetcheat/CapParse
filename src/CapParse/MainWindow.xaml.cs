@@ -92,6 +92,13 @@ public partial class MainWindow : Window
         CopyImageButton.IsEnabled = app.LastCrop is not null;
         SaveImageButton.IsEnabled = app.LastCrop is not null;
 
+        // The loading indicator is visible only while a recognition is in
+        // flight (ui.md §9): it is the visual cue that the app is working
+        // and not frozen.
+        ProcessingBar.Visibility = state.Phase == OcrPhase.Processing
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
         switch (state.Phase)
         {
             case OcrPhase.Idle:

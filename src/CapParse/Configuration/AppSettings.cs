@@ -31,6 +31,14 @@ public sealed class AppSettings
     /// <summary>The capture hotkey (the default when nothing is persisted).</summary>
     public HotkeySetting CaptureHotkey { get; set; } = HotkeySetting.Default;
 
+    /// <summary>
+    /// True once the first-run presentation (<c>ui.md</c> §23) has been
+    /// shown: it must never appear a second time. False in a missing or
+    /// legacy file that predates the flag, which is exactly the first-run
+    /// condition. Not personal data.
+    /// </summary>
+    public bool FirstRunPresented { get; set; }
+
     /// <summary>The settings file location: <c>%LOCALAPPDATA%\CapParse\settings.json</c>.</summary>
     public static string DefaultSettingsPath
         => Path.Combine(
@@ -63,7 +71,13 @@ public sealed class AppSettings
                 return new AppSettings();
             }
 
-            return new AppSettings { CaptureHotkey = hotkey };
+            return new AppSettings
+            {
+                CaptureHotkey = hotkey,
+                // Absent in a legacy file: the JSON default (false) is the
+                // correct first-run reading.
+                FirstRunPresented = file.FirstRunPresented
+            };
         }
         catch
         {
@@ -95,7 +109,8 @@ public sealed class AppSettings
             var file = new SettingsFile
             {
                 Version = SupportedVersion,
-                CaptureHotkey = CaptureHotkey
+                CaptureHotkey = CaptureHotkey,
+                FirstRunPresented = FirstRunPresented
             };
 
             var temporary = path + ".tmp";
@@ -116,5 +131,7 @@ public sealed class AppSettings
         public int Version { get; set; }
 
         public HotkeySetting? CaptureHotkey { get; set; }
+
+        public bool FirstRunPresented { get; set; }
     }
 }

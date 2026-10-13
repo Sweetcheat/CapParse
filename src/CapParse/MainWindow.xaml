@@ -41,14 +41,27 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock x:Name="StatusText"
-                           Grid.Row="0"
-                           FontSize="14"
-                           Foreground="Gray"
-                           TextWrapping="Wrap"
-                           TextAlignment="Center"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center" />
+                <Grid Grid.Row="0" HorizontalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center">
+                        <!-- Loading indicator while a recognition is in
+                             flight (ui.md §9); the status line below it
+                             keeps telling the user what is happening. -->
+                        <ProgressBar x:Name="ProcessingBar"
+                                     IsIndeterminate="True"
+                                     Height="4"
+                                     Width="200"
+                                     AutomationProperties.Name="Processando"
+                                     Visibility="Collapsed" />
+                        <TextBlock x:Name="StatusText"
+                                   Margin="0,8,0,0"
+                                   FontSize="14"
+                                   Foreground="Gray"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
 
                 <Border x:Name="ResultPanel"
                         Grid.Row="1"
@@ -65,43 +78,62 @@
                              Padding="8" />
                 </Border>
 
-                <StackPanel Grid.Row="2"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Center"
-                            Margin="0,12,0,0">
-                    <Button x:Name="CopyButton"
-                            Content="Copiar texto"
-                            MinWidth="120"
-                            Padding="12,6"
-                            IsEnabled="False"
-                            Click="CopyText_Click" />
-                    <TextBlock x:Name="CopyFeedback"
-                               Margin="8,0,0,0"
-                               VerticalAlignment="Center"
-                               Foreground="Gray" />
-                    <Button x:Name="CopyImageButton"
-                            Content="Copiar imagem"
-                            MinWidth="120"
-                            Padding="12,6"
-                            Margin="16,0,0,0"
-                            IsEnabled="False"
-                            Click="CopyImage_Click" />
-                    <TextBlock x:Name="ImageCopyFeedback"
-                               Margin="8,0,0,0"
-                               VerticalAlignment="Center"
-                               Foreground="Gray" />
-                    <Button x:Name="SaveImageButton"
-                            Content="Salvar imagem"
-                            MinWidth="120"
-                            Padding="12,6"
-                            Margin="16,0,0,0"
-                            IsEnabled="False"
-                            Click="SaveImage_Click" />
-                    <TextBlock x:Name="ImageSaveFeedback"
-                               Margin="8,0,0,0"
-                               VerticalAlignment="Center"
-                               Foreground="Gray" />
-                </StackPanel>
+                <!-- The action buttons and their inline feedback. Each
+                     feedback sits in a fixed-width slot below its button,
+                     so a message appearing or disappearing never changes
+                     the row's size: the buttons keep their position and
+                     width (the slot is wider than the longest message,
+                     "Imagem copiada!", so nothing is trimmed). -->
+                <Grid Grid.Row="2"
+                      HorizontalAlignment="Center"
+                      Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <Button x:Name="CopyButton"
+                                Content="Copiar texto"
+                                MinWidth="120"
+                                Padding="12,6"
+                                IsEnabled="False"
+                                Click="CopyText_Click" />
+                        <TextBlock x:Name="CopyFeedback"
+                                   Width="110"
+                                   TextAlignment="Center"
+                                   Foreground="Gray" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <Button x:Name="CopyImageButton"
+                                Content="Copiar imagem"
+                                MinWidth="120"
+                                Padding="12,6"
+                                IsEnabled="False"
+                                Click="CopyImage_Click" />
+                        <TextBlock x:Name="ImageCopyFeedback"
+                                   Width="110"
+                                   TextAlignment="Center"
+                                   Foreground="Gray" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="4">
+                        <Button x:Name="SaveImageButton"
+                                Content="Salvar imagem"
+                                MinWidth="120"
+                                Padding="12,6"
+                                IsEnabled="False"
+                                Click="SaveImage_Click" />
+                        <TextBlock x:Name="ImageSaveFeedback"
+                                   Width="110"
+                                   TextAlignment="Center"
+                                   Foreground="Gray" />
+                    </StackPanel>
+                </Grid>
             </Grid>
 
             <!-- History of the session's recognized results, most recent
@@ -164,7 +196,6 @@
                 </Border>
 
                 <StackPanel Grid.Row="3"
-                            Orientation="Horizontal"
                             HorizontalAlignment="Center"
                             Margin="0,12,0,0">
                     <Button x:Name="HistoryCopyButton"
@@ -173,9 +204,11 @@
                             Padding="12,6"
                             IsEnabled="False"
                             Click="HistoryCopy_Click" />
+                    <!-- Same fixed-slot pattern as the action buttons: the
+                         feedback never moves the button. -->
                     <TextBlock x:Name="HistoryCopyFeedback"
-                               Margin="8,0,0,0"
-                               VerticalAlignment="Center"
+                               Width="110"
+                               TextAlignment="Center"
                                Foreground="Gray" />
                 </StackPanel>
             </Grid>

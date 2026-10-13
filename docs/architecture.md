@@ -709,13 +709,13 @@ A configuração deve:
 
 Não criar dezenas de opções de configuração.
 
-**Implementação (M13):** a pasta `Configuration/` do projeto principal contém:
+**Implementação (M13, estendida no M14):** a pasta `Configuration/` do projeto principal contém:
 
 - `HotkeySetting` — o valor persistido (flags de modificador do Win32 + código de tecla virtual), com validação (pelo menos um de Ctrl/Alt/Windows + letra, dígito ou F1–F24; os códigos de tecla virtual das F-keys, 0x70–0x87, não colidem com nenhuma outra tecla) e exibição (`"Ctrl + Shift + X"`);
 - `HotkeyRecovery` — a cadeia de recuperação pura (solicitada → anterior ativo → padrão → nenhum atalho), usada pelo startup e pela janela de Settings; a aplicação fornece a função que executa os `RegisterHotKey`;
-- `AppSettings` — leitura/gravação de `%LOCALAPPDATA%\CapParse\settings.json` (JSON mínimo, escrita atômica via arquivo temporário). A leitura nunca lança: arquivo ausente, ilegível, com parse inválido ou valores inválidos produzem os padrões, sem modificar o arquivo. A gravação falha sem lançar (retorna `false`), o que a janela de Settings reporta como mensagem amigável.
+- `AppSettings` — leitura/gravação de `%LOCALAPPDATA%\CapParse\settings.json` (JSON mínimo, escrita atômica via arquivo temporário). A leitura nunca lança: arquivo ausente, ilegível, com parse inválido ou valores inválidos produzem os padrões, sem modificar o arquivo. A gravação falha sem lançar (retorna `false`), o que a janela de Settings reporta como mensagem amigável. O arquivo guarda também a flag `FirstRunPresented` (M14: a apresentação de primeira execução só aparece uma vez; arquivo ausente/legado = primeira execução).
 
-O arquivo contém somente a combinação de teclas — nenhum dado pessoal nem conteúdo capturado.
+O arquivo contém somente a combinação de teclas e a flag de primeira execução — nenhum dado pessoal nem conteúdo capturado.
 
 ---
 

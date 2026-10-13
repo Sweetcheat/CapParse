@@ -157,6 +157,32 @@ public partial class App : Application
 
         CreateTrayIcon();
         RegisterCaptureHotkey();
+        ShowFirstRunPresentationIfDue();
+    }
+
+    /// <summary>
+    /// Shows the short, non-mandatory first-run presentation (ui.md §23)
+    /// exactly once: the flag is marked as soon as the presentation is
+    /// shown, so a later launch - even if the window was never dismissed -
+    /// never shows it again. A settings write failure is ignored: the
+    /// presentation simply appears one more time on the next launch, which
+    /// is a harmless degradation, never a startup failure.
+    /// </summary>
+    private void ShowFirstRunPresentationIfDue()
+    {
+        if (_settings.FirstRunPresented)
+        {
+            return;
+        }
+
+        _settings.FirstRunPresented = true;
+        _settings.TrySave();
+
+        var howTo = _activeHotkey is { } active
+            ? $"Inicie uma captura com {active.DisplayString}, ou pelo menu do ícone na bandeja (Capturar)."
+            : "Inicie uma captura pelo menu do ícone na bandeja (Capturar).";
+
+        new FirstRunWindow(howTo).Show();
     }
 
     private void StartCapture()
