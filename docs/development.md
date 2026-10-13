@@ -689,41 +689,49 @@ Não utilizar esse milestone para adicionar novas funcionalidades.
 
 Validar o produto completo.
 
-Checklist mínimo:
+Checklist mínimo — a origem da validação está entre parênteses. "usuário" = validação manual informada pelo usuário na sessão M15 (o agente não a executou); "agente" = evidência de comando nesta sessão (ver §50.5).
 
 ### Captura
 
-- [ ] hotkey funciona;
-- [ ] tray double-click funciona;
-- [ ] Capture do tray funciona;
-- [ ] ESC cancela;
-- [ ] seleção funciona;
-- [ ] múltiplos monitores funcionam;
-- [ ] DPI diferente funciona.
+- [x] hotkey funciona (usuário);
+- [x] tray double-click funciona (usuário);
+- [x] Capture do tray funciona (usuário);
+- [x] ESC cancela (usuário);
+- [x] seleção funciona (usuário);
+- [x] múltiplos monitores funcionam (usuário — nos monitores disponíveis, com escalas diferentes);
+- [x] DPI diferente funciona (usuário — monitores com escalas diferentes).
 
 ### OCR
 
-- [ ] OCR local funciona;
-- [ ] português funciona;
-- [ ] inglês funciona;
-- [ ] texto simples funciona;
-- [ ] OCR não bloqueia a UI.
+- [x] OCR local funciona (usuário — modo avião);
+- [x] português funciona (usuário);
+- [ ] inglês funciona (não validado separadamente; o modelo o suporta — coleção M7-C em `docs/ocr-integration.md`);
+- [x] texto simples funciona (usuário);
+- [x] OCR não bloqueia a UI (usuário — fluxo completo responsivo durante o reconhecimento; indicador de processamento validado no M14).
 
 ### Ações
 
-- [ ] Generate Text funciona;
-- [ ] Copy Image funciona;
-- [ ] Save Image funciona.
+- [x] Generate Text funciona (usuário);
+- [x] Copy Image funciona (usuário — colado no Paint);
+- [x] Save Image funciona (usuário).
 
 ### Aplicação
 
-- [ ] Settings funciona;
-- [ ] Exit funciona;
-- [ ] erros são tratados;
-- [ ] não há dependência de internet;
-- [ ] aplicação pode permanecer no tray;
-- [ ] não existem janelas residuais;
-- [ ] build Release funciona.
+- [x] Settings funciona (usuário — atalho alterado, programa reiniciado, persistência confirmada);
+- [x] Exit funciona (usuário — incluindo saída durante OCR em andamento);
+- [ ] erros são tratados (caminhos de falha — diálogos de erro de captura/OCR — não foram exercitados explicitamente na validação informada);
+- [x] não há dependência de internet (usuário — modo avião);
+- [x] aplicação pode permanecer no tray (usuário);
+- [x] não existem janelas residuais (usuário — ausência de flash preto e de janelas residuais confirmada);
+- [x] build Release funciona (agente — §50.5).
+
+### Itens da validação manual informada pelo usuário (sessão M15)
+
+Todos reportados como OK:
+
+- Interface e captura: hotkey + captura completa; ausência de flash preto e de janelas residuais; `Esc` durante a seleção; Capturar/Configurações/Sair no tray; duplo clique no ícone do tray.
+- Funcionalidades: copiar a imagem e colá-la no Paint; alterar a hotkey, reiniciar o programa e confirmar a persistência; sair durante um OCR em andamento.
+- Confiabilidade: captura, OCR, cópia e salvamento em modo avião; múltiplos monitores com escalas diferentes (se disponíveis); fallback quando a hotkey já está ocupada.
 
 ---
 
@@ -983,6 +991,22 @@ Exemplos:
 
 A existência dessa lista não significa que esses recursos devem ser implementados agora.
 
+## 38.1 Itens registrados
+
+### Histórico de capturas com recuperação de imagem (registrado na M15)
+
+**Decisão de produto (M15): o histórico da V0.1 permanece somente textual** — ele mantém até 20 resultados OCR em memória, mas não preserva a imagem de cada entrada; copiar ou salvar uma imagem antiga a partir do histórico não é suportado.
+
+Melhoria futura (não implementada):
+
+- Associar cada resultado OCR à imagem da captura correspondente;
+- Permitir selecionar uma entrada antiga e copiar ou salvar sua imagem original;
+- Manter o limite de 20 entradas;
+- Investigar arquivos temporários por sessão como estratégia preferencial, evitando manter 20 bitmaps grandes em RAM;
+- Limpar arquivos ao remover entradas do histórico e ao encerrar a aplicação normalmente;
+- Considerar encerramentos inesperados, arquivos órfãos, falhas de gravação e ciclo de vida das imagens;
+- Não persistir o histórico entre sessões, salvo decisão futura explícita.
+
 ---
 
 # 39. Quando parar
@@ -1197,20 +1221,20 @@ Se uma mudança torna o projeto significativamente mais complexo sem entregar va
 
 # 50. Estado atual do projeto (continuidade entre sessões)
 
-Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidação documental pós-M11 (2026-10), substitui a versão da auditoria de 2026-10-12 (que descrevia o estado de um clone obsoleto); atualizada na sessão M14 (registro do M13 publicado e do trabalho M14 local). O que está marcado como "executado" tem evidência de comando na sessão indicada; o restante vem do histórico Git e da documentação verificada contra o código.
+Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidação documental pós-M11 (2026-10), substitui a versão da auditoria de 2026-10-12 (que descrevia o estado de um clone obsoleto); atualizada na sessão M14 (registro do M13 publicado e do trabalho M14 local) e na sessão M15 (preparação da candidata v0.1.0-beta.2: documentação, metadados de versão, procedimento de publicação reproduzível e pacote de validação). O que está marcado como "executado" tem evidência de comando na sessão indicada; o restante vem do histórico Git e da documentação verificada contra o código.
 
 ## 50.1 Repositório de referência
 
 - **Repositório principal de trabalho: `C:\Dev\CapParseIntegI`** (branch `main`, remoto `https://github.com/Sweetcheat/CapParse.git`).
 - `C:\Dev\CapParse` é um **clone obsoleto** (HEAD `3324900`, 13 commits atrás da linha principal). Ele serviu apenas como fonte de comparação documental na auditoria de 2026-10-12. **Não trabalhar, não commitar e não fazer push a partir dele** (o `origin/main` local dele está desatualizado; um force-push a partir dele apagaria a linha publicada do GitHub).
 
-## 50.2 Estado do repositório (sessão M14)
+## 50.2 Estado do repositório (sessão M15)
 
-- Branch: `main`; `origin/main` = `e3560cc` (fix: repair settings hotkey capture) — o M13 foi **publicado** no GitHub (commits `5180b52` + `e3560cc`).
-- HEAD: `e3560cc` + commits locais do M14 (não publicados): `feat: add first-run presentation and processing feedback` e `refactor: build overlay session asynchronously without dispatcher pumps` — construção assíncrona da sessão de overlay (sem `PushFrame`), apresentação de primeira execução, indicador de processamento, diálogo de erro de captura com retry, guards de encerramento, ajustes de layout.
-- Working tree: limpo.
-- Tag `v0.1.0-beta.1` → `86e3d17` (README bilíngue): a release beta publicada **não inclui** o M11, o M12, o M13 nem o M14.
-- `.gitignore` ignora `build/dist/` (pacotes de publicação, ex.: `CapParse-v0.1.0-beta.1-win-x64.zip`).
+- Branch: `main`; HEAD = `origin/main` = `c4e76fd` (refactor: build overlay session asynchronously) — o M14 está **publicado** no GitHub (`a7d2c22` + `c4e76fd` sobre `e3560cc`).
+- Working tree: alterações da M15 **não commitadas** (documentação, metadados de versão em `src/CapParse/CapParse.csproj` e `app.manifest`, novo `build/publish-win-x64.ps1`), aguardando aprovação explícita.
+- Tag `v0.1.0-beta.1` → `86e3d17`: a release beta publicada **não inclui** o M11, o M12, o M13 nem o M14. A tag não foi movida nem alterada.
+- `build/dist/CapParse-v0.1.0-beta.1-win-x64.zip` é **desatualizado** (anterior a M11–M14) e não deve ser reutilizado como artefato final. O pacote da candidata é `build/dist/CapParse-v0.1.0-beta.2-win-x64.zip`, gerado nesta sessão (dados em §50.5).
+- `.gitignore` ignora `build/dist/` (pacotes de publicação).
 
 ## 50.3 Milestones — status
 
@@ -1232,8 +1256,8 @@ Statuses: **CV** = concluído e verificado (commitado + testes + evidência de v
 | M11 — Copy Image | CV (commitado e **publicado**; 209/209 testes em Debug e Release) | `3bed7be` | `CropImageCopier` + `WpfImageClipboard` (DIB em memória, DPI efetivo), botão "Copiar imagem", 8 testes com fake; **fora da release `v0.1.0-beta.1`** |
 | M12 — Save Image | CV (commitado e **publicado** em `1edd9f1`; validação manual do diálogo registrada em `6401b4b`) | `1edd9f1` | `CropImageSaver` + `WpfCropImageSaveDialog` (diálogo padrão, PNG c/ tag de DPI, nome sugerido único), botão "Salvar imagem", 19 testes com fake do diálogo; **fora da release `v0.1.0-beta.1`** |
 | M13 — Settings | CV (commitado e **publicado** em `main` no GitHub: `5180b52` + `e3560cc`; correção da captura de teclas da SettingsWindow — handler `PreviewKeyDown` nunca foi ligado no XAML, e a validação de F-keys foi corrigida para os códigos VK reais 0x70–0x87; 326/326 testes em Debug e Release; fluxo completo validado em runtime no Windows via harness; restam ao usuário o clique físico no menu do tray e teclas físicas com modificadores) | `5180b52`, `e3560cc` | `SettingsWindow` (tray → Configurações), `Configuration/` (`HotkeySetting`, `HotkeyInput`, `HotkeyRecovery`, `AppSettings`), persistência em `%LOCALAPPDATA%\CapParse\settings.json`, 98 testes novos no total; **fora da release `v0.1.0-beta.1`** |
-| M14 — UX Polish | I (implementado localmente em commits sobre `e3560cc`, **não publicado**; 331/331 testes em Debug e Release; validação manual concluída pelo usuário — interface, apresentação de primeira execução, feedbacks de cópia e fluxos funcionais) | — (local) | construção assíncrona do overlay (`CreateAsync`, sem `Dispatcher.PushFrame`), `FirstRunWindow` (flag `FirstRunPresented` em `settings.json`), `ProgressBar` de processamento, diálogo de erro de captura `OKCancel` com retry, guards de shutdown em `RecognizeCropAsync`, ajustes de layout (feedbacks em slots fixos sob os botões; `FirstRunWindow` 520×300); atalhos pós-seleção (`ui.md` §22) fora do escopo (combinações não definitivas); **fora da release `v0.1.0-beta.1`** |
-| M15 — V0.1 Validation | P | — | — |
+| M14 — UX Polish | CV (commitado e **publicado** em `main`: `a7d2c22` + `c4e76fd`; 331/331 testes em Debug e Release; validação manual concluída pelo usuário — interface, apresentação de primeira execução, feedbacks de cópia e fluxos funcionais) | `a7d2c22`, `c4e76fd` | construção assíncrona do overlay (`CreateAsync`, sem `Dispatcher.PushFrame`), `FirstRunWindow` (flag `FirstRunPresented` em `settings.json`), `ProgressBar` de processamento, diálogo de erro de captura `OKCancel` com retry, guards de shutdown em `RecognizeCropAsync`, ajustes de layout (feedbacks em slots fixos sob os botões; `FirstRunWindow` 520×300); atalhos pós-seleção (`ui.md` §22) fora do escopo (combinações não definitivas); **fora da release `v0.1.0-beta.1`** |
+| M15 — V0.1 Validation | Em andamento (sessão atual): documentação consistente, backlog (histórico com imagem), procedimento de publicação reproduzível (`build/publish-win-x64.ps1`), metadados de versão `0.1.0-beta.2`, pacote `CapParse-v0.1.0-beta.2-win-x64.zip` gerado e inspecionado; validação manual do produto informada pelo usuário (§28) | — (não commitado) | restam: commit/push/tag/release com aprovação explícita; validação do pacote beta.2 em computador externo (usuário) |
 | Futuro — HDR Capture & Tone Mapping | FI | — | `product.md` §9; `architecture.md` §45.1 |
 | Futuro — Spreadsheet Conversion | FI | — | `product.md` §9; `architecture.md` §45.2 |
 
@@ -1263,6 +1287,9 @@ Decisões de produto tomadas na linha principal (registradas aqui para evitar "c
 
 ## 50.5 Evidências de build e testes
 
+- M15 (sessão atual, preparação da beta.2): `dotnet restore` + `dotnet build` + `dotnet test` em **Debug** — 0 erros, **331/331 aprovados**; em **Release** (via `build/publish-win-x64.ps1`) — 0 erros, **331/331 aprovados** (incluindo os 4 smoke tests com o modelo real PP-OCRv6); apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo. Publish `win-x64` self-contained single-file (`PublishSingleFile=true` + `IncludeNativeLibrariesForSelfExtract=true` — o mesmo layout do beta.1, cujo comportamento em campo o usuário validou): o executável embute o runtime .NET e as nativas (onnxruntime, SkiaSharp); FileVersion `0.1.0.0`, ProductVersion `0.1.0-beta.2`. Pacote: `build/dist/CapParse-v0.1.0-beta.2-win-x64.zip` — **104.227.368 bytes (99,4 MB)**, SHA-256 `DB6D4606A6A1CE58071B3E06A1317A0212325D5934AF5D1C0A955EC19128A6EC`; 5 entradas (`CapParse.exe` 181,8 MB + `models/v6/*` + classificador v5), sem PDB, `.lib` ou artefatos de desenvolvimento. **Teste em diretório limpo (agente)**: o ZIP foi extraído para uma pasta temporária nova e o `CapParse.exe` inicializou e permaneceu estável (~15 s) sem depender do ambiente de desenvolvimento, encerrando-se limpo. **Restante ao usuário:** executar o pacote beta.2 em computador externo — a captura completa + OCR a partir do pacote embalado exige seleção interativa (o OCR é lazy e não pode ser gatilho headless); o teste limpo cobriu inicialização, não OCR.
+- M15 (validação manual informada pelo usuário): o usuário reportou todos os itens da validação do produto como OK — interface e captura (hotkey + captura completa, ausência de flash preto e janelas residuais, `Esc`, tray Capturar/Configurações/Sair, duplo clique no tray), funcionalidades (copiar a imagem e colá-la no Paint; alterar a hotkey, reiniciar e confirmar a persistência; sair durante OCR em andamento) e confiabilidade (captura, OCR, cópia e salvamento em modo avião; múltiplos monitores com escalas diferentes, se disponíveis; fallback quando a hotkey já está ocupada). O agente **não** executou essas validações; o mapeamento item a item com o checklist do §28 está registrado ali.
+- Decisão sobre os modelos v5 (M15): o preset `PPOCRv6Small` do RapidOcrNet 4.2.0 (verificado por reflexão contra o pacote) referencia `models/v6/PP-OCRv6_det_small.onnx`, `models/v6/PP-OCRv6_rec_small.onnx`, `models/v6/ppocrv6_dict.txt` e `models/v5/ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx` (classificador de orientação). Os demais três arquivos v5 (`ch_PP-OCRv5_mobile_det.onnx`, `latin_PP-OCRv5_rec_mobile_infer.onnx`, `ppocrv5_latin_dict.txt`) pertencem ao preset PP-OCRv5 mobile, que o aplicativo nunca carrega — eles chegam à saída de publish apenas pelo target do próprio pacote. Decisão: **manter o classificador v5** (obrigatório em runtime) e **remover os três arquivos v5 não utilizados do pacote distribuído** (passo explícito do `build/publish-win-x64.ps1`), validado pelos 331 testes (incluindo os smoke tests com o modelo real) e pelo teste em diretório limpo. Nenhum arquivo foi removido do repositório.
 - M14-ajustes de layout (sessão atual): `dotnet build` e `dotnet test` em Debug e Release — 0 erros, **331/331 aprovados** em ambas as configurações; apenas o aviso preexistente xUnit2020. Validação visual (agente, Windows): app lançado em Release com a primeira execução re-armada — `Bem-vindo ao CapParse` (520×300) e `CapParse` (960×560) inspecionados via UIAutomation (bounding boxes exatos: margens de 36px simétricas e botão "Começar" 130×32 na primeira execução; na janela principal, botões 120×30 com colunas de 16px e slots de feedback de 110×16 permanentes sob cada botão — geometria invariante à exibição das mensagens) e screenshots; processo encerrado e `settings.json` restaurado a `FirstRunPresented: true`.
 - M14 (validação manual do usuário, sessão atual): o usuário concluiu a validação manual do M14 — interface (janela principal, feedbacks de cópia/salvamento exibidos), apresentação de primeira execução e os fluxos funcionais da aplicação (captura/OCR/copiar/salvar).
 - M14 (sessão atual): `dotnet build` e `dotnet test` em Debug e Release — 0 erros, **331/331 aprovados** em ambas as configurações; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` (o CS8625 preexistente de `FrozenOverlaySession.cs` foi **resolvido** com o parâmetro `failureHook` agora declarável como anulável — nenhum aviso novo). Validação manual parcial (agente, Windows): app lançado em Release — janela principal + apresentação de primeira execução ("Bem-vindo ao CapParse") exibidas, flag `FirstRunPresented` gravada em `settings.json`, processo encerrado. O restante da validação manual foi concluído pelo usuário (linha anterior).
@@ -1273,24 +1300,28 @@ Decisões de produto tomadas na linha principal (registradas aqui para evitar "c
 - M7 (registro histórico): 146/146 em Debug e Release na época do commit `3c0da24`; avaliação de qualidade do modelo em `docs/ocr-integration.md` §10 e `tests/CapParse.Tests/TestData/Ocr/reports/`.
 - A suíte cresce com os milestones (146 → 209 → 228 → 296 entre M7, M11, M12 e M13): comparar sempre com o total da suíte atual, não com números históricos.
 
-## 50.6 Próximo milestone recomendado
+## 50.6 Próximos passos
 
-**M15 — V0.1 Validation** (§28): validar o produto completo — incluindo as validações manuais pendentes acumuladas: multi-monitor/DPI/overlay (M4/M5/M14), hotkey com teclas físicas (M13/M14), paste em destinos reais (M11), diálogos (M12) e a apresentação de primeira execução (M14).
+A M15 está tecnicamente completa nesta sessão: documentação consistente com o estado real, melhoria do histórico com imagem registrada no backlog (sem implementação), procedimento de publicação reproduzível e documentado, metadados de versão coerentes (`0.1.0-beta.2`), testes passando em Debug e Release e o pacote candidato `CapParse-v0.1.0-beta.2-win-x64.zip` gerado, inspecionado e com hash registrado (§50.5).
 
-- **Por que faz sentido agora:** o M14 consolidou a experiência (construção do overlay sem bombeamento síncrono da UI thread, primeira execução, indicador de processamento, erro de captura com retry, guards de shutdown); o que resta antes de uma nova release é a publicação do M14 e a validação final do produto completo.
-- **Dependências:** nenhuma técnica aberta; apenas o push/release do M14.
+Aguardando aprovação explícita (nada foi commitado, publicado ou tagged nesta sessão):
 
-Sequência prática após o M15: nova release beta incluindo o M11+M12+M13+M14 (a tag `v0.1.0-beta.1` ficou para trás em `86e3d17`).
+1. commit das alterações da M15 (documentação + metadados de versão + `build/publish-win-x64.ps1`);
+2. push para `origin/main`;
+3. criação da tag `v0.1.0-beta.2` e publicação da release com o ZIP de `build/dist/` (a tag e o pacote da beta.1 permanecem intactos).
+
+Restrição operacional: o OCR a partir do pacote beta.2 embalado só pode ser validado interativamente (usuário, em computador externo) — não há gatilho headless para a captura.
 
 ## 50.7 Problemas conhecidos, riscos e limitações
 
 - OCR (PP-OCRv6 Small, medido no M7-C): fonte pequena em fundo escuro degrada severamente; espaços entre palavras/tokens são frequentemente perdidos no texto reconstruído.
 - A arena de memória do ONNX Runtime cresce durante execuções (WorkingSet do processo ~2 GB na avaliação M7-C; não é memória exclusiva do OCR).
-- 31 MB de modelos no repositório (aceitável para app local-first).
-- A validação manual de multi-monitor/DPI/overlay (M4/M5) e do fluxo de captura com a construção assíncrona (M14) não tem evidência registrada no repositório — priorizar na M15.
-- Os diagnósticos temporários `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` permanecem no código: o fix do black-flash (overlay layered + revelação em dois frames) ainda não foi validado manualmente; removê-los exige a validação + justificativa documentada + autorização.
+- Modelos: ~32 MB no pacote distribuído (pasta `models/v6` + classificador v5 de ~1 MB) — aceitável para app local-first. Os três arquivos v5 não utilizados pelo preset foram removidos do pacote na M15 (decisão e evidência em §50.5); o classificador v5 permanece porque o preset `PPOCRv6Small` o carrega em runtime.
+- O histórico da sessão é somente textual (decisão de produto da M15 para a V0.1) — a melhoria "Histórico de capturas com recuperação de imagem" está no backlog (§38.1) e não foi implementada.
+- Os diagnósticos temporários `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` permanecem no código: o fix do black-flash (overlay layered + revelação em dois frames) foi validado manualmente pelo usuário na M15 (ausência de flash preto e de janelas residuais reportada como OK); a remoção dos diagnósticos ainda exige justificativa documentada e autorização.
 - A coleção M7-C é sintética (anti-aliasing em cinza, 96 DPI): não representa capturas reais (ClearType, escalas, DPI ≠ 100%).
 - O clone obsoleto `C:\Dev\CapParse` continua existindo em disco com 43 arquivos M7 staged e docs da auditoria — risco de trabalho acidental; arquivá-lo quando o trabalho documental estiver consolidado aqui.
+- O OCR a partir do pacote beta.2 embalado (single-file) não pôde ser validado headless nesta sessão (a captura exige seleção interativa): a validação de campo em computador externo fica a cargo do usuário com o novo pacote.
 
 ## 50.8 Fora do escopo atual (explícito)
 
@@ -1300,7 +1331,7 @@ Sequência prática após o M15: nova release beta incluindo o M11+M12+M13+M14 (
 ## 50.9 Como iniciar uma nova sessão
 
 1. Ler `AGENTS.md` e esta seção.
-2. Trabalhar somente em `C:\Dev\CapParseIntegI`; conferir `git status` / `git log` (HEAD deve ser um commit do M14 sobre `e3560cc` ou descendente; working tree limpo).
+2. Trabalhar somente em `C:\Dev\CapParseIntegI`; conferir `git status` / `git log` (HEAD deve ser `c4e76fd` ou um descendente que inclua os commits da M15; o working tree deve refletir apenas o trabalho da sessão atual).
 3. Executar `dotnet build` e `dotnet test` (suíte atual: 331 testes).
 4. Trabalhar apenas no milestone atual; não criar commit, tag ou push sem aprovação explícita.
 5. Atualizar esta seção ao final da sessão (estado, evidências, pendências).

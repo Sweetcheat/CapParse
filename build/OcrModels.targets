@@ -11,7 +11,14 @@
        already copy its whole models/v5 set; copying the single classifier
        again is idempotent (same file, same destination). The test project
        has no direct package reference, so without this file its output
-       would be missing the classifier. Imported by both projects. -->
+       would be missing the classifier. Imported by both projects.
+
+       Runtime note (M15): the PPOCRv6Small preset loads only the v5
+       classifier from that set — the other v5 files (v5 det/rec models and
+       dictionary) belong to the PP-OCRv5 mobile preset, which the app never
+       loads. They remain in build/test output (the package's own targets
+       copy them) but are stripped from the distribution package by
+       build/publish-win-x64.ps1. -->
   <ItemGroup>
     <OcrModelsV6 Include="$(MSBuildThisFileDirectory)..\models\v6\*.*" />
     <OcrClassifier Include="$(NuGetPackageRoot)rapidocrnet/4.2.0/models/v5/ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx" />

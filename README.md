@@ -2,7 +2,7 @@
 
 Utilitário desktop para Windows, local-first: capture uma região da tela e transforme o conteúdo visual em texto utilizável. O OCR roda 100% localmente, sem conta e sem nuvem.
 
-> **Estado atual:** o projeto está em desenvolvimento ativo. O pacote distribuído é um **beta** (`v0.1.0-beta.1`) para testes em computadores externos — veja as [limitações](#limitações-conhecidas).
+> **Estado atual:** o projeto está em desenvolvimento ativo. O pacote publicado é o **beta** `v0.1.0-beta.1` (anterior às funções de copiar/salvar imagem, configurações e refinamentos finais); a candidata `v0.1.0-beta.2`, com essas funções, está em preparação (M15) e **ainda não foi publicada** — veja as [limitações conhecidas](#limitações-conhecidas).
 
 [Português](#português) | [English](#english)
 
@@ -17,7 +17,7 @@ O CapParse segue o conceito **Capture → Understand → Act**:
 
 1. **Capture** — pressione `Ctrl + Shift + X` (ou use o menu da bandeja) e arraste para selecionar uma região da tela. A tela é "congelada" no momento da captura, com suporte a múltiplos monitores e DPI diferente por monitor.
 2. **Understand** — o texto da região é reconhecido por OCR totalmente local (modelo PP-OCRv6 Small via ONNX Runtime). Nenhuma imagem ou texto sai do seu computador; não há telemetria, conta ou dependência de internet.
-3. **Act** — o resultado é exibido na janela principal, onde você pode selecionar e copiar o texto. Ações adicionais (copiar a imagem, salvar a imagem) estão no plano de desenvolvimento.
+3. **Act** — o resultado é exibido na janela principal, onde você pode copiar o texto, copiar a imagem capturada ou salvá-la em arquivo.
 
 ### O que já funciona (implementado)
 
@@ -25,19 +25,23 @@ O CapParse segue o conceito **Capture → Understand → Act**:
 - Suporte a múltiplos monitores, posições negativas e DPI diferente por monitor (PerMonitorV2);
 - Cancelamento da seleção com `Esc`;
 - OCR local de português e inglês (texto simples); o processamento não bloqueia a interface;
-- Janela de resultados com texto selecionável e botão **Copiar** (o texto nunca é copiado automaticamente);
+- Janela de resultados com texto selecionável e as ações explícitas **Copiar texto**, **Copiar imagem** e **Salvar imagem** (o aplicativo nunca copia para a área de transferência por conta própria);
+- Cópia da imagem capturada para a área de transferência (colada em Paint, editores e outros aplicativos que aceitam imagem);
+- Salvamento da imagem capturada em arquivo (diálogo padrão do Windows, PNG);
 - Histórico da sessão em memória (resultados de capturas anteriores, na janela principal);
-- Ícone na bandeja do sistema: **Capturar**, **Sair**; duplo clique restaura a janela principal;
-- Atalho global `Ctrl + Shift + X` para iniciar a captura;
+- Tela de configurações (menu da bandeja): alterar o atalho de captura, com persistência entre reinícios;
+- Ícone na bandeja do sistema: **Capturar**, **Configurações**, **Sair**; duplo clique restaura a janela principal;
+- Atalho global configurável (`Ctrl + Shift + X` por padrão); se o atalho salvo já estiver em uso por outro aplicativo, o CapParse ativa o padrão e avisa;
+- Apresentação curta de primeira execução (exibida uma única vez);
+- Indicador de processamento e diálogo de erro de captura com "tentar novamente";
 - Instância única: um segundo lançamento não abre outra instância;
 - Interface em português brasileiro.
 
 ### O que ainda não está disponível (planejado)
 
-- Copiar a imagem capturada para a área de transferência;
-- Salvar a imagem capturada em arquivo;
-- Tela de configurações (o item da bandeja ainda exibe um aviso);
-- Tratamento de erros expandido e validação final da versão 0.1.
+- Histórico com as imagens capturadas (o histórico atual mantém apenas o texto reconhecido — melhoria registrada no backlog);
+- Atalhos pós-seleção para as ações (as combinações ainda não são definitivas);
+- Validação final da versão 0.1 (M15 em andamento).
 
 ### Requisitos do sistema
 
@@ -53,10 +57,10 @@ O CapParse segue o conceito **Capture → Understand → Act**:
 2. Se o Windows avisar (SmartScreen), clique em **Mais informações** → **Executar assim mesmo** — o pacote não é assinado digitalmente;
 3. Execute `CapParse.exe`;
 4. O aplicativo fica minimizado na bandeja do sistema. Pressione `Ctrl + Shift + X` para capturar, arraste para selecionar a região e solte o botão do mouse;
-5. O texto reconhecido aparece na janela principal — use **Copiar** para enviá-lo à área de transferência;
+5. O texto reconhecido aparece na janela principal — use **Copiar texto**, **Copiar imagem** ou **Salvar imagem** (as capturas anteriores ficam no histórico da janela);
 6. Para sair, use **Sair** no menu da bandeja (fechar a janela apenas a esconde).
 
-A pasta `models/` ao lado do executável contém os modelos de OCR — **não a remova**; sem ela o reconhecimento não funciona.
+A pasta `models/` ao lado do executável contém os modelos de OCR (pasta `v6` + o classificador de orientação `v5`) — **não a remova**; sem ela o reconhecimento não funciona.
 
 ### Compilando a partir do código-fonte
 
@@ -69,11 +73,19 @@ dotnet build
 dotnet test
 ```
 
-A pasta `models/v6` do repositório contém os modelos de OCR usados pelo aplicativo.
+A pasta `models/v6` do repositório contém os modelos de OCR usados pelo aplicativo (o classificador de orientação v5 vem do pacote RapidOcrNet).
+
+Para gerar o pacote Windows x64 (self-contained: um único executável + pasta `models/`), use o script versionado:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File build/publish-win-x64.ps1
+```
+
+O script executa restore, build, testes (incluindo os smoke tests de OCR com o modelo real), publish e empacotamento, e registra o tamanho e o SHA-256 do ZIP.
 
 ### Solução de problemas
 
-- **O atalho `Ctrl + Shift + X` não funciona:** outro aplicativo pode estar usando esse atalho. O CapParse avisa ao iniciar; a captura continua disponível pelo menu da bandeja (**Capturar**).
+- **O atalho não funciona:** outro aplicativo pode estar usando a combinação configurada. O CapParse avisa ao iniciar e ativa o atalho padrão; a captura continua disponível pelo menu da bandeja (**Capturar**). O atalho pode ser alterado em **Configurações**.
 - **A primeira captura "trava" por alguns segundos:** é o carregamento do modelo de OCR (apenas no primeiro reconhecimento da sessão).
 - **Nada acontece ao capturar:** verifique se o aplicativo está na bandeja (ícone CapParse) e se não há outra instância aberta.
 - **SmartScreen/antivírus:** o pacote beta não é assinado; alguns antivírus podem sinalizar executáveis desconhecidos. O código-fonte está disponível para inspeção.
@@ -82,8 +94,8 @@ A pasta `models/v6` do repositório contém os modelos de OCR usados pelo aplica
 ### Limitações conhecidas
 
 - Windows x64 apenas (o pacote beta não inclui outras plataformas);
-- O histórico de resultados existe apenas em memória e é perdido ao sair do aplicativo;
-- Não há ainda copiar/salvar a imagem, nem tela de configurações;
+- O histórico de resultados existe apenas em memória (é perdido ao sair do aplicativo) e mantém somente o texto reconhecido, não a imagem (melhoria no backlog);
+- O pacote `v0.1.0-beta.1` não inclui as funções adicionadas após a tag (copiar/salvar imagem, configurações, primeira execução) — elas entram na candidata `v0.1.0-beta.2`;
 - Durante o período de testes, o comportamento em computadores não validados pode revelar bugs — reporte-os.
 
 ### Privacidade
@@ -113,7 +125,7 @@ CapParse is a local-first Windows desktop utility built around **Capture → Und
 
 1. **Capture** — press `Ctrl + Shift + X` (or use the tray menu) and drag to select a screen region. The desktop is "frozen" at the moment of capture, with multi-monitor support and per-monitor DPI.
 2. **Understand** — the region's text is recognized by a fully local OCR engine (PP-OCRv6 Small via ONNX Runtime). No image or text ever leaves your computer; there is no telemetry, no account and no internet dependency.
-3. **Act** — the result is shown in the main window, where you can select and copy the text. Additional actions (copy image, save image) are on the development roadmap.
+3. **Act** — the result is shown in the main window, where you can copy the text, copy the captured image, or save it to a file.
 
 ### What already works (implemented)
 
@@ -121,19 +133,23 @@ CapParse is a local-first Windows desktop utility built around **Capture → Und
 - Multi-monitor support, negative positions and per-monitor DPI (PerMonitorV2);
 - Cancel the selection with `Esc`;
 - Local OCR for Portuguese and English (plain text); processing never blocks the interface;
-- Results window with selectable text and a **Copy** button (text is never copied automatically);
+- Results window with selectable text and the explicit actions **Copiar texto** (copy text), **Copiar imagem** (copy image) and **Salvar imagem** (save image) — the app never copies to the clipboard on its own;
+- Copying the captured image to the clipboard (pastes into Paint, editors and other apps that accept images);
+- Saving the captured image to a file (standard Windows dialog, PNG);
 - In-memory session history (previous capture results, shown in the main window);
-- System tray icon: **Capturar**, **Sair** (menu labels are in Portuguese); double-click restores the main window;
-- Global `Ctrl + Shift + X` hotkey to start a capture;
+- A settings screen (tray menu): change the capture hotkey, persisted across restarts;
+- System tray icon: **Capturar**, **Configurações**, **Sair** (menu labels are in Portuguese); double-click restores the main window;
+- Configurable global hotkey (`Ctrl + Shift + X` by default); when the saved shortcut is already in use by another app, CapParse activates the default and tells you;
+- A short first-run presentation (shown once);
+- A processing indicator and a capture-error dialog with a retry action;
 - Single instance: launching a second copy does not start another instance;
 - Brazilian Portuguese interface.
 
 ### What is not available yet (planned)
 
-- Copying the captured image to the clipboard;
-- Saving the captured image to a file;
-- A settings screen (the tray item still shows a notice);
-- Expanded error handling and the final 0.1 validation.
+- History with the captured images (the current history keeps only the recognized text — a backlog improvement);
+- Post-selection shortcuts for the actions (the combinations are not final yet);
+- The final 0.1 validation (M15 in progress).
 
 ### System requirements
 
@@ -149,10 +165,10 @@ CapParse is a local-first Windows desktop utility built around **Capture → Und
 2. If Windows warns you (SmartScreen), click **More info** → **Run anyway** — the package is not digitally signed;
 3. Run `CapParse.exe`;
 4. The app lives in the system tray. Press `Ctrl + Shift + X` to capture, drag to select the region and release the mouse button;
-5. The recognized text appears in the main window — use **Copy** to send it to the clipboard;
+5. The recognized text appears in the main window — use **Copiar texto** (copy text), **Copiar imagem** (copy image) or **Salvar imagem** (save image); previous captures are kept in the window's history;
 6. To quit, use **Sair** (Exit) in the tray menu (closing the window only hides it).
 
-The `models/` folder next to the executable contains the OCR models — **do not delete it**; without it, recognition will not work.
+The `models/` folder next to the executable contains the OCR models (the `v6` folder plus the `v5` orientation classifier) — **do not delete it**; without it, recognition will not work.
 
 ### Building from source
 
@@ -165,11 +181,19 @@ dotnet build
 dotnet test
 ```
 
-The repository's `models/v6` folder contains the OCR models used by the application.
+The repository's `models/v6` folder contains the OCR models used by the application (the v5 orientation classifier ships inside the RapidOcrNet package).
+
+To produce the Windows x64 package (self-contained: a single executable + the `models/` folder), run the versioned script:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File build/publish-win-x64.ps1
+```
+
+The script performs restore, build, tests (including the OCR smoke tests with the real model), publish and packaging, and records the ZIP's size and SHA-256.
 
 ### Troubleshooting
 
-- **The `Ctrl + Shift + X` hotkey does nothing:** another application may be using that shortcut. CapParse warns at startup; capture remains available from the tray menu (**Capturar**).
+- **The hotkey does nothing:** another application may be using the configured combination. CapParse warns at startup and activates the default shortcut; capture remains available from the tray menu (**Capturar**). The shortcut can be changed in **Configurações** (Settings).
 - **The first capture "freezes" for a few seconds:** that is the OCR model loading (only on the first recognition of a session).
 - **Nothing happens when capturing:** make sure the app is in the tray (CapParse icon) and that no other instance is running.
 - **SmartScreen/antivirus:** the beta package is unsigned; some antivirus products may flag unknown executables. The source code is available for inspection.
@@ -178,8 +202,8 @@ The repository's `models/v6` folder contains the OCR models used by the applicat
 ### Known limitations
 
 - Windows x64 only (the beta package does not include other platforms);
-- The results history is in-memory only and is lost when the app exits;
-- Image copy/save and a settings screen are not available yet;
+- The results history is in-memory only (lost when the app exits) and keeps only the recognized text, not the image (a backlog improvement);
+- The `v0.1.0-beta.1` package does not include the features added after the tag (image copy/save, settings, first-run presentation) — they are in the `v0.1.0-beta.2` candidate;
 - During the testing period, behavior on unvalidated computers may reveal bugs — please report them.
 
 ### Privacy
