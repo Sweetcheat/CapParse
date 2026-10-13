@@ -645,6 +645,8 @@ Não adicionar outras configurações sem necessidade.
 
 # 27. M14 — UX Polish
 
+**Status: implementado localmente (commits M14 sobre `e3560cc`), validação manual concluída pelo usuário (interface, primeira execução, feedbacks de cópia e fluxos funcionais); resta a publicação.**
+
 ## Objetivo
 
 Consolidar a experiência e a qualidade do V0.1: interface principal, primeira execução (apresentação curta e não obrigatória), refinamento da experiência e consolidação do tratamento de erros.
@@ -666,6 +668,18 @@ Verificar:
 Corrigir somente problemas relacionados ao V0.1.
 
 Não utilizar esse milestone para adicionar novas funcionalidades.
+
+## Implementação (M14)
+
+- **Construção assíncrona da sessão de overlay** (`FrozenOverlaySession`): os bombeamentos síncronos do Dispatcher do construtor (`Dispatcher.PushFrame` + `DispatcherTimer` de 2 s em `PumpDispatcher`/`PumpUntilFirstRender`/`PlaceOnMonitor`) foram substituídos por passes assíncronos — `CreateAsync` + `PumpDispatcherAsync` (um `InvokeAsync` em prioridade Background + limite de 2 s) e `WaitForFirstRenderAsync` (`ContentRendered` disputando com `Task.Delay` de 2 s). A UI thread nunca é bloqueada durante a construção: entrada, hotkey e encerramento continuam sendo processados entre as etapas. Análise de reentrância: um segundo gatilho de captura atinge a guarda `_captureInFlight`; um `Sair` no meio da construção é detectado pela guarda `HasShutdownStarted` nos passes, que abortam a construção — esta fecha as janelas já criadas e executa o callback de fechamento (a guarda é sempre resetada); um `Esc` durante a construção é adiado e aplicado exatamente uma vez ao final (`_closeRequested` + guarda `_closed`). O callback de fechamento dispara no máximo uma vez.
+- **Apresentação de primeira execução** (`ui.md` §23): `FirstRunWindow` — curta, não obrigatória e dispensável (um botão "Começar"; o botão de fechar da janela também a dispensa), exibida somente na primeira execução. O estado é persistido em `settings.json` (`FirstRunPresented`); arquivo ausente ou legado (sem a propriedade) é lido como primeira execução.
+- **Indicador de carregamento** (`ui.md` §9): `ProgressBar` indeterminada na janela principal, visível somente na fase `Processing` (ao lado do status "Reconhecendo a região selecionada…").
+- **Diálogo de erro de captura com retry** (`ui.md` §16): `OKCancel` — OK reinicia a captura, Cancelar mantém o app ocioso. O WPF não oferece botão "Tentar novamente"; o texto do diálogo orienta ("Pressione OK para tentar novamente").
+- **Guards de encerramento** em `RecognizeCropAsync`: não inicia reconhecimento nem mostra diálogo de erro se o Dispatcher já estiver encerrando (fluxo `Sair` durante processamento, incluindo o cleanup final da sessão).
+- Testes: suíte 326 → 331 — 2 testes novos dos passes assíncronos (`PumpDispatcherAsync` em dispatcher vivo; `WaitForFirstRenderAsync` limitado a timeout), 3 testes novos da flag de primeira execução (round-trip, arquivo legado, arquivo corrompido) e o teste de vazamento de janelas atualizado para dirigir a construção assíncrona em thread STA.
+- Diagnósticos `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` **mantidos** (o fix do black-flash continua sem validação manual registrada; a remoção exige justificativa documentada e autorização).
+- **Ajuste de layout (validação manual do M14):** os feedbacks de cópia da janela principal ("Texto copiado!"/"Imagem copiada!"/"Imagem salva!" e o do histórico) estavam em fluxo horizontal centralizado — ao aparecer, esticavam o `StackPanel` e deslocavam todos os botões. Correção (somente XAML): cada feedback passa a ocupar um slot fixo de 110px (mais largo que a mensagem mais longa) **abaixo do seu botão**, em colunas de `Grid` — a aparência/desaparição das mensagens não altera largura nem posição dos botões. A `FirstRunWindow` foi ampliada de 440×260 para 520×300 (margens 20→28, espaçamento entre parágrafos 10→12, botão "Começar" 130×32) para o conteúdo respirar. Validado geometricamente via UIAutomation (bounding boxes dos controles nas duas janelas) + screenshots; o estado com mensagens visíveis e o fluxo de captura seguem como validação manual do usuário.
+- Atalhos pós-seleção (`ui.md` §22) **não implementados**: as combinações propostas não são definitivas (validação ergonômica e de conflitos pendente).
 
 ---
 
@@ -1183,19 +1197,19 @@ Se uma mudança torna o projeto significativamente mais complexo sem entregar va
 
 # 50. Estado atual do projeto (continuidade entre sessões)
 
-Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidação documental pós-M11 (2026-10), substitui a versão da auditoria de 2026-10-12 (que descrevia o estado de um clone obsoleto). O que está marcado como "executado" tem evidência de comando na sessão indicada; o restante vem do histórico Git e da documentação verificada contra o código.
+Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidação documental pós-M11 (2026-10), substitui a versão da auditoria de 2026-10-12 (que descrevia o estado de um clone obsoleto); atualizada na sessão M14 (registro do M13 publicado e do trabalho M14 local). O que está marcado como "executado" tem evidência de comando na sessão indicada; o restante vem do histórico Git e da documentação verificada contra o código.
 
 ## 50.1 Repositório de referência
 
 - **Repositório principal de trabalho: `C:\Dev\CapParseIntegI`** (branch `main`, remoto `https://github.com/Sweetcheat/CapParse.git`).
 - `C:\Dev\CapParse` é um **clone obsoleto** (HEAD `3324900`, 13 commits atrás da linha principal). Ele serviu apenas como fonte de comparação documental na auditoria de 2026-10-12. **Não trabalhar, não commitar e não fazer push a partir dele** (o `origin/main` local dele está desatualizado; um force-push a partir dele apagaria a linha publicada do GitHub).
 
-## 50.2 Estado do repositório (consolidação pós-correção M13)
+## 50.2 Estado do repositório (sessão M14)
 
-- Branch: `main`; `origin/main` = `6401b4b` (docs: record M12 manual validation) — M11 e M12 publicados no GitHub.
-- HEAD: commit de correção do M13 (`fix: repair settings hotkey capture`), sobre `5180b52` (`feat: add application settings`) — ambos locais, ainda não publicados.
+- Branch: `main`; `origin/main` = `e3560cc` (fix: repair settings hotkey capture) — o M13 foi **publicado** no GitHub (commits `5180b52` + `e3560cc`).
+- HEAD: `e3560cc` + commits locais do M14 (não publicados): `feat: add first-run presentation and processing feedback` e `refactor: build overlay session asynchronously without dispatcher pumps` — construção assíncrona da sessão de overlay (sem `PushFrame`), apresentação de primeira execução, indicador de processamento, diálogo de erro de captura com retry, guards de encerramento, ajustes de layout.
 - Working tree: limpo.
-- Tag `v0.1.0-beta.1` → `86e3d17` (README bilíngue): a release beta publicada **não inclui** o M11, o M12 nem o M13.
+- Tag `v0.1.0-beta.1` → `86e3d17` (README bilíngue): a release beta publicada **não inclui** o M11, o M12, o M13 nem o M14.
 - `.gitignore` ignora `build/dist/` (pacotes de publicação, ex.: `CapParse-v0.1.0-beta.1-win-x64.zip`).
 
 ## 50.3 Milestones — status
@@ -1217,8 +1231,8 @@ Statuses: **CV** = concluído e verificado (commitado + testes + evidência de v
 | — Trabalhos adicionais publicados no beta | CV (commitados) | `f2c1036` (pt-BR), `a097cfa` (histórico de sessão), `f67b3a3` (instância única), `d9bdef1` (double-click do tray restaura a janela), `86e3d17` (README bilíngue, tag da beta) | — |
 | M11 — Copy Image | CV (commitado e **publicado**; 209/209 testes em Debug e Release) | `3bed7be` | `CropImageCopier` + `WpfImageClipboard` (DIB em memória, DPI efetivo), botão "Copiar imagem", 8 testes com fake; **fora da release `v0.1.0-beta.1`** |
 | M12 — Save Image | CV (commitado e **publicado** em `1edd9f1`; validação manual do diálogo registrada em `6401b4b`) | `1edd9f1` | `CropImageSaver` + `WpfCropImageSaveDialog` (diálogo padrão, PNG c/ tag de DPI, nome sugerido único), botão "Salvar imagem", 19 testes com fake do diálogo; **fora da release `v0.1.0-beta.1`** |
-| M13 — Settings | CV (commitado; **correção do M13**: captura de teclas na SettingsWindow — handler `PreviewKeyDown` nunca foi ligado no XAML, o que impedia qualquer tecla de ser gravada; corrigido + validação de F-keys corrigida para os códigos VK reais 0x70–0x87); 326/326 testes em Debug e Release; fluxo completo validado em runtime no Windows via harness que dirige a `SettingsWindow` real (clique → gravação → tecla → Esc → reentrada) | `feat: add application settings` + `fix: repair settings hotkey capture` (locais, sobre `6401b4b`) | `SettingsWindow` (tray → Configurações), `Configuration/` (`HotkeySetting`, `HotkeyInput`, `HotkeyRecovery`, `AppSettings`), persistência em `%LOCALAPPDATA%\CapParse\settings.json`, 98 testes novos no total; **fora da release `v0.1.0-beta.1`** |
-| M14 — UX Polish | P | — | interface principal, primeira execução, refinamento + consolidação de erros (§27) |
+| M13 — Settings | CV (commitado e **publicado** em `main` no GitHub: `5180b52` + `e3560cc`; correção da captura de teclas da SettingsWindow — handler `PreviewKeyDown` nunca foi ligado no XAML, e a validação de F-keys foi corrigida para os códigos VK reais 0x70–0x87; 326/326 testes em Debug e Release; fluxo completo validado em runtime no Windows via harness; restam ao usuário o clique físico no menu do tray e teclas físicas com modificadores) | `5180b52`, `e3560cc` | `SettingsWindow` (tray → Configurações), `Configuration/` (`HotkeySetting`, `HotkeyInput`, `HotkeyRecovery`, `AppSettings`), persistência em `%LOCALAPPDATA%\CapParse\settings.json`, 98 testes novos no total; **fora da release `v0.1.0-beta.1`** |
+| M14 — UX Polish | I (implementado localmente em commits sobre `e3560cc`, **não publicado**; 331/331 testes em Debug e Release; validação manual concluída pelo usuário — interface, apresentação de primeira execução, feedbacks de cópia e fluxos funcionais) | — (local) | construção assíncrona do overlay (`CreateAsync`, sem `Dispatcher.PushFrame`), `FirstRunWindow` (flag `FirstRunPresented` em `settings.json`), `ProgressBar` de processamento, diálogo de erro de captura `OKCancel` com retry, guards de shutdown em `RecognizeCropAsync`, ajustes de layout (feedbacks em slots fixos sob os botões; `FirstRunWindow` 520×300); atalhos pós-seleção (`ui.md` §22) fora do escopo (combinações não definitivas); **fora da release `v0.1.0-beta.1`** |
 | M15 — V0.1 Validation | P | — | — |
 | Futuro — HDR Capture & Tone Mapping | FI | — | `product.md` §9; `architecture.md` §45.1 |
 | Futuro — Spreadsheet Conversion | FI | — | `product.md` §9; `architecture.md` §45.2 |
@@ -1249,6 +1263,9 @@ Decisões de produto tomadas na linha principal (registradas aqui para evitar "c
 
 ## 50.5 Evidências de build e testes
 
+- M14-ajustes de layout (sessão atual): `dotnet build` e `dotnet test` em Debug e Release — 0 erros, **331/331 aprovados** em ambas as configurações; apenas o aviso preexistente xUnit2020. Validação visual (agente, Windows): app lançado em Release com a primeira execução re-armada — `Bem-vindo ao CapParse` (520×300) e `CapParse` (960×560) inspecionados via UIAutomation (bounding boxes exatos: margens de 36px simétricas e botão "Começar" 130×32 na primeira execução; na janela principal, botões 120×30 com colunas de 16px e slots de feedback de 110×16 permanentes sob cada botão — geometria invariante à exibição das mensagens) e screenshots; processo encerrado e `settings.json` restaurado a `FirstRunPresented: true`.
+- M14 (validação manual do usuário, sessão atual): o usuário concluiu a validação manual do M14 — interface (janela principal, feedbacks de cópia/salvamento exibidos), apresentação de primeira execução e os fluxos funcionais da aplicação (captura/OCR/copiar/salvar).
+- M14 (sessão atual): `dotnet build` e `dotnet test` em Debug e Release — 0 erros, **331/331 aprovados** em ambas as configurações; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` (o CS8625 preexistente de `FrozenOverlaySession.cs` foi **resolvido** com o parâmetro `failureHook` agora declarável como anulável — nenhum aviso novo). Validação manual parcial (agente, Windows): app lançado em Release — janela principal + apresentação de primeira execução ("Bem-vindo ao CapParse") exibidas, flag `FirstRunPresented` gravada em `settings.json`, processo encerrado. O restante da validação manual foi concluído pelo usuário (linha anterior).
 - M13-corr (sessão da correção): `dotnet build` e `dotnet test` em Debug e Release — 0 erros, **326/326 aprovados** em ambas as configurações; apenas os 3 avisos preexistentes do M11 (CS8625 em `FrozenOverlaySession.cs` contado duas vezes + xUnit2020 em `OcrCollectionGeneratorTests.cs`) — nenhum aviso novo. Validação em runtime no Windows: harness temporário (fora do repositório) executou o app em ambiente completo (tray + hotkey global + janela principal), abriu a `SettingsWindow` real via `ShowSettings()` e dirigiu o fluxo por eventos WPF — clique em "Alterar atalho" (foco confirmado no alvo de captura), tecla pressionada → feedback de combinação inválida (prova de que a tecla foi capturada), `Esc` → cancela sem alterar o atalho, segunda entrada em modo gravação, modificador sozinho ignorado. **PASS completo.** O que o harness não cobre: cliques físicos no menu do tray e teclas físicas com modificadores (estado `Keyboard.Modifiers` é de dispositivo); essas duas pontas permanecem como validação manual do usuário.
 - M13 (sessão do commit): `dotnet build` e `dotnet test` em Debug e Release — 0 erros, **296/296 aprovados** em ambas as configurações; apenas os 3 avisos preexistentes do M11 — nenhum aviso novo; startup da aplicação validado no Windows (processo estável por ~12 s, encerramento limpo).
 - M12 (sessão do commit, 2026-10): `dotnet build` e `dotnet test` em Debug e Release — 0 erros, **228/228 aprovados** em ambas as configurações; rebuild completo (`--no-incremental`) confirma apenas os 3 avisos preexistentes.
@@ -1258,20 +1275,20 @@ Decisões de produto tomadas na linha principal (registradas aqui para evitar "c
 
 ## 50.6 Próximo milestone recomendado
 
-**M14 — UX Polish** (§27): consolidar a experiência e a qualidade do V0.1 — interface principal, primeira execução (apresentação curta e não obrigatória, `ui.md` §23), refinamento da experiência e consolidação do tratamento de erros.
+**M15 — V0.1 Validation** (§28): validar o produto completo — incluindo as validações manuais pendentes acumuladas: multi-monitor/DPI/overlay (M4/M5/M14), hotkey com teclas físicas (M13/M14), paste em destinos reais (M11), diálogos (M12) e a apresentação de primeira execução (M14).
 
-- **Por que faz sentido agora:** o M13 fechou as telas e o fluxo de configuração do V0.1 (hotkey configurável + persistência); restam o polimento de UX e a validação final antes de uma nova release.
-- **Escopo:** o checklist do §27 (erros de captura/OCR/clipboard/gravação, fechamento durante processamento, múltiplas capturas simultâneas, overlays residuais, recursos não liberados, UI travando, DPI, múltiplos monitores) + atalhos pós-seleção (`ui.md` §22, combinações ainda não definitivas).
-- **Dependências:** nenhuma técnica aberta.
+- **Por que faz sentido agora:** o M14 consolidou a experiência (construção do overlay sem bombeamento síncrono da UI thread, primeira execução, indicador de processamento, erro de captura com retry, guards de shutdown); o que resta antes de uma nova release é a publicação do M14 e a validação final do produto completo.
+- **Dependências:** nenhuma técnica aberta; apenas o push/release do M14.
 
-Sequência prática após o M14: M15 (validação V0.1, incluindo as validações manuais pendentes de multi-monitor/DPI/overlay) → nova release beta incluindo o M11+M12+M13 (a tag `v0.1.0-beta.1` ficou para trás em `86e3d17`).
+Sequência prática após o M15: nova release beta incluindo o M11+M12+M13+M14 (a tag `v0.1.0-beta.1` ficou para trás em `86e3d17`).
 
 ## 50.7 Problemas conhecidos, riscos e limitações
 
 - OCR (PP-OCRv6 Small, medido no M7-C): fonte pequena em fundo escuro degrada severamente; espaços entre palavras/tokens são frequentemente perdidos no texto reconstruído.
 - A arena de memória do ONNX Runtime cresce durante execuções (WorkingSet do processo ~2 GB na avaliação M7-C; não é memória exclusiva do OCR).
 - 31 MB de modelos no repositório (aceitável para app local-first).
-- A validação manual de multi-monitor/DPI/overlay (M4/M5) não tem evidência registrada no repositório — priorizar na M15.
+- A validação manual de multi-monitor/DPI/overlay (M4/M5) e do fluxo de captura com a construção assíncrona (M14) não tem evidência registrada no repositório — priorizar na M15.
+- Os diagnósticos temporários `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` permanecem no código: o fix do black-flash (overlay layered + revelação em dois frames) ainda não foi validado manualmente; removê-los exige a validação + justificativa documentada + autorização.
 - A coleção M7-C é sintética (anti-aliasing em cinza, 96 DPI): não representa capturas reais (ClearType, escalas, DPI ≠ 100%).
 - O clone obsoleto `C:\Dev\CapParse` continua existindo em disco com 43 arquivos M7 staged e docs da auditoria — risco de trabalho acidental; arquivá-lo quando o trabalho documental estiver consolidado aqui.
 
@@ -1283,7 +1300,7 @@ Sequência prática após o M14: M15 (validação V0.1, incluindo as validaçõe
 ## 50.9 Como iniciar uma nova sessão
 
 1. Ler `AGENTS.md` e esta seção.
-2. Trabalhar somente em `C:\Dev\CapParseIntegI`; conferir `git status` / `git log` (HEAD deve ser o commit de correção do M13 — `fix: repair settings hotkey capture` — ou descendente; working tree limpo ou com trabalho declarado).
-3. Executar `dotnet build` e `dotnet test`.
+2. Trabalhar somente em `C:\Dev\CapParseIntegI`; conferir `git status` / `git log` (HEAD deve ser um commit do M14 sobre `e3560cc` ou descendente; working tree limpo).
+3. Executar `dotnet build` e `dotnet test` (suíte atual: 331 testes).
 4. Trabalhar apenas no milestone atual; não criar commit, tag ou push sem aprovação explícita.
 5. Atualizar esta seção ao final da sessão (estado, evidências, pendências).

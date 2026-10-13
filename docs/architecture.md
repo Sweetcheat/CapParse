@@ -614,7 +614,7 @@ Ela não deve conter toda a implementação detalhada de cada etapa.
 
 O V0.1 impede estados inválidos simples. Implementação atual:
 
-- **Captura:** a flag `_captureInFlight` no `App` bloqueia novos gatilhos enquanto uma tentativa está em andamento (incluindo a construção da sessão, cujo construtor bombeia a UI thread); falhas nunca deixam a aplicação bloqueada.
+- **Captura:** a flag `_captureInFlight` no `App` bloqueia novos gatilhos enquanto uma tentativa está em andamento (incluindo a construção da sessão, que é assíncrona: `FrozenOverlaySession.CreateAsync` cede a UI thread entre as etapas em passes assíncronos do Dispatcher — `PumpDispatcherAsync`/`WaitForFirstRenderAsync`, sem nenhum bombeamento síncrono; um shutdown do Dispatcher aborta a construção, que fecha as janelas já criadas e executa o callback de fechamento). Falhas nunca deixam a aplicação bloqueada.
 - **OCR:** `OcrRunState` é o estado explícito das execuções — `Idle`, `Processing`, `Succeeded`, `NoText`, `Failed` — com ids de execução: apenas a execução mais recente pode completar, falhar ou cancelar o estado, então um reconhecimento obsoleto jamais sobrescreve um mais novo nem deixa a interface presa em `Processing`.
 - **Histórico:** `OcrHistory` guarda, em memória e por sessão, os resultados reconhecidos (mais recente primeiro, com limite de entradas); apenas execuções que completam validamente gravam entrada.
 
@@ -1053,16 +1053,23 @@ Seção de continuidade: o que realmente existe no código versus o que este doc
 ```text
 src/CapParse/
 ├── App.xaml.cs            tray (WinForms NotifyIcon), hotkey (a partir da
-│                          configuração persistida), StartCapture,
+│                          configuração persistida), StartCapture (assíncrono a
+│                          partir da construção do overlay, M14),
 │                          ApplyCaptureHotkey/SaveSettings, OcrCoordinator/
 │                          OcrRunState/OcrHistory, SingleInstanceGuard,
-│                          Restauração da janela principal, mensagens pt-BR
+│                          Restauração da janela principal, apresentação de
+│                          primeira execução (M14), mensagens pt-BR
 ├── SettingsWindow.xaml(.cs)  janela de configurações (M13): atalho de
 │                          captura — visualizar, gravar, validar, cancelar,
 │                          salvar, restaurar padrão
-├── MainWindow.xaml(.cs)   janela principal = view do resultado: status, texto
-│                          reconhecido, Copiar texto / Copiar imagem / Salvar imagem,
-│                          histórico
+├── FirstRunWindow.xaml(.cs)  apresentação curta de primeira execução (M14,
+│                          `ui.md` §23): o que o app faz, como capturar
+│                          (hotkey ativa + bandeja), o que acontece após a
+│                          seleção; dispensável, um botão "Começar"
+├── MainWindow.xaml(.cs)   janela principal = view do resultado: status,
+│                          barra de progresso (indeterminada, apenas em
+│                          Processing, M14), texto reconhecido, Copiar texto /
+│                          Copiar imagem / Salvar imagem, histórico
 ├── Capture/
 │   ├── ScreenCapture.cs       GDI BitBlt do desktop virtual
 │   ├── DesktopCapture.cs      captura completa do desktop virtual
@@ -1071,7 +1078,9 @@ src/CapParse/
 │   ├── SelectionGeometry.cs   validação/conversão da seleção
 │   └── CaptureCoordinator.cs  StartCapture() — entrada única do fluxo
 ├── UI/
-│   ├── FrozenOverlaySession.cs  sessão de overlay congelado (1 janela/monitor)
+│   ├── FrozenOverlaySession.cs  sessão de overlay congelado (1 janela/monitor;
+│                          construção assíncrona `CreateAsync` sem bombeamento
+│                          síncrono do Dispatcher, M14)
 │   ├── MonitorOverlayWindow.cs  janela de overlay por monitor
 │   ├── MonitorGeometry.cs       geometria dos monitores em coords. físicas
 │   ├── ITextClipboard.cs        seam de clipboard de texto (WpfTextClipboard)
@@ -1108,9 +1117,8 @@ Modelos: `models/v6/` no repositório (3 arquivos, SHA256 verificados) + classif
 
 ## 44.2 Documentado mas AINDA NÃO existente
 
-- apresentação curta de primeira execução (M14, `ui.md` §23);
-- atalhos pós-seleção para copiar/salvar imagem (M14, `ui.md` §22 — combinações não definitivas);
-- refinamento visual geral (M14).
+- atalhos pós-seleção para copiar/salvar imagem (`ui.md` §22 — as combinações propostas não são definitivas: precisam de validação ergonômica e de conflitos antes de serem implementadas e configuráveis);
+- refinamento visual geral além do que o M14 entregou (apresentação de primeira execução, `ui.md` §23; indicador de processamento, `ui.md` §9; diálogo de erro de captura com retry, `ui.md` §16).
 
 Esses componentes pertencem aos milestones M14–M15 (ver `development.md`). Não tratá-los como existentes.
 

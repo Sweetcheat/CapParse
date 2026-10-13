@@ -36,11 +36,26 @@ namespace CapParse.UI;
 /// selection (null in the same cases): the crop is an independent copy,
 /// taken while the captured bitmap is still alive, and stays valid after
 /// the session disposes it.
+///
+/// Construction is asynchronous (<see cref="CreateAsync"/>): the steps that
+/// need the WPF dispatcher to process window messages (first-frame paint,
+/// DPI change, placement) yield the UI thread with an <c>await</c> instead
+/// of pumping it synchronously, so the dispatcher keeps servicing input,
+/// hotkeys and shutdown between the steps. A close request that arrives
+/// before the construction finishes is deferred and applied exactly once
+/// when it does; a dispatcher shutdown (the application exiting) aborts
+/// the construction, which closes every window it already created and
+/// still runs the closed callback.
 /// </summary>
 public sealed class FrozenOverlaySession : IDisposable
 {
     // Conservative dimming: clearly frozen, content still recognizable.
     private const double DimOpacity = 0.5;
+
+    // Safety bounds for the asynchronous dispatcher passes: a missing
+    // message or a missing first frame cannot stall the capture flow.
+    private static readonly TimeSpan PumpTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan FirstRenderTimeout = TimeSpan.FromSeconds(2);
 
     private const uint SetWindowPosNoSize = 0x0001;
     private const uint SetWindowPosNoActivate = 0x0010;
@@ -79,29 +94,67 @@ public sealed class FrozenOverlaySession : IDisposable
     /// </summary>
     public bool Closed => _closed;
 
-    public FrozenOverlaySession(CaptureResult capture, Action<Rectangle?, Bitmap?> onClosed)
-        : this(capture, onClosed, null)
-    {
-    }
+    /// <summary>
+    /// Creates the session and builds its overlays asynchronously on the
+    /// calling (UI) thread. The returned task completes when the
+    /// construction finishes: on success the session is fully built (or a
+    /// close request that arrived during the construction has already run
+    /// the closed callback, with <see cref="Closed"/> true), and on failure
+    /// (a window that did not paint in time, a dispatcher shutdown, a
+    /// monitor enumeration failure) the task faults after every created
+    /// window has been closed and the closed callback has run, so the
+    /// application's capture guard is always reset.
+    /// </summary>
+    public static Task<FrozenOverlaySession> CreateAsync(
+        CaptureResult capture, Action<Rectangle?, Bitmap?> onClosed)
+        => CreateAsync(capture, onClosed, null);
 
     /// <summary>
-    /// Test-only constructor: <paramref name="failureHook">, when non-null,
+    /// Test-only overload: <paramref name="failureHook">, when non-null,
     /// is invoked right after the first overlay window has been created,
     /// shown and placed on its monitor, letting tests fail the construction
     /// at that exact point and verify that the already-created windows are
     /// cleaned up (see FrozenOverlaySessionLeakTests).
     /// </summary>
-    internal FrozenOverlaySession(
+    internal static async Task<FrozenOverlaySession> CreateAsync(
         CaptureResult capture,
         Action<Rectangle?, Bitmap?> onClosed,
-        Action<MonitorOverlayWindow> failureHook)
+        Action<MonitorOverlayWindow>? failureHook)
+    {
+        var session = new FrozenOverlaySession(capture, onClosed, failureHook);
+        await session.BuildAsync();
+        return session;
+    }
+
+    private FrozenOverlaySession(
+        CaptureResult capture,
+        Action<Rectangle?, Bitmap?> onClosed,
+        Action<MonitorOverlayWindow>? failureHook)
     {
         _capture = capture ?? throw new ArgumentNullException(nameof(capture));
         _onClosed = onClosed ?? throw new ArgumentNullException(nameof(onClosed));
         _failureHook = failureHook;
+    }
 
+    /// <summary>
+    /// Builds the overlay windows. Runs on the UI thread; every step that
+    /// needs the dispatcher to process window messages yields it with an
+    /// <c>await</c> (never a synchronous pump), so input, hotkeys and
+    /// shutdown keep being serviced between the steps. Any failure closes
+    /// every window that was already created and runs the closed callback
+    /// before rethrowing, so a failed construction never leaves a window
+    /// behind nor skips the callback the application relies on to reset
+    /// its capture guard.
+    /// </summary>
+    private async Task BuildAsync()
+    {
         try
         {
+            // Set by the constructor: the session instance that runs
+            // BuildAsync is the one that was constructed, so this cannot
+            // be null here.
+            var capture = _capture!;
+
             // Re-discovers the same monitors that were just captured; the
             // session lives for seconds, so the configuration cannot drift.
             var monitors = MonitorDiscovery.GetMonitors();
@@ -117,7 +170,7 @@ public sealed class FrozenOverlaySession : IDisposable
                 };
 
                 // Registered before any operation that can throw (Show, the
-                // dispatcher pumps, placement, image creation): CloseCore
+                // dispatcher passes, placement, image creation): CloseCore
                 // closes everything in _windows, so a failure partway
                 // through construction can never leave a created window
                 // orphaned on a monitor. Windows not yet shown are closed
@@ -138,16 +191,16 @@ public sealed class FrozenOverlaySession : IDisposable
                 // where the user cannot see it, so no black surface is ever
                 // presented on a monitor. The window is visible (albeit
                 // transparent) during placement, exactly as before, so the
-                // PerMonitorV2 DPI nudge in PlaceOnMonitor behaves
+                // PerMonitorV2 DPI nudge in PlaceOnMonitorAsync behaves
                 // identically.
                 window.Left = -32000;
                 window.Top = -32000;
                 window.Show();
-                PumpUntilFirstRender(window);
+                await WaitForFirstRenderAsync(window);
                 Trace($"{monitor.DeviceName} shown offscreen, first frame painted");
                 TraceWindowStates($"{monitor.DeviceName} after offscreen show");
 
-                PlaceOnMonitor(window, monitor.Bounds);
+                await PlaceOnMonitorAsync(window, monitor.Bounds);
                 Trace($"{monitor.DeviceName} placed");
                 TraceWindowStates($"{monitor.DeviceName} after placement");
 
@@ -280,42 +333,43 @@ public sealed class FrozenOverlaySession : IDisposable
     }
 
     /// <summary>
-    /// Pumps the dispatcher until the window's first frame has actually
+    /// Yields the UI thread until the window's first frame has actually
     /// been painted by the render thread.
     ///
-    /// A dispatcher pump only hands the render work to the render thread;
-    /// the composition itself completes asynchronously. The
-    /// ContentRendered event fires on the UI thread after that composition
+    /// The await hands the thread back to the dispatcher's message loop,
+    /// which keeps processing input and window messages while the render
+    /// thread works (the M5 synchronous PushFrame pump is gone). The
+    /// ContentRendered event fires on the UI thread after the composition
     /// finishes, so it is the only reliable signal that the window's DWM
     /// surface is no longer the unpainted (black) one. Bounded: a missing
     /// render is surfaced as an exception, never as a silent stall.
     /// </summary>
-    private static void PumpUntilFirstRender(Window window)
+    internal static async Task WaitForFirstRenderAsync(Window window)
     {
-        bool rendered = false;
+        var rendered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         void OnContentRendered(object? sender, EventArgs e)
         {
             window.ContentRendered -= OnContentRendered;
-            rendered = true;
+            rendered.TrySetResult(true);
         }
 
         window.ContentRendered += OnContentRendered;
 
-        const int maxPumps = 10;
-
-        for (int attempt = 0; rendered is false && attempt < maxPumps; attempt++)
+        try
         {
-            PumpDispatcher();
+            var completed = await Task.WhenAny(rendered.Task, Task.Delay(FirstRenderTimeout));
+
+            if (completed != rendered.Task)
+            {
+                throw new TimeoutException(
+                    "The overlay window did not render its first frame in time; " +
+                    "its unpainted (black) surface could be presented on the monitor.");
+            }
         }
-
-        window.ContentRendered -= OnContentRendered;
-
-        if (!rendered)
+        finally
         {
-            throw new TimeoutException(
-                "The overlay window did not render its first frame in time; " +
-                "its unpainted (black) surface could be presented on the monitor.");
+            window.ContentRendered -= OnContentRendered;
         }
     }
 
@@ -681,17 +735,17 @@ public sealed class FrozenOverlaySession : IDisposable
     /// 3. a check that WPF's DpiScale matches the monitor's real DPI, with
     ///    one bounded nudge + re-apply as a fallback.
     /// </summary>
-    private static void PlaceOnMonitor(Window window, Rectangle monitorBounds)
+    private static async Task PlaceOnMonitorAsync(Window window, Rectangle monitorBounds)
     {
         var hwnd = new WindowInteropHelper(window).EnsureHandle();
 
         SetWindowPos(hwnd, IntPtr.Zero,
             monitorBounds.Left + 1, monitorBounds.Top + 1, 1, 1,
             SetWindowPosNoSize | SetWindowPosNoActivate | SetWindowPosNoZOrder);
-        PumpDispatcher();
+        await PumpDispatcherAsync();
 
         ApplyDipGeometry(window, monitorBounds);
-        PumpDispatcher();
+        await PumpDispatcherAsync();
 
         if (Math.Abs(VisualTreeHelper.GetDpi(window).DpiScaleX * 96.0 - GetDpiForWindow(hwnd)) > 0.5)
         {
@@ -701,10 +755,10 @@ public sealed class FrozenOverlaySession : IDisposable
                 monitorBounds.Left + 1, monitorBounds.Top + 1,
                 monitorBounds.Width, monitorBounds.Height,
                 SetWindowPosNoActivate | SetWindowPosNoZOrder);
-            PumpDispatcher();
+            await PumpDispatcherAsync();
 
             ApplyDipGeometry(window, monitorBounds);
-            PumpDispatcher();
+            await PumpDispatcherAsync();
         }
     }
 
@@ -723,59 +777,47 @@ public sealed class FrozenOverlaySession : IDisposable
     }
 
     /// <summary>
-    /// Runs the dispatcher until all queued Win32 messages (WM_DPICHANGED,
-    /// WM_WINDOWPOSCHANGED) have been processed on the UI thread.
+    /// Runs the dispatcher for one pass so the queued Win32 messages
+    /// (WM_DPICHANGED, WM_WINDOWPOSCHANGED) are processed on the UI
+    /// thread without blocking it: the await yields the thread back to
+    /// the dispatcher's message loop (the M5 synchronous PushFrame pump is
+    /// replaced by this asynchronous pass).
     ///
-    /// A pushed DispatcherFrame pumps the UI thread (keeping it responsive
-    /// and able to run the completion operation) instead of blocking it
-    /// with Task.Wait, which deadlocks against the same Dispatcher and
-    /// made every pump time out. The timer bounds the pump so a missing
-    /// message cannot stall the capture flow. A late completion operation
-    /// from a previous pump only writes Continue on an already finished
-    /// frame and cannot affect a later one. A timeout is surfaced as an
-    /// exception, never as a silent success.
+    /// A dispatcher that is shutting down (the application exiting) cannot
+    /// process the messages: the pass aborts with a timeout so the
+    /// construction closes the windows it already created and the
+    /// application's shutdown path takes over.
     /// </summary>
-    private static void PumpDispatcher()
+    internal static async Task PumpDispatcherAsync()
     {
-        var frame = new DispatcherFrame { Continue = true };
-        var timedOut = false;
+        var dispatcher = Dispatcher.CurrentDispatcher;
 
-        // Safety bound: a missing message cannot stall the capture flow.
-        var timer = new DispatcherTimer(DispatcherPriority.Background)
+        if (dispatcher.HasShutdownStarted)
         {
-            Interval = TimeSpan.FromSeconds(2)
-        };
-
-        void OnTick(object? sender, EventArgs e)
-        {
-            timedOut = true;
-            frame.Continue = false;
+            throw new TimeoutException(
+                "The dispatcher is shutting down; the overlay cannot be built.");
         }
 
-        try
-        {
-            timer.Tick += OnTick;
-            timer.Start();
+        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // The operation's own completion is not awaited; the pass awaits
+        // the TCS it completes (bounded by PumpTimeout).
+        _ = dispatcher.InvokeAsync(
+            () => completion.TrySetResult(true), DispatcherPriority.Background);
 
-            Dispatcher.CurrentDispatcher.BeginInvoke(
-                DispatcherPriority.Background,
-                new Action(() => frame.Continue = false));
+        // Safety bound: a missing completion cannot stall the capture flow.
+        var completed = await Task.WhenAny(completion.Task, Task.Delay(PumpTimeout));
 
-            Dispatcher.PushFrame(frame);
-        }
-        finally
-        {
-            // The frame is always ended before the timer is released, even
-            // if the pump threw: no tick can fire after this pump returns.
-            timer.Stop();
-            timer.Tick -= OnTick;
-        }
-
-        if (timedOut)
+        if (completed != completion.Task)
         {
             throw new TimeoutException(
                 "The dispatcher did not process the window messages in time; " +
                 "an overlay may be positioned at the wrong DPI.");
+        }
+
+        if (dispatcher.HasShutdownStarted)
+        {
+            throw new TimeoutException(
+                "The dispatcher is shutting down; the overlay cannot be built.");
         }
     }
 

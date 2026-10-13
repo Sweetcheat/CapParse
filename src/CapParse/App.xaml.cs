@@ -185,11 +185,14 @@ public partial class App : Application
         new FirstRunWindow(howTo).Show();
     }
 
-    private void StartCapture()
+    private async void StartCapture()
     {
         // While a capture attempt is in flight (GDI capture, session
         // construction, active overlays) further triggers are ignored
-        // until it ends (Idle -> Capturing).
+        // until it ends (Idle -> Capturing). The async session construction
+        // yields the UI thread between its steps, so a second trigger can
+        // arrive in the middle of it: this guard, set before the attempt
+        // starts, is what keeps it from reentering.
         if (_captureInFlight)
         {
             return;
@@ -215,7 +218,7 @@ public partial class App : Application
                 return;
             }
 
-            var session = new FrozenOverlaySession(result, (selection, crop) =>
+            var session = await FrozenOverlaySession.CreateAsync(result, (selection, crop) =>
             {
                 _overlaySession = null;
                 _captureInFlight = false;
@@ -240,34 +243,40 @@ public partial class App : Application
                 }
             });
 
-            // The constructor pumps the UI thread, so the session may have
-            // already closed itself (a deferred close) before returning:
-            // in that case the callback has already reset the guard and no
-            // live session remains, so do not keep a stale reference.
+            // A deferred close (Esc during the async construction) may have
+            // already run the callback above: in that case no live session
+            // remains, so do not keep a stale reference.
             _overlaySession = session.Closed ? null : session;
             FrozenOverlaySession.Trace("StartCapture: session constructed");
         }
         catch
         {
             // The session cleaned up after itself (overlays closed, captured
-            // bitmap disposed). Reset the guard here too, so a failed
-            // attempt can never leave the app permanently blocked. Show a
-            // user-friendly message; technical details are intentionally
-            // not shown.
+            // bitmap disposed, closed callback run). Reset the guard here
+            // too, so a failed attempt can never leave the app permanently
+            // blocked. Show a user-friendly message with a retry; technical
+            // details are intentionally not shown.
             _overlaySession = null;
             _captureInFlight = false;
 
             // A failure that raced the app's own shutdown (the tray "Sair"
-            // can be processed while the session constructor pumps the UI
-            // thread) must not pop an error dialog over an app that is
-            // quitting: the user asked to exit, not to capture.
+            // can be processed while a session step is in flight) must not
+            // pop an error dialog over an app that is quitting: the user
+            // asked to exit, not to capture.
             if (!Dispatcher.HasShutdownStarted)
             {
-                MessageBox.Show(
-                    "Não foi possível capturar a tela.\n\nTente novamente.",
+                // WPF's MessageBox has no Retry button; OK is the retry
+                // (Cancel dismisses the message and keeps the app idle).
+                var response = MessageBox.Show(
+                    "Não foi possível capturar a tela.\n\nPressione OK para tentar novamente.",
                     "CapParse",
-                    MessageBoxButton.OK,
+                    MessageBoxButton.OKCancel,
                     MessageBoxImage.Warning);
+
+                if (response == MessageBoxResult.OK)
+                {
+                    StartCapture();
+                }
             }
         }
     }
@@ -291,6 +300,15 @@ public partial class App : Application
     /// </summary>
     private async void RecognizeCropAsync(System.Drawing.Bitmap crop)
     {
+        // The final session cleanup of an exiting application can run the
+        // closed callback on the UI thread during shutdown: do not start a
+        // new recognition (and a possible error dialog) in an app that is
+        // quitting.
+        if (Dispatcher.HasShutdownStarted)
+        {
+            return;
+        }
+
         // Called on the UI thread (the session's closed callback), so the
         // state move to Processing is observed by the window immediately.
         var runId = _ocrState.BeginRun();
@@ -333,7 +351,7 @@ public partial class App : Application
             // The token check keeps a failure that raced the cancellation
             // (for example the previous crop being disposed while the
             // engine was still reading it) from surfacing as an error.
-            if (_ocrState.FailRun(runId))
+            if (_ocrState.FailRun(runId) && !Dispatcher.HasShutdownStarted)
             {
                 PublishOcrState();
                 MessageBox.Show(
