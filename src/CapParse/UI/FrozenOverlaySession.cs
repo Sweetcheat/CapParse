@@ -49,9 +49,6 @@ namespace CapParse.UI;
 /// </summary>
 public sealed class FrozenOverlaySession : IDisposable
 {
-    // Conservative dimming: clearly frozen, content still recognizable.
-    private const double DimOpacity = 0.5;
-
     // Safety bounds for the asynchronous dispatcher passes: a missing
     // message or a missing first frame cannot stall the capture flow.
     private static readonly TimeSpan PumpTimeout = TimeSpan.FromSeconds(2);
@@ -161,7 +158,7 @@ public sealed class FrozenOverlaySession : IDisposable
 
             foreach (var monitor in monitors)
             {
-                var window = new MonitorOverlayWindow(DimOpacity)
+                var window = new MonitorOverlayWindow()
                 {
                     // Invisible while prepared: the window is shown offscreen,
                     // painted, placed on its monitor and sized, then revealed
