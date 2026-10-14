@@ -2,7 +2,7 @@
 
 Utilitário desktop para Windows, local-first: capture uma região da tela e transforme o conteúdo visual em texto utilizável. O OCR roda 100% localmente, sem conta e sem nuvem.
 
-> **Estado atual:** o projeto está em desenvolvimento ativo. O pacote publicado é o **beta** `v0.1.0-beta.1` (anterior às funções de copiar/salvar imagem, configurações e refinamentos finais); a candidata `v0.1.0-beta.2`, com essas funções, está em preparação (M15) e **ainda não foi publicada** — veja as [limitações conhecidas](#limitações-conhecidas).
+> **Estado atual:** o projeto está em desenvolvimento ativo. O pacote publicado é o **beta** `v0.1.0-beta.2` (inclui copiar/salvar imagem, configurações, primeira execução e refinamentos de UX); a beta `v0.1.0-beta.1` anterior não inclui essas funções — veja as [limitações conhecidas](#limitações-conhecidas).
 
 [Português](#português) | [English](#english)
 
@@ -40,8 +40,7 @@ O CapParse segue o conceito **Capture → Understand → Act**:
 ### O que ainda não está disponível (planejado)
 
 - Histórico com as imagens capturadas (o histórico atual mantém apenas o texto reconhecido — melhoria registrada no backlog);
-- Atalhos pós-seleção para as ações (as combinações ainda não são definitivas);
-- Validação final da versão 0.1 (M15 em andamento).
+- Atalhos pós-seleção para as ações (as combinações ainda não são definitivas).
 
 ### Requisitos do sistema
 
@@ -95,7 +94,8 @@ O script executa restore, build, testes (incluindo os smoke tests de OCR com o m
 
 - Windows x64 apenas (o pacote beta não inclui outras plataformas);
 - O histórico de resultados existe apenas em memória (é perdido ao sair do aplicativo) e mantém somente o texto reconhecido, não a imagem (melhoria no backlog);
-- O pacote `v0.1.0-beta.1` não inclui as funções adicionadas após a tag (copiar/salvar imagem, configurações, primeira execução) — elas entram na candidata `v0.1.0-beta.2`;
+- O pacote `v0.1.0-beta.1` não inclui as funções adicionadas após a tag (copiar/salvar imagem, configurações, primeira execução) — elas estão na `v0.1.0-beta.2`;
+- O caminho de erro de captura (diálogo com "tentar novamente") foi inspecionado por código, mas sem gatilho reproduzível confirmado: não foi exercitado em teste automatizado nem em validação manual (risco residual documentado na M16-4);
 - Durante o período de testes, o comportamento em computadores não validados pode revelar bugs — reporte-os.
 
 ### Privacidade
@@ -148,8 +148,7 @@ CapParse is a local-first Windows desktop utility built around **Capture → Und
 ### What is not available yet (planned)
 
 - History with the captured images (the current history keeps only the recognized text — a backlog improvement);
-- Post-selection shortcuts for the actions (the combinations are not final yet);
-- The final 0.1 validation (M15 in progress).
+- Post-selection shortcuts for the actions (the combinations are not final yet).
 
 ### System requirements
 
@@ -203,7 +202,8 @@ The script performs restore, build, tests (including the OCR smoke tests with th
 
 - Windows x64 only (the beta package does not include other platforms);
 - The results history is in-memory only (lost when the app exits) and keeps only the recognized text, not the image (a backlog improvement);
-- The `v0.1.0-beta.1` package does not include the features added after the tag (image copy/save, settings, first-run presentation) — they are in the `v0.1.0-beta.2` candidate;
+- The `v0.1.0-beta.1` package does not include the features added after the tag (image copy/save, settings, first-run presentation) — they are in `v0.1.0-beta.2`;
+- The capture-error path (the dialog offering a retry) was inspected in code, but there is no confirmed reproducible trigger: it has not been exercised by an automated test or manual validation (residual risk documented in M16-4);
 - During the testing period, behavior on unvalidated computers may reveal bugs — please report them.
 
 ### Privacy

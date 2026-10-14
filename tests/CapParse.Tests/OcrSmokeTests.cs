@@ -80,6 +80,43 @@ public class OcrSmokeTests : IClassFixture<OcrEngineFixture>
     }
 
     [Fact]
+    public async Task Recognize_EnglishSingleWordSyntheticImage_ReturnsRecognizedText()
+    {
+        using var bitmap = CreateTextImage("Settings", 32);
+
+        var result = await _fixture.Engine
+            .RecognizeAsync(new ImageData(bitmap), OcrOptions.Default, CancellationToken.None);
+
+        _output.WriteLine($"Recognized text: \"{result.Text}\"");
+        _output.WriteLine($"Recognition time: {result.ProcessingTime.TotalMilliseconds:0.0} ms");
+
+        Assert.True(result.ProcessingTime > TimeSpan.Zero);
+        Assert.False(string.IsNullOrWhiteSpace(result.Text));
+        Assert.Contains("Settings", result.Text);
+    }
+
+    [Fact]
+    public async Task Recognize_EnglishPhraseSyntheticImage_ReturnsRecognizedWords()
+    {
+        using var bitmap = CreateTextImage("Capture image", 32);
+
+        var result = await _fixture.Engine
+            .RecognizeAsync(new ImageData(bitmap), OcrOptions.Default, CancellationToken.None);
+
+        _output.WriteLine($"Recognized text: \"{result.Text}\"");
+        _output.WriteLine($"Recognition time: {result.ProcessingTime.TotalMilliseconds:0.0} ms");
+
+        // Each word is asserted on its own: the M7-C evaluation recorded that
+        // the PP-OCRv6 rec model frequently drops the space between tokens
+        // (docs/ocr-integration.md §10.5), so the exact phrase is not a fair
+        // criterion — both words must be recognized, with or without the space.
+        Assert.True(result.ProcessingTime > TimeSpan.Zero);
+        Assert.False(string.IsNullOrWhiteSpace(result.Text));
+        Assert.Contains("Capture", result.Text);
+        Assert.Contains("image", result.Text);
+    }
+
+    [Fact]
     public async Task Recognize_BlankImage_ReturnsValidEmptyResult()
     {
         using var bitmap = new Bitmap(400, 200, PixelFormat.Format32bppArgb);

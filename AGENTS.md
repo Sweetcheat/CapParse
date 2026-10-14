@@ -877,7 +877,36 @@ Be explicit about what was actually verified.
 
 ---
 
-# 39. Completion Report
+# 39. Vision Policy
+
+The development agent may use vision (inspecting images) when it adds real value to the task.
+
+Vision is encouraged for graphical work:
+
+- inspecting screenshots of the MainWindow, SettingsWindow, FirstRunWindow and the overlay;
+- evaluating visual hierarchy, alignment, spacing, legibility, contrast and consistency;
+- comparing Light and Dark visual results;
+- checking interface states and problems that automated tests or pixel analysis cannot assess properly.
+
+The agent may use vision freely within the limit below, without asking for permission per image.
+
+Vision is not mandatory for purely logical, documentary, or backend tasks when images add no useful information.
+
+**Hard limit: the agent may inspect at most 12 images per work session. Never exceed that limit.**
+
+When the limit is reached, stop all further visual inspection for the rest of the session and rely on tests, logs, diffs, and color/histogram analysis.
+
+The operational rules (counting, no bypass, efficient use, application to GUI tasks) are documented in `docs/development.md` §54, which is the authoritative source for the details.
+
+If vision is not available or images cannot be sent to the model, state that limitation explicitly.
+
+Never claim a visual inspection that did not happen. A pixel histogram is not a substitute for a visual assessment of spacing, composition, or aesthetic quality.
+
+This policy concerns the agent's own vision capability, not the application's future "AI Vision" feature (see §35).
+
+---
+
+# 40. Completion Report
 
 At the end of each milestone, report:
 
@@ -906,7 +935,7 @@ If something could not be validated, state it clearly.
 
 ---
 
-# 40. Stop Condition
+# 41. Stop Condition
 
 Once the milestone acceptance criteria are satisfied:
 
@@ -922,7 +951,7 @@ The next milestone will be handled separately.
 
 ---
 
-# 41. Final Rule
+# 42. Final Rule
 
 When uncertain, prefer:
 
