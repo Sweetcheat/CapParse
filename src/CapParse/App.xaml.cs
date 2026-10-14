@@ -4,6 +4,7 @@ using CapParse.Capture;
 using CapParse.Configuration;
 using CapParse.OCR;
 using CapParse.Platform;
+using CapParse.Themes;
 using CapParse.UI;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
@@ -20,6 +21,12 @@ public partial class App : Application
     // The persisted settings, loaded once at construction. A missing or
     // invalid file yields the defaults, so this never throws.
     private readonly AppSettings _settings = AppSettings.Load();
+    // Resolves the theme preference (V0.2) and applies the matching
+    // token dictionary to the application resources. The resolver
+    // consults the Windows "apps" light/dark setting only when the
+    // preference is System.
+    private readonly ThemeService _themeService =
+        new(new ThemeResolver(WindowsSystemTheme.CurrentAppTheme));
     // The OCR engine is created lazily on the first recognition, so
     // starting the app costs nothing; the coordinator releases it on exit.
     private readonly OcrCoordinator _ocrCoordinator = new();
@@ -78,6 +85,14 @@ public partial class App : Application
     /// taken by another application and the default is active instead.
     /// </summary>
     public HotkeySetting SavedCaptureHotkey => _settings.CaptureHotkey;
+
+    /// <summary>
+    /// The theme preference stored in the settings (what the application
+    /// will resolve at the next startup). Views read this to display the
+    /// current choice — the *preference*, which is distinct from the
+    /// resolved theme in effect right now.
+    /// </summary>
+    public ThemePreference SavedThemePreference => _settings.ThemePreference;
 
     /// <summary>
     /// The selection of the last finished capture, in virtual-desktop
@@ -150,6 +165,10 @@ public partial class App : Application
 
         // Tray utility: the app keeps running while the main window is closed.
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        // The theme is resolved and applied before any window is created,
+        // so no window is ever shown with the default (unresolved) colors.
+        _themeService.Apply(_settings.ThemePreference);
 
         _mainWindow = new MainWindow();
         _mainWindow.Closing += OnMainWindowClosing;
@@ -472,6 +491,24 @@ public partial class App : Application
         return _settings.TrySave();
     }
 
+    /// <summary>
+    /// Changes the theme preference (V0.2): persists it and applies the
+    /// resolved theme to the application resources, so the windows that
+    /// consume the shared tokens update without a restart. This is the
+    /// single, centralized way to change the theme; the settings window
+    /// calls it and nothing else does. Call on the UI thread.
+    /// Returns false when the settings file could not be written: the
+    /// in-memory preference and the applied theme keep the new value, the
+    /// file keeps the previous one (the choice reverts on the next launch).
+    /// </summary>
+    public bool ApplyThemePreference(ThemePreference preference)
+    {
+        _settings.ThemePreference = preference;
+        var saved = _settings.TrySave();
+        _themeService.Apply(preference);
+        return saved;
+    }
+
     private void CreateTrayIcon()
     {
         _trayIcon = new WinForms.NotifyIcon
@@ -494,8 +531,13 @@ public partial class App : Application
 
     private static System.Drawing.Icon LoadTrayIcon()
     {
-        var resource = Application.GetResourceStream(new Uri("Assets/tray.ico", UriKind.Relative));
-        return new System.Drawing.Icon(resource.Stream);
+        // The approved mascot, shared with the main window icon: one WPF
+        // Resource, no second copy of the identity. Icon(Stream) copies the
+        // data, so the stream can be released right after construction; the
+        // Icon itself is disposed in ExitApplication.
+        var resource = Application.GetResourceStream(new Uri("Assets/capparse.ico", UriKind.Relative));
+        using var stream = resource.Stream;
+        return new System.Drawing.Icon(stream);
     }
 
     private void OnMainWindowClosing(object? sender, CancelEventArgs e)

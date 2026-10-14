@@ -1,0 +1,56 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        CapParse dark theme tokens (V0.2, phase 1).
+
+        The keys are semantic, not concrete colors: views reference the
+        meaning (BackgroundBrush, TextSecondaryBrush, ...), never a hex
+        value, so no window carries its own palette. Theme.Light.xaml
+        defines exactly the same keys with the light values.
+
+        Text tokens meet WCAG AA (4.5:1) against SurfaceBrush and
+        BackgroundBrush; OnAccentBrush meets it against AccentBrush.
+
+        The subtle-state tokens are low-alpha overlays, so they compose
+        over whatever surface they sit on (buttons, list items) without
+        needing a variant per surface.
+    -->
+
+    <!-- Surfaces -->
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#1A1D23" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#22262E" />
+    <SolidColorBrush x:Key="SurfaceSecondaryBrush" Color="#2A2F39" />
+
+    <!-- Lines and outlines -->
+    <SolidColorBrush x:Key="BorderBrush" Color="#39404C" />
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="#5C6470" />
+
+    <!-- Text -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F1F3F6" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#B9C0CA" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#8B93A0" />
+
+    <!-- Accent (primary action) -->
+    <SolidColorBrush x:Key="AccentBrush" Color="#5B93FF" />
+    <SolidColorBrush x:Key="OnAccentBrush" Color="#0A1220" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#79A8FF" />
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#4179E8" />
+
+    <!-- Subtle interaction states (hover/pressed overlays, selection tint) -->
+    <SolidColorBrush x:Key="SubtleOverlayBrush" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="SubtlePressedBrush" Color="#33FFFFFF" />
+    <SolidColorBrush x:Key="AccentSubtleBrush" Color="#3C5B93FF" />
+
+    <!-- Status -->
+    <SolidColorBrush x:Key="SuccessBrush" Color="#4FC487" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#E0A83C" />
+    <SolidColorBrush x:Key="ErrorBrush" Color="#F07A72" />
+
+    <!-- Focus indication -->
+    <SolidColorBrush x:Key="FocusBorderBrush" Color="#5B93FF" />
+
+    <!-- Capture overlay (freeze-frame) -->
+    <!-- Dim over the frozen desktop. The dark theme uses a lighter dim so
+         already-dark screen content stays recognizable. -->
+    <SolidColorBrush x:Key="OverlayDimBrush" Color="#66000000" />
+</ResourceDictionary>

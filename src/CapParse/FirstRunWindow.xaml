@@ -5,38 +5,141 @@
         Width="520" Height="300"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
-        WindowStartupLocation="CenterScreen">
-    <Grid Margin="28">
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BackgroundBrush}">
+
+    <!--
+        Window-scoped styles (V0.2, phase 4): the same approach as
+        MainWindow (phase 2) and SettingsWindow (phase 3) — a Modern
+        Fluent look built only on the shared semantic tokens (Dynamic
+        Resource), so every element re-skins when the theme dictionary is
+        swapped. Scoped to this window on purpose: the other windows keep
+        their own copies of these styles.
+    -->
+    <Window.Resources>
+
+        <!-- Shared button template: rounded chrome, a hover/pressed
+             overlay (low-alpha, so it works on both the neutral surface
+             and the accent fill) and an outer focus ring. The dotted
+             WPF focus visual is replaced by the ring. -->
+        <ControlTemplate x:Key="ButtonTemplate" TargetType="Button">
+            <Grid>
+                <Border x:Name="FocusRing"
+                        CornerRadius="10"
+                        Margin="2"
+                        BorderThickness="2"
+                        BorderBrush="{DynamicResource FocusBorderBrush}"
+                        Opacity="0" />
+                <Border x:Name="Chrome"
+                        CornerRadius="6"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}">
+                    <Grid>
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}" />
+                        <Border x:Name="Overlay"
+                                CornerRadius="6"
+                                Background="Transparent"
+                                IsHitTestVisible="False" />
+                    </Grid>
+                </Border>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Overlay" Property="Background"
+                            Value="{DynamicResource SubtleOverlayBrush}" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter TargetName="Overlay" Property="Background"
+                            Value="{DynamicResource SubtlePressedBrush}" />
+                </Trigger>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                    <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.45" />
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- Neutral (secondary) button. -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="MinWidth" Value="120" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template" Value="{StaticResource ButtonTemplate}" />
+        </Style>
+
+        <!-- Accent (primary) button: same shape and states, accent fill. -->
+        <Style x:Key="AccentButtonStyle" TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
                    Text="Bem-vindo ao CapParse"
                    FontSize="20"
-                   FontWeight="SemiBold" />
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextPrimaryBrush}"
+                   HorizontalAlignment="Left" />
 
-        <StackPanel Grid.Row="1" Margin="0,16,0,0">
-            <TextBlock Text="O CapParse captura uma região da sua tela e reconhece o texto dela, localmente."
-                       TextWrapping="Wrap" />
-            <TextBlock x:Name="HowToCaptureText"
-                       Margin="0,12,0,0"
-                       TextWrapping="Wrap" />
-            <TextBlock Margin="0,12,0,0"
-                       Text="Depois de selecionar a região, você pode copiar o texto, copiar a imagem ou salvá-la em um arquivo."
-                       TextWrapping="Wrap" />
-        </StackPanel>
+        <Border Grid.Row="1"
+                Margin="0,12,0,0"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+            <Grid Margin="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-        <Button Grid.Row="2"
-                x:Name="StartButton"
-                Content="Começar"
-                MinWidth="130"
-                Padding="16,7"
-                Margin="0,8,0,0"
-                HorizontalAlignment="Left"
-                IsDefault="True"
-                Click="StartButton_Click" />
+                <StackPanel Grid.Row="0">
+                    <TextBlock Text="O CapParse captura uma região da sua tela e reconhece o texto dela, localmente."
+                               FontSize="13"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="Wrap" />
+                    <TextBlock x:Name="HowToCaptureText"
+                               Margin="0,12,0,0"
+                               FontSize="13"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextWrapping="Wrap" />
+                    <TextBlock Margin="0,12,0,0"
+                               FontSize="13"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextWrapping="Wrap"
+                               Text="Depois de selecionar a região, você pode copiar o texto, copiar a imagem ou salvá-la em um arquivo." />
+                </StackPanel>
+
+                <Button Grid.Row="1"
+                        x:Name="StartButton"
+                        Style="{StaticResource AccentButtonStyle}"
+                        Content="Começar"
+                        MinWidth="130"
+                        Margin="0,16,0,0"
+                        HorizontalAlignment="Left"
+                        IsDefault="True"
+                        Click="StartButton_Click" />
+            </Grid>
+        </Border>
     </Grid>
 </Window>

@@ -1148,3 +1148,25 @@ A solução só entrará no pipeline de produção após validação em protóti
 - formatos de saída, tratamento de cabeçalhos e estrutura de colunas ainda precisam ser definidos.
 
 Nenhuma dependência ou código deve ser adicionado antes de um milestone dedicado.
+
+---
+
+# 46. Tema visual (V0.2)
+
+Fundação visual da V0.2 (detalhes de sessão em `development.md` §51).
+
+## 46.1 Fronteiras
+
+- **Preferência** (`Configuration/ThemePreference`: `System`, `Light`, `Dark`) é o que o usuário escolhe e o que é persistido no `settings.json`.
+- **Estado resolvido** (`Themes/ResolvedTheme`: `Light`, `Dark`) é o que a interface efetivamente usa; uma preferência `System` resolve-se conforme a preferência de aplicativos do Windows.
+- A resolução é pura e isolada em `Themes/ThemeResolver`: a fonte do tema do sistema é injetada (`Func<ResolvedTheme>`), e a implementação real (`Themes/WindowsSystemTheme`) lê `HKCU\...\Themes\Personalize\AppsUseLightTheme` com fallback seguro (chave ausente, valor inválido ou exceção → claro).
+- **Mecanismo único de tema:** o `App` cria um `Themes/ThemeService` e é o único dono da troca do dicionário de tokens em `Application.Resources.MergedDictionaries`. Não existe segundo mecanismo (nenhuma janela, serviço ou biblioteca muda o tema sozinha).
+- **Tokens semânticos centralizados:** `Themes/Theme.Light.xaml` e `Themes/Theme.Dark.xaml` definem exatamente as mesmas chaves (background, superfícies, bordas, texto, acento, estados, foco). As janelas referenciam o significado (p. ex. `TextSecondaryBrush`), nunca valores de cor literais. Não criar paletas por janela nem dicionários de tema adicionais.
+- Decisão de estilização: recursos WPF locais, sem biblioteca externa (`development.md` §51.2).
+
+## 46.2 Regras
+
+- O tema é aplicado no `OnStartup`, antes de qualquer janela existir; nenhuma janela é exibida com cores não resolvidas.
+- A troca de preferência substitui o dicionário anterior (nunca dois dicionários de tema coexistem) e re-estiliza ao vivo as janelas que consomem os tokens, sem reinício.
+- A preferência persistida ausente (arquivo legado) ou inválida resolve para `System` / claro, respectivamente, sem invalidar o restante do arquivo de configurações.
+- O tema não depende de rede nem de serviço externo (local-first).

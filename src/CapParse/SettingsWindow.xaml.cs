@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using CapParse.Configuration;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
@@ -8,25 +9,42 @@ using Application = System.Windows.Application;
 namespace CapParse;
 
 /// <summary>
-/// The V0.1 settings window: a single setting — the capture hotkey.
+/// The V0.1 settings window: the capture hotkey and, since V0.2, the
+/// theme preference.
 ///
-/// The window shows the combination that is active right now and offers
-/// three actions: record a new combination (a valid press switches to a
-/// confirmation state, Esc cancels the change), reset to the default, and
-/// close. A new combination is applied through
+/// The hotkey pane shows the combination that is active right now and
+/// offers three actions: record a new combination (a valid press switches
+/// to a confirmation state, Esc cancels the change), reset to the default,
+/// and close. A new combination is applied through
 /// <see cref="App.ApplyCaptureHotkey"/>, which recovers to a working
 /// combination when the requested one is taken by another application,
 /// and is persisted only when it actually became active.
+///
+/// The theme pane shows the stored preference (System/Light/Dark — the
+/// preference, not the resolved theme in effect). A selection is persisted
+/// and applied immediately through <see cref="App.ApplyThemePreference"/>
+/// (no restart).
 /// </summary>
 public partial class SettingsWindow : Window
 {
     // The combination recorded in the current change attempt, if any.
     private HotkeySetting? _candidate;
 
+    // Set while the constructor positions the theme selector on the stored
+    // preference, so that initialisation does not count as a user change.
+    private bool _initializing;
+
     public SettingsWindow()
     {
         InitializeComponent();
         ShowCurrent();
+
+        // The selector reflects the stored preference (not the resolved
+        // theme): with a System preference on a dark Windows it still
+        // selects "Sistema".
+        _initializing = true;
+        ThemeSelector.SelectedIndex = (int)App.SavedThemePreference;
+        _initializing = false;
     }
 
     private App App => (App)Application.Current;
@@ -53,6 +71,38 @@ public partial class SettingsWindow : Window
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
         => Close();
+
+    /// <summary>
+    /// Persists and applies a new theme preference (no restart). The list
+    /// items are in enum order (System, Light, Dark), so the selected
+    /// index is the preference.
+    /// </summary>
+    private void ThemeSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_initializing)
+        {
+            return;
+        }
+
+        var preference = (ThemePreference)ThemeSelector.SelectedIndex;
+        if (preference == App.SavedThemePreference)
+        {
+            return;
+        }
+
+        if (!App.ApplyThemePreference(preference))
+        {
+            // The preference is in memory and the theme is already applied,
+            // but the file could not be written: the choice lasts for this
+            // session and reverts to the saved one on the next launch.
+            MessageBox.Show(this,
+                "O tema foi aplicado, mas as configurações não puderam ser salvas.\n" +
+                "A preferência voltará ao valor anterior na próxima inicialização.",
+                "CapParse",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
 
     /// <summary>
     /// Shows the current state (the active hotkey, or the saved one with a

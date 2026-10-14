@@ -39,6 +39,17 @@ public sealed class AppSettings
     /// </summary>
     public bool FirstRunPresented { get; set; }
 
+    /// <summary>
+    /// The theme preference (V0.2), as chosen in the settings. A missing
+    /// or legacy file — one written before the preference existed — reads
+    /// as <see cref="ThemePreference.System"/>, which is the only reading
+    /// that does not change the appearance of an upgrading user. An
+    /// invalid persisted value falls back to the same default (see
+    /// <see cref="ParseThemePreference">); it never invalidates the rest
+    /// of the file. Not personal data.
+    /// </summary>
+    public ThemePreference ThemePreference { get; set; } = ThemePreference.System;
+
     /// <summary>The settings file location: <c>%LOCALAPPDATA%\CapParse\settings.json</c>.</summary>
     public static string DefaultSettingsPath
         => Path.Combine(
@@ -76,7 +87,8 @@ public sealed class AppSettings
                 CaptureHotkey = hotkey,
                 // Absent in a legacy file: the JSON default (false) is the
                 // correct first-run reading.
-                FirstRunPresented = file.FirstRunPresented
+                FirstRunPresented = file.FirstRunPresented,
+                ThemePreference = ParseThemePreference(file.ThemePreference)
             };
         }
         catch
@@ -110,7 +122,8 @@ public sealed class AppSettings
             {
                 Version = SupportedVersion,
                 CaptureHotkey = CaptureHotkey,
-                FirstRunPresented = FirstRunPresented
+                FirstRunPresented = FirstRunPresented,
+                ThemePreference = ThemePreference.ToString().ToLowerInvariant()
             };
 
             var temporary = path + ".tmp";
@@ -125,6 +138,31 @@ public sealed class AppSettings
         }
     }
 
+    /// <summary>
+    /// Parses the persisted theme preference leniently: absent (a legacy
+    /// file) means <see cref="ThemePreference.System"/>; "system",
+    /// "light" and "dark" (case-insensitive, surrounding whitespace
+    /// ignored) map to the matching preference; any other value is
+    /// corrupted and falls back to <see cref="ThemePreference.System"/>
+    /// on its own, so the hotkey and the first-run flag survive a bad
+    /// theme value.
+    /// </summary>
+    internal static ThemePreference ParseThemePreference(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return ThemePreference.System;
+        }
+
+        return raw.Trim().ToLowerInvariant() switch
+        {
+            "system" => ThemePreference.System,
+            "light" => ThemePreference.Light,
+            "dark" => ThemePreference.Dark,
+            _ => ThemePreference.System
+        };
+    }
+
     /// <summary>The on-disk representation of the settings file.</summary>
     private sealed class SettingsFile
     {
@@ -133,5 +171,7 @@ public sealed class AppSettings
         public HotkeySetting? CaptureHotkey { get; set; }
 
         public bool FirstRunPresented { get; set; }
+
+        public string? ThemePreference { get; set; }
     }
 }

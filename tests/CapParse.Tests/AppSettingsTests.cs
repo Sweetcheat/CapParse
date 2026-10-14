@@ -126,6 +126,69 @@ public class AppSettingsTests : IDisposable
     }
 
     [Fact]
+    public void Load_LegacyFileWithoutTheThemePreference_FallsBackToSystem()
+    {
+        // A file written before the preference existed must read as
+        // "follow Windows": the only reading that does not change the
+        // appearance of an upgrading user.
+        File.WriteAllText(SettingsPath,
+            "{ \"Version\": 1, \"CaptureHotkey\": { \"Modifiers\": 6, \"Key\": 88 } }");
+
+        var settings = AppSettings.Load(SettingsPath);
+
+        Assert.Equal(ThemePreference.System, settings.ThemePreference);
+        Assert.Equal("Ctrl + Shift + X", settings.CaptureHotkey.DisplayString);
+    }
+
+    [Theory]
+    [InlineData(ThemePreference.System, "system")]
+    [InlineData(ThemePreference.Light, "light")]
+    [InlineData(ThemePreference.Dark, "dark")]
+    public void Save_ThenLoad_ThemePreferenceRoundTrips(
+        ThemePreference preference, string expectedJsonValue)
+    {
+        var settings = new AppSettings { ThemePreference = preference };
+
+        Assert.True(settings.TrySave(SettingsPath));
+
+        var content = File.ReadAllText(SettingsPath);
+        Assert.Contains($"\"ThemePreference\": \"{expectedJsonValue}\"", content);
+
+        Assert.Equal(preference, AppSettings.Load(SettingsPath).ThemePreference);
+    }
+
+    [Theory]
+    [InlineData("blue")]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("2")]
+    public void Load_InvalidThemePreference_FallsBackToSystemAndKeepsTheOtherValues(
+        string themeValue)
+    {
+        // A corrupted theme value must degrade only the theme: the hotkey
+        // and the first-run flag survive it.
+        File.WriteAllText(SettingsPath,
+            "{ \"Version\": 1, \"CaptureHotkey\": { \"Modifiers\": 6, \"Key\": 88 }, " +
+            $"\"FirstRunPresented\": true, \"ThemePreference\": \"{themeValue}\" }}");
+
+        var settings = AppSettings.Load(SettingsPath);
+
+        Assert.Equal(ThemePreference.System, settings.ThemePreference);
+        Assert.Equal("Ctrl + Shift + X", settings.CaptureHotkey.DisplayString);
+        Assert.True(settings.FirstRunPresented);
+    }
+
+    [Fact]
+    public void Load_ThemePreference_IsCaseInsensitiveAndToleratesWhitespace()
+    {
+        File.WriteAllText(SettingsPath,
+            "{ \"Version\": 1, \"CaptureHotkey\": { \"Modifiers\": 6, \"Key\": 88 }, " +
+            "\"ThemePreference\": \"  DaRk  \" }");
+
+        Assert.Equal(ThemePreference.Dark, AppSettings.Load(SettingsPath).ThemePreference);
+    }
+
+    [Fact]
     public void Save_OverwritesThePreviousFile()
     {
         var first = new AppSettings
@@ -197,5 +260,6 @@ public class AppSettingsTests : IDisposable
         Assert.Contains("\"Modifiers\"", content);
         Assert.Contains("\"Key\"", content);
         Assert.Contains("\"FirstRunPresented\"", content);
+        Assert.Contains("\"ThemePreference\"", content);
     }
 }

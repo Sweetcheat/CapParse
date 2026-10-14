@@ -5,8 +5,330 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CapParse"
         mc:Ignorable="d"
-        Title="CapParse" Height="560" Width="960">
-    <Grid Margin="16">
+        Title="CapParse" Height="560" Width="960"
+        Icon="Assets/capparse.ico"
+        Background="{DynamicResource BackgroundBrush}">
+
+    <!--
+        Window-scoped styles (V0.2, phase 2): the Modern Fluent look of
+        this window, built only on the shared semantic tokens (Dynamic
+        Resource), so every element re-skins when the theme dictionary is
+        swapped. Scoped to this window on purpose: SettingsWindow and
+        FirstRunWindow get their own migration in a later phase and keep
+        their current look for now.
+    -->
+    <Window.Resources>
+
+        <!-- Shared button template: rounded chrome, a hover/pressed
+             overlay (low-alpha, so it works on both the neutral surface
+             and the accent fill) and an outer focus ring. The dotted
+             WPF focus visual is replaced by the ring. -->
+        <ControlTemplate x:Key="ButtonTemplate" TargetType="Button">
+            <Grid>
+                <Border x:Name="FocusRing"
+                        CornerRadius="10"
+                        Margin="2"
+                        BorderThickness="2"
+                        BorderBrush="{DynamicResource FocusBorderBrush}"
+                        Opacity="0" />
+                <Border x:Name="Chrome"
+                        CornerRadius="6"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}">
+                    <Grid>
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}" />
+                        <Border x:Name="Overlay"
+                                CornerRadius="6"
+                                Background="Transparent"
+                                IsHitTestVisible="False" />
+                    </Grid>
+                </Border>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Overlay" Property="Background"
+                            Value="{DynamicResource SubtleOverlayBrush}" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter TargetName="Overlay" Property="Background"
+                            Value="{DynamicResource SubtlePressedBrush}" />
+                </Trigger>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                    <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.45" />
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- Neutral (secondary) button. -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="MinWidth" Value="120" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template" Value="{StaticResource ButtonTemplate}" />
+        </Style>
+
+        <!-- Accent (primary) button: same shape and states, accent fill. -->
+        <Style x:Key="AccentButtonStyle" TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <!-- Read-only text area (result / history detail): no chrome of
+             its own — the surrounding Border provides the surface and the
+             line — but a focus ring, so keyboard focus stays visible. -->
+        <Style x:Key="ReadOnlyAreaStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Grid>
+                            <Border x:Name="FocusRing"
+                                    CornerRadius="7"
+                                    Margin="1"
+                                    BorderThickness="2"
+                                    BorderBrush="{DynamicResource FocusBorderBrush}"
+                                    Opacity="0" />
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="{TemplateBinding Padding}"
+                                          Background="Transparent"
+                                          VerticalScrollBarVisibility="{TemplateBinding VerticalScrollBarVisibility}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Slim, borderless list: items are the visual unit. -->
+        <ControlTemplate x:Key="ListBoxTemplate" TargetType="ListBox">
+            <ScrollViewer x:Name="PART_ItemsHost"
+                          Focusable="False"
+                          Padding="4"
+                          Background="Transparent"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <ItemsPresenter />
+            </ScrollViewer>
+        </ControlTemplate>
+
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Template" Value="{StaticResource ListBoxTemplate}" />
+        </Style>
+
+        <!-- List item: hover overlay, accent-tinted selection, focus
+             ring; disabled dims the item. -->
+        <ControlTemplate x:Key="ListBoxItemTemplate" TargetType="ListBoxItem">
+            <Grid>
+                <Border x:Name="FocusRing"
+                        CornerRadius="7"
+                        Margin="1"
+                        BorderThickness="2"
+                        BorderBrush="{DynamicResource FocusBorderBrush}"
+                        Opacity="0" />
+                <Border x:Name="ItemBackground"
+                        CornerRadius="6"
+                        Background="Transparent"
+                        Padding="{TemplateBinding Padding}">
+                    <ContentPresenter VerticalAlignment="Center" />
+                </Border>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="ItemBackground" Property="Background"
+                            Value="{DynamicResource SubtleOverlayBrush}" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter TargetName="ItemBackground" Property="Background"
+                            Value="{DynamicResource AccentSubtleBrush}" />
+                </Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True">
+                    <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5" />
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template" Value="{StaticResource ListBoxItemTemplate}" />
+        </Style>
+
+        <!-- Slim scrollbars: a thin track and a rounded thumb, no arrow
+             buttons (the mouse wheel scrolls). The vertical template is
+             rotated for the horizontal orientation, exactly like the
+             default WPF scrollbar. -->
+        <Style x:Key="ScrollBarPageButtonStyle" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SlimScrollBarThumbStyle" TargetType="Thumb">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border CornerRadius="3"
+                                Margin="1"
+                                Background="{DynamicResource BorderStrongBrush}"
+                                SnapsToDevicePixels="True" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="MinWidth" Value="8" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid x:Name="Root"
+                              Background="Transparent"
+                              SnapsToDevicePixels="True">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Track x:Name="PART_Track"
+                                   Grid.Row="1"
+                                   IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Style="{StaticResource ScrollBarPageButtonStyle}"
+                                                  Command="ScrollBar.PageUpCommand" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource SlimScrollBarThumbStyle}" />
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Style="{StaticResource ScrollBarPageButtonStyle}"
+                                                  Command="ScrollBar.PageDownCommand" />
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Orientation" Value="Horizontal">
+                                <Setter TargetName="Root" Property="LayoutTransform">
+                                    <Setter.Value>
+                                        <RotateTransform Angle="-90" />
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Indeterminate processing bar: a track and an accent bar that
+             sweeps across it while a recognition is in flight. -->
+        <Style TargetType="ProgressBar">
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}" />
+            <Setter Property="Height" Value="4" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid ClipToBounds="True" SnapsToDevicePixels="True">
+                            <Border CornerRadius="2"
+                                    Background="{TemplateBinding Background}" />
+                            <Grid x:Name="IndeterminateClip"
+                                  ClipToBounds="True"
+                                  Visibility="Hidden">
+                                <Border x:Name="IndeterminateBar"
+                                        Width="80"
+                                        HorizontalAlignment="Left"
+                                        CornerRadius="2"
+                                        Background="{TemplateBinding Foreground}">
+                                    <Border.RenderTransform>
+                                        <TranslateTransform x:Name="IndeterminateTranslate" X="-90" />
+                                    </Border.RenderTransform>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsIndeterminate" Value="True">
+                                <Setter TargetName="IndeterminateClip" Property="Visibility" Value="Visible" />
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard x:Name="IndeterminateStoryboard">
+                                        <Storyboard RepeatBehavior="Forever">
+                                            <DoubleAnimation Storyboard.TargetName="IndeterminateTranslate"
+                                                             Storyboard.TargetProperty="X"
+                                                             From="-90"
+                                                             To="400"
+                                                             Duration="0:0:1.2" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <StopStoryboard BeginStoryboardName="IndeterminateStoryboard" />
+                                </Trigger.ExitActions>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Section header inside a pane. -->
+        <Style x:Key="PaneHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        </Style>
+
+        <!-- Inline success feedback under an action button. -->
+        <Style x:Key="FeedbackTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -15,15 +337,17 @@
 
         <TextBlock Grid.Row="0"
                    Text="CapParse"
-                   FontSize="24"
+                   FontSize="20"
                    FontWeight="SemiBold"
-                   HorizontalAlignment="Center" />
+                   Foreground="{DynamicResource TextPrimaryBrush}"
+                   HorizontalAlignment="Left" />
 
         <TextBlock x:Name="HintText"
                    Grid.Row="1"
-                   Margin="0,8,0,16"
-                   Foreground="Gray"
-                   HorizontalAlignment="Center" />
+                   Margin="0,4,0,16"
+                   FontSize="13"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   HorizontalAlignment="Left" />
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
@@ -34,184 +358,194 @@
 
             <!-- Result of the current run: status, text, and the explicit
                  copy action. Driven by the app's OcrRunState. -->
-            <Grid Grid.Column="0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+            <Border Grid.Column="0"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0" HorizontalAlignment="Center">
-                    <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Grid.Row="0"
+                               Text="Resultado"
+                               Style="{StaticResource PaneHeaderStyle}" />
+
+                    <StackPanel Grid.Row="1"
+                                Margin="0,12,0,0"
+                                HorizontalAlignment="Center">
                         <!-- Loading indicator while a recognition is in
                              flight (ui.md §9); the status line below it
                              keeps telling the user what is happening. -->
                         <ProgressBar x:Name="ProcessingBar"
                                      IsIndeterminate="True"
-                                     Height="4"
                                      Width="200"
                                      AutomationProperties.Name="Processando"
                                      Visibility="Collapsed" />
                         <TextBlock x:Name="StatusText"
                                    Margin="0,8,0,0"
-                                   FontSize="14"
-                                   Foreground="Gray"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                    TextWrapping="Wrap"
                                    TextAlignment="Center"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center" />
                     </StackPanel>
+
+                    <Border x:Name="ResultPanel"
+                            Grid.Row="2"
+                            Margin="0,12,0,0"
+                            Background="{DynamicResource SurfaceSecondaryBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Visibility="Collapsed">
+                        <TextBox x:Name="ResultText"
+                                 Style="{StaticResource ReadOnlyAreaStyle}"
+                                 IsReadOnly="True"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto" />
+                    </Border>
+
+                    <!-- The action buttons and their inline feedback. Each
+                         feedback sits in a fixed-width slot below its
+                         button, so a message appearing or disappearing
+                         never changes the row's size: the buttons keep
+                         their position and width (the slot is wider than
+                         the longest message, "Imagem copiada!", so
+                         nothing is trimmed). -->
+                    <Grid Grid.Row="3"
+                          HorizontalAlignment="Center"
+                          Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <Button x:Name="CopyButton"
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    Content="Copiar texto"
+                                    IsEnabled="False"
+                                    Click="CopyText_Click" />
+                            <TextBlock x:Name="CopyFeedback"
+                                       Width="110"
+                                       Style="{StaticResource FeedbackTextStyle}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <Button x:Name="CopyImageButton"
+                                    Content="Copiar imagem"
+                                    IsEnabled="False"
+                                    Click="CopyImage_Click" />
+                            <TextBlock x:Name="ImageCopyFeedback"
+                                       Width="110"
+                                       Style="{StaticResource FeedbackTextStyle}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="4">
+                            <Button x:Name="SaveImageButton"
+                                    Content="Salvar imagem"
+                                    IsEnabled="False"
+                                    Click="SaveImage_Click" />
+                            <TextBlock x:Name="ImageSaveFeedback"
+                                       Width="110"
+                                       Style="{StaticResource FeedbackTextStyle}" />
+                        </StackPanel>
+                    </Grid>
                 </Grid>
-
-                <Border x:Name="ResultPanel"
-                        Grid.Row="1"
-                        Margin="0,12,0,0"
-                        BorderBrush="#808080"
-                        BorderThickness="1"
-                        Visibility="Collapsed">
-                    <TextBox x:Name="ResultText"
-                             IsReadOnly="True"
-                             AcceptsReturn="True"
-                             TextWrapping="Wrap"
-                             VerticalScrollBarVisibility="Auto"
-                             FontFamily="Consolas"
-                             Padding="8" />
-                </Border>
-
-                <!-- The action buttons and their inline feedback. Each
-                     feedback sits in a fixed-width slot below its button,
-                     so a message appearing or disappearing never changes
-                     the row's size: the buttons keep their position and
-                     width (the slot is wider than the longest message,
-                     "Imagem copiada!", so nothing is trimmed). -->
-                <Grid Grid.Row="2"
-                      HorizontalAlignment="Center"
-                      Margin="0,12,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="16" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="16" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0">
-                        <Button x:Name="CopyButton"
-                                Content="Copiar texto"
-                                MinWidth="120"
-                                Padding="12,6"
-                                IsEnabled="False"
-                                Click="CopyText_Click" />
-                        <TextBlock x:Name="CopyFeedback"
-                                   Width="110"
-                                   TextAlignment="Center"
-                                   Foreground="Gray" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2">
-                        <Button x:Name="CopyImageButton"
-                                Content="Copiar imagem"
-                                MinWidth="120"
-                                Padding="12,6"
-                                IsEnabled="False"
-                                Click="CopyImage_Click" />
-                        <TextBlock x:Name="ImageCopyFeedback"
-                                   Width="110"
-                                   TextAlignment="Center"
-                                   Foreground="Gray" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="4">
-                        <Button x:Name="SaveImageButton"
-                                Content="Salvar imagem"
-                                MinWidth="120"
-                                Padding="12,6"
-                                IsEnabled="False"
-                                Click="SaveImage_Click" />
-                        <TextBlock x:Name="ImageSaveFeedback"
-                                   Width="110"
-                                   TextAlignment="Center"
-                                   Foreground="Gray" />
-                    </StackPanel>
-                </Grid>
-            </Grid>
+            </Border>
 
             <!-- History of the session's recognized results, most recent
                  first. Selecting an entry shows its full text and lets the
                  user copy it again; it never touches the current result or
                  the run state. -->
-            <Grid Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+            <Border Grid.Column="2"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0"
-                           Text="Histórico da sessão"
-                           FontSize="16"
-                           FontWeight="SemiBold" />
+                    <TextBlock Grid.Row="0"
+                               Text="Histórico da sessão"
+                               Style="{StaticResource PaneHeaderStyle}" />
 
-                <ListBox x:Name="HistoryList"
-                         Grid.Row="1"
-                         Margin="0,8,0,0"
-                         SelectionChanged="HistoryList_SelectionChanged">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Margin="2">
-                                <TextBlock Text="{Binding DisplayTime}"
-                                           FontSize="11"
-                                           Foreground="Gray" />
-                                <TextBlock Text="{Binding Preview}"
-                                           FontSize="12"
-                                           TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                    <ListBox x:Name="HistoryList"
+                             Grid.Row="1"
+                             Margin="0,8,0,0"
+                             SelectionChanged="HistoryList_SelectionChanged">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="2">
+                                    <TextBlock Text="{Binding DisplayTime}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource TextMutedBrush}" />
+                                    <TextBlock Text="{Binding Preview}"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
 
-                <Border Grid.Row="2"
-                        Margin="0,8,0,0"
-                        BorderBrush="#808080"
-                        BorderThickness="1">
-                    <Grid>
-                        <TextBlock x:Name="HistoryEmpty"
-                                   Text="Nenhum resultado anterior nesta sessão."
-                                   Foreground="Gray"
-                                   TextWrapping="Wrap"
-                                   TextAlignment="Center"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Margin="8" />
-                        <TextBox x:Name="HistoryText"
-                                 IsReadOnly="True"
-                                 AcceptsReturn="True"
-                                 TextWrapping="Wrap"
-                                 VerticalScrollBarVisibility="Auto"
-                                 FontFamily="Consolas"
-                                 Padding="8"
-                                 Visibility="Collapsed" />
-                    </Grid>
-                </Border>
+                    <Border Grid.Row="2"
+                            Margin="0,8,0,0"
+                            Background="{DynamicResource SurfaceSecondaryBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                        <Grid>
+                            <TextBlock x:Name="HistoryEmpty"
+                                       Text="Nenhum resultado anterior nesta sessão."
+                                       FontSize="13"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       TextWrapping="Wrap"
+                                       TextAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Margin="12" />
+                            <TextBox x:Name="HistoryText"
+                                     Style="{StaticResource ReadOnlyAreaStyle}"
+                                     IsReadOnly="True"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto"
+                                     Visibility="Collapsed" />
+                        </Grid>
+                    </Border>
 
-                <StackPanel Grid.Row="3"
-                            HorizontalAlignment="Center"
-                            Margin="0,12,0,0">
-                    <Button x:Name="HistoryCopyButton"
-                            Content="Copiar do histórico"
-                            MinWidth="140"
-                            Padding="12,6"
-                            IsEnabled="False"
-                            Click="HistoryCopy_Click" />
-                    <!-- Same fixed-slot pattern as the action buttons: the
-                         feedback never moves the button. -->
-                    <TextBlock x:Name="HistoryCopyFeedback"
-                               Width="110"
-                               TextAlignment="Center"
-                               Foreground="Gray" />
-                </StackPanel>
-            </Grid>
+                    <StackPanel Grid.Row="3"
+                                HorizontalAlignment="Center"
+                                Margin="0,12,0,0">
+                        <Button x:Name="HistoryCopyButton"
+                                Style="{StaticResource AccentButtonStyle}"
+                                Content="Copiar do histórico"
+                                IsEnabled="False"
+                                Click="HistoryCopy_Click" />
+                        <!-- Same fixed-slot pattern as the action buttons:
+                             the feedback never moves the button. -->
+                        <TextBlock x:Name="HistoryCopyFeedback"
+                                   Width="110"
+                                   Style="{StaticResource FeedbackTextStyle}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
         </Grid>
     </Grid>
 </Window>
