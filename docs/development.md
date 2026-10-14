@@ -1333,7 +1333,17 @@ Restrição operacional: o OCR a partir do pacote beta.2 embalado só pode ser v
 ## 50.7 Problemas conhecidos, riscos e limitações
 
 - OCR (PP-OCRv6 Small, medido no M7-C): fonte pequena em fundo escuro degrada severamente; espaços entre palavras/tokens são frequentemente perdidos no texto reconstruído.
-- A arena de memória do ONNX Runtime cresce durante execuções (WorkingSet do processo ~2 GB na avaliação M7-C; não é memória exclusiva do OCR).
+- A arena de memória da CPU do ONNX Runtime (`EnableCpuMemArena=true`, o
+  antigo padrão) retinha o alocamento de pico pelo lifetime da sessão
+  (WorkingSet do processo ~2 GB na avaliação M7-C; não é memória exclusiva do
+  OCR). **Causa confirmada pelo experimento A/B (§58 / `ocr-integration.md`
+  §11.4.1)** e **corrigida pela promoção da variante `noarena` para padrão de
+  produção (§59 / `ocr-integration.md` §11.6, decisão do usuário):** o engine
+  agora inicia as sessões com `EnableCpuMemArena=false` e
+  `EnableMemoryPattern=true` — pico ~0,47 GB e platô ~0,40 GB (Working Set),
+  custo de latência ~+2,5% e qualidade inalterada (texto byte-idêntico no
+  M7-C). As variantes experimentais (`noarena`, `compact`, `nopattern`)
+  continuam disponíveis via `CAPPARSE_ORT_SESSION`.
 - Modelos: ~32 MB no pacote distribuído (pasta `models/v6` + classificador v5 de ~1 MB) — aceitável para app local-first. Os três arquivos v5 não utilizados pelo preset foram removidos do pacote na M15 (decisão e evidência em §50.5); o classificador v5 permanece porque o preset `PPOCRv6Small` o carrega em runtime.
 - O histórico da sessão é somente textual (decisão de produto da M15 para a V0.1) — a melhoria "Histórico de capturas com recuperação de imagem" está no backlog (§38.1) e não foi implementada.
 - Os diagnósticos temporários `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` permanecem no código: o fix do black-flash (overlay layered + revelação em dois frames) foi validado manualmente pelo usuário na M15 (ausência de flash preto e de janelas residuais reportada como OK); a remoção dos diagnósticos ainda exige justificativa documentada e autorização.
@@ -1797,6 +1807,7 @@ Trabalho **local, sem commit** (base: `bdfde50`, 4 commits à frente de
 - Validação humana de capturas reais (a coleção sintética não representa
   ClearType/escala real — limite documentado em `ocr-integration.md` §10.5
   e §11.3).
+- (O experimento A/B de memória da §11.4 foi executado na sessão §58.)
 
 ---
 
@@ -1865,9 +1876,69 @@ de memória; a reconstrução de espaços da P1 foi preservada intacta.
 
 - **Decisão do usuário:** adotar a variante C (recomendada) ou B como padrão
   de produção, ou manter o padrão e encerrar. Nenhuma mudança de produção
-  nesta sessão.
+  nesta sessão. **Desfecho: decisão tomada na sessão §59 — a variante C
+  (`noarena`) foi promovida a padrão de produção.**
 - **Commit** de todo o trabalho local (P1 + experimento de memória) —
   aguarda aprovação explícita do usuário.
 - Validação em capturas reais (o ganho medido foi na coleção sintética; o
   mecanismo é o mesmo, os absolutos mudam).
 
+---
+
+## 59. Promoção da variante `noarena` para o padrão de produção (sessão 2026-10-14)
+
+Trabalho **local, sem commit** (base: `bdfde50` + trabalho local da P1 e do
+experimento A/B — checkpoint intacto; nenhum push/tag/release).
+
+### 59.1 O que foi feito
+
+- **Decisão do usuário:** promover a variante `noarena`
+  (`EnableCpuMemArena=false`, `EnableMemoryPattern=true`) para o padrão de
+  produção, com base no experimento A/B (§58 / `ocr-integration.md` §11.4.1).
+  A variante `compact` **não** foi promovida (sem ganho de memória relevante
+  extra e custo de latência ~16%).
+- **`RapidOcrEngine`:** o construtor aplica agora as opções de memória de
+  forma **explícita para todas as variantes** (`MemoryOptionsFor`/
+  `ApplyVariantOptions`, funções internas puras e testadas): o padrão passa a
+  inicializar as sessões com arena desabilitada e padrão de memória
+  habilitado — a mesma configuração da variante `noarena`. O caminho antigo
+  do padrão (`InitModels(models)` sem opções, arena habilitada pelo default da
+  biblioteca) foi eliminado; não existe mais divergência entre o nome da
+  variante e as opções efetivas. O `SessionOptions` continua de propriedade do
+  chamador e é descartado após a criação das sessões; lazy init, tratamento de
+  erros e ciclo de vida inalterados. A heurística P1 de reconstrução de
+  espaços, os thresholds do OCR e o formato dos resultados não foram tocados.
+- **Harness M7-C:** o relatório agora grava as opções efetivas
+  (`EnableCpuMemArena`/`EnableMemoryPattern`) no cabeçalho — cada relatório
+  se auto-descreve. As execuções do padrão antigo (arena habilitada) foram
+  arquivadas em `reports/memory-ab/prepromotion-{Debug,Release}.md` antes da
+  regeneração; os novos `evaluation-{Debug,Release}.md` refletem o novo
+  padrão.
+- **Testes:** `OrtSessionVariantTests` passou a cobrir também o mapeamento
+  variante → opções (função pura + aplicação sobre `SessionOptions` real, sem
+  modelo): padrão ≡ `noarena`, `compact` ambas off, `nopattern` só pattern
+  off, fallback previsível para ausente/vazio/inválido, sem estado global.
+- **Documentação:** `ocr-integration.md` §11.6 (promoção, tabela de
+  variantes, preservação de relatórios, como reproduzir); §50.7 atualizado.
+
+### 59.2 Evidências
+
+- `dotnet build` + `dotnet test` **Debug** e **Release**: 0 erros,
+  **411/411** em cada configuração (402 após o A/B + 9 novos do mapeamento de
+  opções); apenas o aviso preexistente xUnit2020.
+- Harness M7-C com o novo padrão, processos limpos: **Release** — CER bruto
+  0,058, frouxo 0,052, distância 65, exato 8/15 (frouxo 10/15), pico
+  468,1 MB (WS) / 408,9 MB (privada), mediana 832,5 ms; **Debug** — mesmas
+  métricas de qualidade, pico 467,9 / 409,6 MB, mediana 832,7 ms. Texto
+  reconhecido **byte-idêntico** aos relatórios pré-promoção nos dois casos.
+- Execução `CAPPARSE_ORT_SESSION=noarena` (Release): mesmas opções, qualidade
+  e texto que o padrão — equivalência end-to-end confirmada.
+
+### 59.3 Pendências
+
+- **Commit** de todo o trabalho local (P1 + experimento A/B + promoção) —
+  aguarda aprovação explícita do usuário.
+- Validação manual da aplicação (inicialização sem variável experimental,
+  primeira captura e OCR, capturas sucessivas, encerramento normal e consumo
+  de memória após aquecimento) — não executada nesta sessão (ambiente de
+  teste sem desktop); instruções no relatório da sessão.

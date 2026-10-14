@@ -836,7 +836,8 @@ byte-idêntico entre variantes). Conclusão: a **arena de CPU é a causa dominan
 (indistinguível de B); o padrão de memória (D) é um fator secundário (−42%).
 Recomendação (sujeita à autorização do usuário; **nenhuma mudança de produção
 nesta sessão**): desabilitar `EnableCpuMemArena` (variante C) — maior ganho de
-memória ao menor custo de latência.
+memória ao menor custo de latência. **Desfecho: o usuário autorizou a
+promoção da variante C para o padrão de produção — registrada em §11.6.**
 Detalhes completos, valores individuais e limitações em
 `tests/CapParse.Tests/TestData/Ocr/reports/memory-ab/COMPARISON.md`.
 
@@ -854,3 +855,97 @@ Detalhes completos, valores individuais e limitações em
 Suíte: 387/387 em Debug e Release (361 pré-existentes + 26 novos); harness
 M7-C: 1/1 em ambas as configurações. Nenhum commit nesta sessão.
 
+### 11.6 Promoção da variante `noarena` para o padrão de produção (2026-10-14)
+
+**Decisão do usuário** (com base no experimento A/B do §11.4.1): o padrão de
+produção passa a ser a configuração `noarena` — **somente** a arena de memória
+da CPU do ONNX Runtime é desabilitada; `EnableMemoryPattern` permanece
+**habilitado**. A variante `compact` **não** foi promovida.
+
+Configuração efetiva por variante após a promoção (fixada explicitamente pelo
+`RapidOcrEngine`, sem depender dos defaults da biblioteca):
+
+| `CAPPARSE_ORT_SESSION` | `EnableCpuMemArena` | `EnableMemoryPattern` | Papel |
+| --- | --- | --- | --- |
+| (ausente / vazia / inválida) | `false` | `true` | **Padrão de produção** — idêntico a `noarena` |
+| `noarena` | `false` | `true` | Força explicitamente o padrão de produção |
+| `compact` | `false` | `false` | Diagnóstico — ambas desabilitadas |
+| `nopattern` | `true` | `false` | Diagnóstico — isola o padrão de memória |
+
+**Motivo técnico (medido no A/B — 12 execuções, Release, 3 repetições por
+variante, processos limpos, corpus sintético M7-C):** a arena de CPU é a causa
+dominante da retenção. Desabilitá-la sozinha (`noarena`) reduz o pico de
+~2.136 MB para ~469 MB (Working Set; ~2.645 → ~410 MB em memória privada) e o
+platô de ~2.003 MB para ~396 MB, com custo de latência mediana de ~+2,5%
+(807,9 → 828,2 ms) e **zero** impacto na qualidade (texto byte-idêntico nas
+12 execuções). Desabilitar também `EnableMemoryPattern` (`compact`) não dá
+ganho de memória relevante extra (~2 MB no pico — dentro do ruído) e custa
+~16% de latência — por isso o padrão de memória é **preservado** no novo
+padrão.
+
+> **Working Set × memória privada.** Working Set (`Process.WorkingSet64`) é a
+> memória residente do processo (test host + engine + modelos) e pode incluir
+> páginas que o SO consegue recuperar; a memória privada
+> (`Process.PrivateMemorySize64`) é a memória efetivamente comprometida pelo
+> processo. No A/B as duas caem na mesma proporção (pico 2.645 → ~410 MB), o
+> que confirma que a retenção era memória nativa real comprometida, não
+> artefato de paginação. Ambas as métricas são do processo inteiro, não
+> exclusivas do OCR.
+
+**Implementação.** O construtor do `RapidOcrEngine` aplica agora as opções de
+memória da variante explicitamente para **todas** as variantes (funções
+internas puras `MemoryOptionsFor`/`ApplyVariantOptions`, cobertas por testes):
+o caminho antigo do padrão (`InitModels(models)`, arena habilitada pelo
+default da biblioteca) deixou de existir, de modo que o padrão de produção e a
+variante `noarena` são exatamente a mesma configuração e o nome de uma
+variante nunca diverge em silêncio das opções efetivas. O `SessionOptions`
+continua de propriedade do chamador e é descartado após a criação das sessões;
+inicialização lazy, tratamento de erros e ciclo de vida do engine inalterados.
+O harness M7-C grava as opções efetivas no cabeçalho do relatório
+(`EnableCpuMemArena`/`EnableMemoryPattern`), tornando cada relatório
+auto-descritível.
+
+**Relatórios históricos (preservados, não sobrescritos):**
+
+- `memory-ab/prepromotion-{Debug,Release}.md` — últimas execuções do
+  **padrão antigo** (arena habilitada), arquivadas antes da promoção;
+- `memory-ab/{A,B,C,D}-Release-run{1,2,3}.md` + `COMPARISON.md` — o
+  experimento A/B (a variante A era o padrão de produção da época);
+- `baseline/evaluation-{Debug,Release}.md` — baseline pré-P1;
+- `evaluation-{Debug,Release}.md` regenerados após a promoção refletem o
+  **novo** padrão e declaram as opções efetivas no cabeçalho.
+
+A configuração pré-promoção (arena + padrão habilitados) **não é mais
+selecionável** via `CAPPARSE_ORT_SESSION`: ela só está documentada nos
+relatórios do A/B acima.
+
+**Validação da promoção (2026-10-14).** Harness M7-C com o novo padrão,
+processos limpos em Debug e Release: CER bruto 0,058, frouxo 0,052, distância
+65, exato bruto 8/15, frouxo 10/15 — texto reconhecido byte-idêntico aos
+relatórios pré-promoção (mesmo algoritmo, mesmos modelos). Pico Working Set
+467,9/468,1 MB (privada 409,6/408,9 MB) e latência mediana ~832,5/832,7 ms em
+Release/Debug; uma execução com `CAPPARSE_ORT_SESSION=noarena` (Release)
+produziu as mesmas opções, qualidade e texto que o padrão — equivalência
+confirmada end-to-end.
+
+**Limitações (as mesmas do A/B).** Três repetições por variante não sustenta
+inferência estatística formal; as medições são do processo inteiro (test host
++ engine), não isoladas do ONNX; o corpus M7-C é sintético (imagens pequenas,
+máx. ~1200×360) — em capturas reais (maiores, com mais linhas) os absolutos
+mudam, mas o mecanismo (arena retendo o pico) é o mesmo. Os valores são
+medições desta máquina nesta configuração, **não** garantia de consumo ou
+latência para todas as capturas reais.
+
+**Como executar cada variante** (a partir da raiz do repositório; cada
+`dotnet test` é um processo limpo):
+
+```powershell
+# Padrão de produção (arena desabilitada, padrão de memória habilitado)
+$env:CAPPARSE_OCR_EVAL="1"; dotnet test -c Release --filter "FullyQualifiedName~OcrQualityEvaluationTests"
+# noarena explícito (equivalente ao padrão)
+$env:CAPPARSE_OCR_EVAL="1"; $env:CAPPARSE_ORT_SESSION="noarena"; dotnet test -c Release --filter "FullyQualifiedName~OcrQualityEvaluationTests"
+# compact (ambas off) e nopattern (só pattern off): idem, com "compact" / "nopattern"
+```
+
+Relatórios: `reports/evaluation-<Config>.md` (padrão) e
+`reports/evaluation-<Config>-<variante>.md` (variantes de diagnóstico).

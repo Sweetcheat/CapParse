@@ -20,8 +20,10 @@ namespace CapParse.Tests;
 ///
 /// The report is written to
 /// <c>tests/CapParse.Tests/TestData/Ocr/reports/evaluation-&lt;Config&gt;.md</c>
-/// and to the test output. Numbers are a measurement of this machine in
-/// this configuration, not a universal quality statement.
+/// (diagnostic variants append <c>-&lt;variante&gt;</c>) and to the test
+/// output, and records the effective ONNX Runtime memory options, so
+/// each report is self-describing. Numbers are a measurement of this
+/// machine in this configuration, not a universal quality statement.
 /// </summary>
 public class OcrQualityEvaluationTests
 {
@@ -163,6 +165,16 @@ public class OcrQualityEvaluationTests
         builder.AppendLine("| --- | --- |");
         builder.AppendLine($"| Configuração | {DetectConfiguration()} |");
         builder.AppendLine($"| Variante de sessão ORT | {VariantLabel(variant)} |");
+
+        // The effective memory options are recorded so each report is
+        // self-describing: after the noarena promotion (docs/
+        // ocr-integration.md §11.6) the "default" variant runs with the
+        // arena disabled, and a report generated under the old default
+        // (arena enabled) must never be confused with one generated under
+        // the new one.
+        var (effectiveArena, effectivePattern) = RapidOcrEngine.MemoryOptionsFor(variant);
+        builder.AppendLine($"| EnableCpuMemArena (ORT) | {(effectiveArena ? "true" : "false")} |");
+        builder.AppendLine($"| EnableMemoryPattern (ORT) | {(effectivePattern ? "true" : "false")} |");
         builder.AppendLine($"| SO | {RuntimeInformation.OSDescription} |");
         builder.AppendLine($"| Arquitetura do processo | {RuntimeInformation.ProcessArchitecture} |");
         builder.AppendLine($"| Runtime | {RuntimeInformation.FrameworkDescription} |");
@@ -341,9 +353,12 @@ public class OcrQualityEvaluationTests
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestData", "Ocr", "reports"));
         Directory.CreateDirectory(reportsDirectory);
 
-        // The default variant keeps the standard M7-C report name; each
-        // diagnostic variant writes a distinct file so a run never overwrites
-        // the production-configuration report.
+        // The default variant keeps the standard M7-C report name (it IS
+        // the production configuration since the noarena promotion); each
+        // diagnostic variant writes a distinct file so a run never
+        // overwrites the production-configuration report. Pre-promotion
+        // (arena-enabled) runs are archived in memory-ab/ so regenerating
+        // the standard name never loses the historical record.
         var suffix = variant == RapidOcrEngine.OrtSessionVariant.Default ? string.Empty : $"-{VariantLabel(variant)}";
         File.WriteAllText(Path.Combine(reportsDirectory, $"evaluation-{DetectConfiguration()}{suffix}.md"), report);
     }

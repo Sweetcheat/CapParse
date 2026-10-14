@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using Microsoft.ML.OnnxRuntime;
 using RapidOcrNet;
 using SkiaSharp;
 
@@ -19,18 +20,22 @@ public sealed class RapidOcrEngine : IOcrEngine, IDisposable
     /// <summary>
     /// The ONNX Runtime session-allocation variant the engine was created
     /// with. <see cref="OrtSessionVariant.Default"/> is the production
-    /// behavior: the library's default session options (CPU memory arena and
-    /// memory pattern enabled). The other values are diagnostic opt-ins,
-    /// selected only by the <c>CAPPARSE_ORT_SESSION</c> environment variable
-    /// and never active in a normal run, so production memory behavior is
-    /// unchanged:
+    /// behavior: the CPU memory arena disabled (it retains its peak
+    /// allocation for the whole session lifetime) and the memory pattern
+    /// left enabled — the configuration the A/B experiment in
+    /// docs/ocr-integration.md §11.4.1 measured and the user approved as
+    /// the production default (promotion recorded in §11.6). The other
+    /// values are diagnostic opt-ins, selected only by the
+    /// <c>CAPPARSE_ORT_SESSION</c> environment variable:
     /// <list type="bullet">
+    /// <item><see cref="OrtSessionVariant.NoArena"/> — the production
+    /// configuration spelled out explicitly; its effective options are
+    /// identical to <see cref="OrtSessionVariant.Default"/>.</item>
     /// <item><see cref="OrtSessionVariant.Compact"/> — both the CPU memory
     /// arena and the memory pattern disabled.</item>
-    /// <item><see cref="OrtSessionVariant.NoArena"/> — only the CPU memory
-    /// arena disabled (memory pattern left at its default).</item>
     /// <item><see cref="OrtSessionVariant.NoPattern"/> — only the memory
-    /// pattern disabled (CPU memory arena left at its default).</item>
+    /// pattern disabled (CPU memory arena left at its library default,
+    /// enabled).</item>
     /// </list>
     /// The last two exist to separate the individual contribution of each
     /// option, which the compact variant (both off) cannot do.
@@ -95,10 +100,11 @@ public sealed class RapidOcrEngine : IOcrEngine, IDisposable
     /// <summary>
     /// Maps the raw <c>CAPPARSE_ORT_SESSION</c> value to a session variant.
     /// The exact, case-sensitive strings <c>"compact"</c>, <c>"noarena"</c>
-    /// and <c>"nopattern"</c> select the three diagnostic variants; a
-    /// missing, empty, or unrecognized value selects the default
-    /// (production) variant. The match is deliberately ordinal so a typo
-    /// cannot silently switch a production run to a diagnostic configuration.
+    /// and <c>"nopattern"</c> select the three named variants; a missing,
+    /// empty, or unrecognized value selects the default (production)
+    /// variant, whose effective options are identical to <c>"noarena"</c>.
+    /// The match is deliberately ordinal so a typo cannot silently switch a
+    /// production run to a diagnostic configuration.
     /// </summary>
     internal static OrtSessionVariant ResolveSessionVariant(string? raw) => raw switch
     {
@@ -125,40 +131,26 @@ public sealed class RapidOcrEngine : IOcrEngine, IDisposable
 
         try
         {
-            if (variant == OrtSessionVariant.Default)
+            // Every variant starts from the library's default session
+            // options and then pins both memory options to the variant's
+            // documented values (<see cref="MemoryOptionsFor"/>), so the
+            // production default and the noarena variant are the exact same
+            // configuration and a variant name can never diverge silently
+            // from the options the sessions are created with. The options
+            // are caller-owned: an InferenceSession reads only their handle
+            // at creation time, so they are disposed once the three
+            // sessions exist — the same ownership rule the library's own
+            // numThread overloads follow.
+            var options = RapidOcr.GetDefaultSessionOptions();
+
+            try
             {
-                // Production path, unchanged: the library's default session
-                // options (CPU memory arena and memory pattern enabled).
-                engine.InitModels(models);
+                ApplyVariantOptions(variant, options);
+                engine.InitModels(models, options);
             }
-            else
+            finally
             {
-                // Diagnostic opt-in: start from the library's default options
-                // and disable only the option(s) this variant targets, so the
-                // sole difference from production is the allocation strategy.
-                // The options are caller-owned: an InferenceSession reads only
-                // their handle at creation time, so they are disposed once the
-                // three sessions exist — the same ownership rule the library's
-                // own numThread overloads follow.
-                var options = RapidOcr.GetDefaultSessionOptions();
-                if (variant is OrtSessionVariant.Compact or OrtSessionVariant.NoArena)
-                {
-                    options.EnableCpuMemArena = false;
-                }
-
-                if (variant is OrtSessionVariant.Compact or OrtSessionVariant.NoPattern)
-                {
-                    options.EnableMemoryPattern = false;
-                }
-
-                try
-                {
-                    engine.InitModels(models, options);
-                }
-                finally
-                {
-                    options.Dispose();
-                }
+                options.Dispose();
             }
         }
         catch
@@ -169,6 +161,42 @@ public sealed class RapidOcrEngine : IOcrEngine, IDisposable
 
         _ocr = engine;
         _sessionVariant = variant;
+    }
+
+    /// <summary>
+    /// The ONNX Runtime memory options each session variant runs with,
+    /// pinned explicitly (never left to the library defaults):
+    /// <list type="bullet">
+    /// <item><see cref="OrtSessionVariant.Default"/> and
+    /// <see cref="OrtSessionVariant.NoArena"/> — CPU memory arena disabled,
+    /// memory pattern enabled (the production default since the promotion
+    /// in docs/ocr-integration.md §11.6).</item>
+    /// <item><see cref="OrtSessionVariant.Compact"/> — both disabled.</item>
+    /// <item><see cref="OrtSessionVariant.NoPattern"/> — CPU memory arena
+    /// enabled, memory pattern disabled.</item>
+    /// </list>
+    /// Pure function of the variant: no environment state, no sessions.
+    /// </summary>
+    internal static (bool EnableCpuMemArena, bool EnableMemoryPattern) MemoryOptionsFor(OrtSessionVariant variant) => variant switch
+    {
+        OrtSessionVariant.Default => (false, true),
+        OrtSessionVariant.NoArena => (false, true),
+        OrtSessionVariant.Compact => (false, false),
+        _ => (true, false)
+    };
+
+    /// <summary>
+    /// Pins the variant's memory options (see
+    /// <see cref="MemoryOptionsFor"/>) onto <paramref name="options"/>.
+    /// Both properties are always set explicitly, so the sessions are
+    /// created with exactly the variant's documented configuration
+    /// whatever the library defaults are.
+    /// </summary>
+    internal static void ApplyVariantOptions(OrtSessionVariant variant, SessionOptions options)
+    {
+        var (arena, pattern) = MemoryOptionsFor(variant);
+        options.EnableCpuMemArena = arena;
+        options.EnableMemoryPattern = pattern;
     }
 
     public Task<OcrResult> RecognizeAsync(
