@@ -1717,3 +1717,83 @@ Fora de escopo (preservado): texto/instruções/chips no overlay (o overlay cont
 - Asset `.ico` derivado da identidade visual (fase própria);
 - Validação humana dos dois temas, dos estados interativos (hover/foco), do seletor, da primeira execução e do overlay no executável (usuário);
 - Commit do trabalho local (M16 + V0.2 fases 1–5) com aprovação explícita do usuário.
+
+## 57. P1 — Reconstrução de espaços no OCR + diagnóstico de memória (sessão 2026-10-14)
+
+Trabalho **local, sem commit** (base: `bdfde50`, 4 commits à frente de
+`origin/main` — checkpoint intacto; nenhum push/tag/release).
+
+### 57.1 O que foi feito
+
+- **P1 (espaços no OCR)**: o `RapidOcrEngine` passa a rodar com
+  `ReturnWordBox=true` e reconstrói o texto de cada linha a partir das
+  caixas de palavra com uma regra conservadora por união: o texto do
+  modelo é a base (seus espaços preservados exatamente); um espaço é
+  adicionado num limite entre boxes **apenas** quando o modelo não
+  reportou espaço e o vão horizontal excede `0.5 × altura` (acima do
+  intervalo de tiling medido no engine 4.2.0); fallback ao texto do
+  modelo quando os boxes ausentam/falham ou não alinham com o texto;
+  espaços de borda descartados. `OcrResult.Text` passa a ser o join dos
+  blocos (contrato público inalterado). Detalhe técnico completo em
+  `docs/ocr-integration.md` §11.
+- **Descoberta central**: a heurística de referência MewuAI
+  (`gap > 0.22 × altura`) foi implementada, medida e **rejeitada** —
+  regressão total no M7-C (CER 0,069 → 0,107; exato 6/15 → 0/15), porque
+  o RapidOcrNet 4.2.0 **tileia** as caixas de palavra/caractere (vanos de
+  1–2 px em espaços reais de 8–10 px; indistinguíveis de vanos internos de
+  token). O MewuAI usa o pacote 4.1.0 e consome as caixas para layout de
+  seleção (glifos), não para reconstrução de texto — a regra não se
+  transfere.
+- **Resultado M7-C** (mesma coleção/referências; Debug ≈ Release):
+  CER bruto 0,069 → **0,058**; CER frouxo 0,052 → 0,052; exato bruto
+  6/15 → **8/15** (multi-line agora exatos brutos); exato frouxo
+  10/15 → 10/15; inserções 14 → 1 (espaços de borda); **nenhum caso
+  piorou**. Os baseline reports foram preservados em
+  `tests/CapParse.Tests/TestData/Ocr/reports/baseline/`; os relatórios
+  gerados pós-P1 estão em `reports/evaluation-{Debug,Release}.md`
+  (working tree).
+- **Diagnóstico de memória** (sem alterar a configuração do ONNX):
+  WorkingSet 72 → 140 MB (init) → pico ~2,08 GB (1ª inferência, depois
+  **plano** nas 17 inferências) → ~262 MB após `Dispose`. Hipótese
+  dominante: **arena de CPU do ONNX** (`EnableCpuMemArena=true` via
+  `InitModels(models)` com `SessionOptions` padrão), retida pelo lifetime
+  da sessão — o app mantém o engine vivo por inteiro, explicando os
+  1,2–1,4 GB em uso. Ranking de hipóteses + plano do experimento A/B
+  (`EnableCpuMemArena=false; EnableMemoryPattern=false`, opt-in por
+  env var, 3 repetições, processo limpo, Release) em
+  `docs/ocr-integration.md` §11.4. **A configuração de produção não foi
+  tocada nesta sessão.**
+
+### 57.2 Arquivos
+
+- `src/CapParse/OCR/RapidOcrEngine.cs` — `ReturnWordBox=true`;
+  `ReconstructLineText` + helpers (`GapSpaceBetween`, `WordBoxRectangle`,
+  `StripSpaces`, `IndexOfWordAt`); `MapResult` deriva `Text` dos blocos.
+- `src/CapParse/OCR/OcrResult.cs` — apenas doc de `Text`.
+- `tests/CapParse.Tests/WordTextReconstructionTests.cs` — novo (26 testes).
+- `tests/CapParse.Tests/OcrResultMappingTests.cs` — 1 teste atualizado
+  (contrato `Text` derivado dos blocos).
+- `tests/CapParse.Tests/TestData/Ocr/reports/baseline/` — novos (baseline
+  preservado); `reports/evaluation-{Debug,Release}.md` — regenerados pelo
+  harness pós-P1.
+- `docs/ocr-integration.md` — nova seção 11 (P1 completa);
+  `docs/development.md` — este registro.
+
+### 57.3 Evidências
+
+- `dotnet build` + `dotnet test` **Debug**: 0 erros, **387/387**
+  (361 pré-existentes + 26 novos); **Release**: 0 erros, **387/387**;
+  apenas o aviso preexistente xUnit2020 (`OcrCollectionGeneratorTests`).
+- Harness M7-C (`CAPPARSE_OCR_EVAL=1`): 1/1 em Debug e Release, antes e
+  depois; tabela antes/depois em `docs/ocr-integration.md` §11.3.
+- Probe descartável (`C:\Dev\temp\wordbox-probe`, fora do repo) mediu as
+  caixas reais do engine sobre a coleção — base da descoberta de tiling
+  (§57.1); os probes em `C:\Dev\temp\rapidocr-probe` e
+  `C:\Dev\temp\wordbox-probe` podem ser apagados.
+
+### 57.4 Pendências
+
+- **Commit** do trabalho local (aguarda aprovação explícita do usuário).
+- Validação humana de capturas reais (a coleção sintética não representa
+  ClearType/escala real — limite documentado em `ocr-integration.md` §10.5
+  e §11.3).

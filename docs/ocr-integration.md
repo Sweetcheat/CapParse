@@ -664,3 +664,161 @@ desta etapa de medição.
 
 Nenhuma mudança em `src/CapParse/` (nenhuma integração com UI, overlay ou
 clipboard) e nenhuma nova dependência: o M7-C é exclusivamente medição.
+
+## 11. P1 — Reconstrução de espaços a partir das caixas de palavra (2026-10-14)
+
+Trabalho local (sem commit) sobre o checkpoint `bdfde50`. Objetivo: reduzir
+as exclusões de espaço entre palavras (63 das 78 edições do M7-C) usando as
+caixas de palavra do RapidOcrNet, sem alterar o contrato público
+(`IOcrEngine`/`OcrResult`/`OcrBlock`) e sem novas dependências.
+
+### 11.1 O que a medição mostrou (e por que a heurística óbvia falha)
+
+A referência MewuAI (RapidOcrNet **4.1.0**, MPL-2.0 — usada só como
+referência de desenho, nada copiado) insere espaço quando o vão horizontal
+entre caixas de "palavra" excede `0.22 × altura`. Implementamos essa regra
+literalmente no CapParse (RapidOcrNet **4.2.0**) e o harness M7-C mediu o
+resultado: **regressão total** — CER bruto 0,069 → 0,107, exato bruto
+6/15 → 0/15. Causa raiz, confirmada por um probe que despejou as caixas
+reais do engine sobre a coleção:
+
+- No 4.2.0, `TextBlock.WordResults` com `ReturnWordBox=true` retorna caixas
+  **de palavra** que **tileiam a linha**: o vão entre palavras vizinhas é de
+  1–2 px mesmo onde há um espaço real de ~8–10 px na imagem (ex.: `pt-
+  accent-16-light`: `,`→`a` = 2 px; `e`→`p` = 7 px; alturas ~41 px →
+  limiar 0.22×41 ≈ 9 px, acima de **todos** os vanos medidos).
+- Com `ReturnSingleCharBox=true` adicional, as caixas ficam **por
+  caractere** e a faixa de vanos é 0–2 px (dentro de token), ~5 px (espaço
+  que o modelo descartou, ex.: na fronteira fundida `2026-10-10`/`14:32:05`)
+  e ~9 px (espaços reconhecidos, ao redor do `—`), em 12 pt. Em 16 pt os
+  vanos de espaços reais comprimem a 2 px — **indistinguíveis** dos vanos
+  internos de token.
+- Conclusão: neste engine/modelo, a geometria de caixas **não separa**
+  "espaço" de "sem espaço"; nenhum limiar de vão reproduz os espaços. A
+  informação confiável de espaço é o **próprio texto do modelo**
+  (`TextBlock.Text`), que já contém os espaços que o rec reconheceu.
+
+### 11.2 Regra implementada (conservativa, por união)
+
+Em `RapidOcrEngine` (camada de adaptação; `IOcrEngine`/`OcrResult`/
+`OcrBlock` inalterados):
+
+1. O engine passa a rodar com `RapidOcrOptions.PPOCRv6 with
+   { ReturnWordBox = true }` (única opção habilitada; `TextScore` e
+   `ReturnSingleCharBox` **não** são tocados — mudar `TextScore` alteraria o
+   comportamento de reconhecimento, fora do escopo P1).
+2. Por linha (`ReconstructLineText`, interna e testada com dados sintéticos):
+   - a **base é o texto do modelo**: todo espaço que o rec reportou é
+     preservado exatamente (incluindo espaços duplos de menu e espaços
+     internos de um único box);
+   - num **limite entre dois boxes de palavra** onde o modelo **não**
+     reportou espaço, insere-se um espaço **somente** se o vão horizontal
+     excede `0.5 × max(1, min(alturas))` — limiar escolhido acima do
+     intervalo de tiling medido (≤ 0.47×altura na coleção), de modo que a
+     regra só dispara em buracos geométricos decisivos (espaço que o modelo
+     descartou e o tiling não preencheu);
+   - alinhamento guardado: a concatenação dos textos dos boxes (sem
+     espaços) deve igualar o texto da linha (sem espaços); caso contrário,
+     **fallback** ao texto do modelo intacto. Fallback também quando não
+     há boxes, algum box tem geometria inválida (pontos ausentes/extent
+     nulo) ou texto vazio. Uma linha válida nunca vira texto vazio;
+   - espaços nas **bordas** da linha (início/fim) são descartados (artefato
+     do engine que inflava o CER bruto dos casos multi-linha);
+   - `OcrResult.Text` passa a ser o join (`\n`) dos textos dos blocos —
+     `Text` e `Blocks` ficam consistentes e a correção chega à UI, que
+     consome `result.Text` (exibição, clipboard, histórico).
+3. Latência e memória: o pós-processamento de boxes é desprezível (dezenas
+   de boxes por linha); os perfis de latência e memória do harness são
+   idênticos ao baseline (tabela 11.3).
+
+### 11.3 Resultados M7-C antes/depois (mesma coleção, mesmas referências,
+mesmas regras; execução real de 2026-10-14; valores idênticos em Debug e
+Release)
+
+| Métrica | Antes (baseline) | Depois (regra P1) | Diferença |
+| --- | ---: | ---: | ---: |
+| CER agregado (bruto) | 0,069 | 0,058 | −0,011 |
+| CER agregado (frouxo) | 0,052 | 0,052 | 0 |
+| Distância de edição total | 78 | 65 | −13 |
+| Inserções / exclusões / substituições | 14 / 63 / 1 | 1 / 63 / 1 | −13 inserções (espaços de borda) |
+| Transcrição exata (bruta) | 6/15 | 8/15 | +2 |
+| Transcrição exata (frouxa) | 10/15 | 10/15 | 0 |
+| Latência — média (ms) | 721,7 (D) / 722,2 (R) | 786,6 (D) / 745,5 (R) | na faixa de variação entre execuções |
+| Latência — mediana (ms) | 804,7 (D) / 824,0 (R) | 974,5 (D) / 816,7 (R) | idem |
+| Memória — pico (WorkingSet64, MB) | 2082,2 (D) / 2087,6 (R) | 2078,0 (D) / 2088,1 (R) | ≈ 0 |
+
+Por caso (CER bruto antes → depois): `multiline-12-light` 0,022 → 0,000 e
+`multiline-12-dark` 0,022 → 0,000 (novos exatos brutos — espaços de
+borda removidos); `ui-mockup-light`/`-dark` 0,051 → 0,022 (idem; o resto é
+o espaço duplo do menu, que a regra não duplica — ela emite no máximo um
+espaço por limite); todos os demais 11 casos: **inalterados**. Nenhum caso
+piorou.
+
+**O que a P1 não resolve** (e por quê, com evidência): as 63 exclusões
+restantes são espaços que o **modelo de reconhecimento** não emitiu — a
+geometria do 4.2.0 é tiling (seção 11.1), portanto incapaz de devolvê-los:
+o `14:32:05` fundido em `2026-10-1014:32:05` (o vão na fronteira é de ~5
+px, dentro do ruído de tiling), o espaço duplo do menu (a regra emite no
+máximo um espaço), o `—` em 8 pt. Resolver isso exige alavancas de
+reconhecimento (ex.: `TextScore`, thresholds do preset, pré-processamento),
+que exigem uma comparação controlada própria — fora do escopo P1.
+
+### 11.4 Diagnóstico de memória (P1, sessão 2026-10-14)
+
+O user observou 1,2–1,4 GB em uso e ~2 GB no harness. Medições do harness
+(`Process.WorkingSet64` do processo inteiro — test host + engine; não é
+memória exclusiva do OCR), idênticas antes/depois da P1 e em
+Debug/Release:
+
+| Ponto | MB (faixa observada) |
+| --- | --- |
+| Antes da inicialização | 62,9–72,3 |
+| Após a inicialização (modelos + sessões) | 131–140,6 |
+| Pico durante a coleção (17 inferências) | 1985–2088 |
+| Após o `Dispose` do engine | 254–262,5 |
+
+Fatos: (1) o salto 140 → ~2 GB acontece **nas primeiras inferências** e
+depois **se mantém plano** (mín/máx durante a coleção separam < 90 MB em
+todas as execuções — nenhum crescimento monotônico); (2) o `Dispose` do
+engine devolve a maior parte (→ ~260 MB), o que afasta vazamento nativo
+acumulado; (3) as imagens da coleção são pequenas (máx. 1200×360 ≈ 1,7 MB
+em 32 bpp) — o consumo é desproporcional ao tamanho da entrada.
+
+Hipóteses, em ordem de evidência:
+
+1. **Arena de CPU do ONNX Runtime (`EnableCpuMemArena=true`, padrão)** —
+   hipótese dominante para a retenção. O CapParse chamava `InitModels(models)`, que usa o
+   `SessionOptions` padrão (`RapidOcr.GetDefaultSessionOptions()`, arena e
+   padrão de memória habilitados); a arena cresce no pico de cada inferência e
+   **retém** a alocução pelo lifetime da sessão. O app mantém o engine vivo pelo
+   processo inteiro (`OcrCoordinator`), então a arena fica no tamanho de pico —
+   consistente com os 1,2–1,4 GB observados em uso e com os ~2 GB do harness.
+   Corroborado pelo MewuAI, que desabilita `EnableCpuMemArena` e
+   `EnableMemoryPattern` com comentário explicando exatamente isso.
+2. **`EnableMemoryPattern=true` (padrão)**: reutiliza padrões de alocução e
+   retém workspaces de inferência; o MewuAI desabilita junto. Não isolável
+   da hipótese 1 sem o A/B.
+3. **Buffers temporários de imagem** (`SKBitmap` por inferência,
+   ~1–2 MB, descartados a cada reconhecimento): descartado como causa do
+   pico — a memória é plana após o aquecimento e cai no `Dispose`.
+4. **Heap gerenciado / retenção de resultados**: o `OcrHistory` guarda
+     texto (bytes a KB); o resíduo de ~190 MB após o `Dispose` (262 vs. 72
+     MB) é heap do test host não devolvido ao SO — comportamento normal do
+     .NET, não do OCR.
+5. **Vazamento nativo em `RapidOcr`**: enfraquecido pelo fato de o
+   `Dispose` liberar a maior parte.
+
+### 11.5 Arquivos da P1
+
+| Arquivo | Papel |
+| --- | --- |
+| `src/CapParse/OCR/RapidOcrEngine.cs` | `ReturnWordBox=true`; `ReconstructLineText` (regra por união + fallbacks); `OcrResult.Text` derivado dos blocos |
+| `src/CapParse/OCR/OcrResult.cs` | doc de `Text` (join dos blocos) |
+| `tests/CapParse.Tests/WordTextReconstructionTests.cs` | novo: 26 testes determinísticos da regra e dos fallbacks (dados sintéticos, sem modelo) |
+| `tests/CapParse.Tests/OcrResultMappingTests.cs` | 1 teste atualizado para o novo contrato (`Text` derivado dos blocos) |
+| `tests/CapParse.Tests/TestData/Ocr/reports/baseline/` | relatórios M7-C do baseline preservados (a comparação antes/depois fica versionável) |
+| `tests/CapParse.Tests/TestData/Ocr/reports/evaluation-{Debug,Release}.md` | relatórios gerados **depois** da P1 (working tree) |
+
+Suíte: 387/387 em Debug e Release (361 pré-existentes + 26 novos); harness
+M7-C: 1/1 em ambas as configurações. Nenhum commit nesta sessão.
+

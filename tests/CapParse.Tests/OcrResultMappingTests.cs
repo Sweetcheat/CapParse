@@ -49,8 +49,11 @@ public class OcrResultMappingTests
     }
 
     [Fact]
-    public void MapResult_MultipleBlocks_KeepsPackageTextAndOrder()
+    public void MapResult_MultipleBlocks_TextIsTheBlockTextsJoined()
     {
+        // Without word boxes each line falls back to its own text, so the
+        // full text is the block texts joined with newlines: Text and
+        // Blocks always agree, whatever the package's StrRes carried.
         var package = new PackageOcrResult
         {
             StrRes = "linha um\nlinha dois",
@@ -63,10 +66,10 @@ public class OcrResultMappingTests
 
         var result = RapidOcrEngine.MapResult(package, TimeSpan.Zero);
 
-        Assert.Equal("linha um\nlinha dois", result.Text);
         Assert.Equal(2, result.Blocks.Count);
         Assert.Equal("linhaum", result.Blocks[0].Text);
         Assert.Equal("linhadois", result.Blocks[1].Text);
+        Assert.Equal("linhaum\nlinhadois", result.Text);
     }
 
     [Fact]

@@ -15,8 +15,8 @@ public sealed class OcrResult
     }
 
     /// <summary>
-    /// All recognized text, lines separated by newlines, in the order the
-    /// engine reported them.
+    /// All recognized text: the blocks' texts joined with newlines, in the
+    /// order the engine reported the lines.
     /// </summary>
     public string Text { get; }
 

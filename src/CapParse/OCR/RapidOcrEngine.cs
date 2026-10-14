@@ -16,6 +16,29 @@ namespace CapParse.OCR;
 /// </summary>
 public sealed class RapidOcrEngine : IOcrEngine, IDisposable
 {
+    /// <summary>
+    /// The PP-OCRv6 preset with word boxes enabled. The recognition model
+    /// concatenates per-character results and frequently drops the spaces
+    /// between words; the word boxes let the mapping add back the spaces
+    /// the geometry shows are missing (see <see cref="ReconstructLineText"/>).
+    /// Only this one option differs from the preset: no detection/recognition
+    /// parameter is tuned.
+    /// </summary>
+    private static readonly RapidOcrOptions RecognizeOptions =
+        RapidOcrOptions.PPOCRv6 with { ReturnWordBox = true };
+
+    /// <summary>
+    /// A horizontal gap between two word boxes wider than this fraction of
+    /// the shorter word's height is read as a missing space. Measured on the
+    /// M7-C collection (docs/ocr-integration.md), this engine tiles word and
+    /// character boxes across the line: gaps at real space positions stay
+    /// below ~0.47 of the line height, so a half-height threshold is the
+    /// smallest value that never fires on tiling noise and only fires on
+    /// decisive geometric holes (a space the model dropped that the boxes
+    /// did not tile over).
+    /// </summary>
+    private const double SpaceGapFactor = 0.5;
+
     private readonly RapidOcr _ocr;
     private bool _disposed;
 
@@ -67,7 +90,8 @@ public sealed class RapidOcrEngine : IOcrEngine, IDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         // OcrOptions carries no V0.1 settings; the engine always runs with
-        // the PP-OCRv6 preset, so the parameter is accepted and ignored.
+        // the PP-OCRv6 preset (plus word boxes), so the parameter is
+        // accepted and ignored.
         _ = options;
 
         return RecognizeCoreAsync(image.Bitmap, cancellationToken);
@@ -82,7 +106,7 @@ public sealed class RapidOcrEngine : IOcrEngine, IDisposable
         try
         {
             var packageResult = await _ocr
-                .DetectAsync(skBitmap, RapidOcrOptions.PPOCRv6, cancellationToken)
+                .DetectAsync(skBitmap, RecognizeOptions, cancellationToken)
                 .ConfigureAwait(false);
 
             return MapResult(packageResult, stopwatch.Elapsed);
@@ -96,8 +120,11 @@ public sealed class RapidOcrEngine : IOcrEngine, IDisposable
 
     /// <summary>
     /// Maps a RapidOcrNet result into the public <see cref="OcrResult"/>.
-    /// Exposed to tests so the mapping can be validated with synthetic
-    /// data without loading the models.
+    /// Each block's text is rebuilt from its word boxes when they are
+    /// available and usable (<see cref="ReconstructLineText"/>), and the
+    /// full text is the block texts joined with newlines, so <c>Text</c>
+    /// and <c>Blocks</c> always agree. Exposed to tests so the mapping can
+    /// be validated with synthetic data without loading the models.
     /// </summary>
     internal static OcrResult MapResult(RapidOcrNet.OcrResult packageResult, TimeSpan processingTime)
     {
@@ -113,13 +140,214 @@ public sealed class RapidOcrEngine : IOcrEngine, IDisposable
                 }
 
                 blocks.Add(new OcrBlock(
-                    block.Text ?? string.Empty,
+                    ReconstructLineText(block),
                     AverageScore(block.CharScores),
                     BoundsFromBoxPoints(block.BoxPoints)));
             }
         }
 
-        return new OcrResult(packageResult.StrRes ?? string.Empty, blocks, processingTime);
+        var text = string.Join("\n", blocks.Select(b => b.Text));
+        return new OcrResult(text, blocks, processingTime);
+    }
+
+    /// <summary>
+    /// Rebuilds the text of one detected line. The model's own line text is
+    /// the base: every space the recognition model reported is preserved
+    /// exactly. On top of that, a single space is inserted at a boundary
+    /// between two word boxes when the model reported no space there and
+    /// the horizontal gap is decisive (<see cref="SpaceGapFactor"/> of the
+    /// shorter word's height) — that recovers spaces the model dropped but
+    /// the geometry still shows. Words are ordered left to right (top to
+    /// bottom as a tie-break) regardless of the order the engine reported
+    /// them in. Spaces at the edges of the line are dropped.
+    ///
+    /// Fallbacks (the line's own text is returned unchanged, never empty
+    /// when the model produced text): no word boxes reported; any word
+    /// lacks usable geometry or text; the words' texts, concatenated, do
+    /// not cover the line text exactly (the geometry is not trusted to
+    /// align with the text in that case).
+    /// </summary>
+    internal static string ReconstructLineText(RapidOcrNet.TextBlock block)
+    {
+        var fallback = block.Text ?? string.Empty;
+        if (fallback.Length == 0)
+        {
+            return fallback;
+        }
+
+        var words = block.WordResults;
+        if (words is null || words.Length == 0)
+        {
+            return fallback;
+        }
+
+        var boxes = new Rectangle[words.Length];
+        for (var i = 0; i < words.Length; i++)
+        {
+            var box = WordBoxRectangle(words[i]);
+            if (words[i].Text is null || words[i].Text.Length == 0 || box is null)
+            {
+                return fallback;
+            }
+
+            boxes[i] = box.Value;
+        }
+
+        var ordered = new List<(WordBox Word, Rectangle Box)>(words.Length);
+        for (var i = 0; i < words.Length; i++)
+        {
+            ordered.Add((words[i], boxes[i]));
+        }
+
+        ordered.Sort((a, b) =>
+            a.Box.Left != b.Box.Left
+                ? a.Box.Left.CompareTo(b.Box.Left)
+                : a.Box.Top.CompareTo(b.Box.Top));
+
+        // The words must account for every non-space character of the line
+        // text; otherwise the boxes cannot be aligned to it and any space
+        // decision would be a guess.
+        var covered = new System.Text.StringBuilder();
+        foreach (var (word, _) in ordered)
+        {
+            covered.Append(word.Text);
+        }
+
+        if (covered.ToString() != StripSpaces(fallback))
+        {
+            return fallback;
+        }
+
+        // spanStart[i] is where word i's text starts inside the line text
+        // with its spaces removed.
+        var spanStart = new int[ordered.Count];
+        var offset = 0;
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            spanStart[i] = offset;
+            offset += ordered[i].Word.Text.Length;
+        }
+
+        var text = new System.Text.StringBuilder(fallback.Length);
+        var coveredPosition = -1; // last non-space char consumed, in 'covered'
+        var pendingSpaces = 0;
+
+        foreach (var c in fallback)
+        {
+            if (c == ' ')
+            {
+                pendingSpaces++;
+                continue;
+            }
+
+            if (pendingSpaces > 0 && coveredPosition >= 0)
+            {
+                // Model spaces pass through exactly, at word boundaries and
+                // inside word spans. A run before the first character is an
+                // edge artifact and is dropped (coveredPosition is -1).
+                text.Append(new string(' ', pendingSpaces));
+            }
+            else if (coveredPosition >= 0)
+            {
+                // The model reported no space here: at a boundary between
+                // two word boxes the geometry decides.
+                var nextPosition = coveredPosition + 1;
+                var nextIndex = IndexOfWordAt(ordered, spanStart, nextPosition);
+                if (nextIndex > 0 && nextPosition == spanStart[nextIndex])
+                {
+                    text.Append(GapSpaceBetween(ordered, nextIndex));
+                }
+            }
+
+            text.Append(c);
+            coveredPosition++;
+            pendingSpaces = 0;
+        }
+
+        // Trailing spaces of the line are engine artifacts, not content.
+        return text.Length > 0 ? text.ToString() : fallback;
+    }
+
+    /// <summary>
+    /// A single space when the gap between the two word boxes around
+    /// boundary <paramref name="nextIndex"/> is decisive
+    /// (<see cref="SpaceGapFactor"/> of the shorter word's height); empty
+    /// otherwise. Only horizontal distance and box heights are compared, so
+    /// a vertical offset between the boxes (a slightly slanted line) never
+    /// by itself creates a space, and overlapping boxes (a negative gap)
+    /// never do either.
+    /// </summary>
+    private static string GapSpaceBetween(List<(WordBox Word, Rectangle Box)> ordered, int nextIndex)
+    {
+        var previous = ordered[nextIndex - 1].Box;
+        var current = ordered[nextIndex].Box;
+        var gap = (double)current.Left - (previous.Left + previous.Width);
+        var reference = Math.Max(1, Math.Min(previous.Height, current.Height));
+        return gap > reference * SpaceGapFactor ? " " : string.Empty;
+    }
+
+    private static int IndexOfWordAt(
+        List<(WordBox Word, Rectangle Box)> ordered,
+        int[] spanStart,
+        int position)
+    {
+        for (var i = ordered.Count - 1; i >= 0; i--)
+        {
+            if (position >= spanStart[i])
+            {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
+    private static string StripSpaces(string value)
+    {
+        var builder = new System.Text.StringBuilder(value.Length);
+        foreach (var c in value)
+        {
+            if (c != ' ')
+            {
+                builder.Append(c);
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// Axis-aligned rectangle of a word box's corners, in input image
+    /// pixels. Null when the box has no usable geometry (missing points or
+    /// zero extent), which marks the word as unusable for reconstruction.
+    /// </summary>
+    private static Rectangle? WordBoxRectangle(RapidOcrNet.WordBox word)
+    {
+        var points = word.BoxPoints;
+        if (points is null || points.Length < 4)
+        {
+            return null;
+        }
+
+        var minX = points[0].X;
+        var maxX = points[0].X;
+        var minY = points[0].Y;
+        var maxY = points[0].Y;
+
+        for (var i = 1; i < points.Length; i++)
+        {
+            minX = Math.Min(minX, points[i].X);
+            maxX = Math.Max(maxX, points[i].X);
+            minY = Math.Min(minY, points[i].Y);
+            maxY = Math.Max(maxY, points[i].Y);
+        }
+
+        if (maxX <= minX || maxY <= minY)
+        {
+            return null;
+        }
+
+        return new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1);
     }
 
     /// <summary>
