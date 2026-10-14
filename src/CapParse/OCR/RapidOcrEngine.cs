@@ -17,6 +17,33 @@ namespace CapParse.OCR;
 public sealed class RapidOcrEngine : IOcrEngine, IDisposable
 {
     /// <summary>
+    /// The ONNX Runtime session-allocation variant the engine was created
+    /// with. <see cref="OrtSessionVariant.Default"/> is the production
+    /// behavior: the library's default session options (CPU memory arena and
+    /// memory pattern enabled). The other values are diagnostic opt-ins,
+    /// selected only by the <c>CAPPARSE_ORT_SESSION</c> environment variable
+    /// and never active in a normal run, so production memory behavior is
+    /// unchanged:
+    /// <list type="bullet">
+    /// <item><see cref="OrtSessionVariant.Compact"/> — both the CPU memory
+    /// arena and the memory pattern disabled.</item>
+    /// <item><see cref="OrtSessionVariant.NoArena"/> — only the CPU memory
+    /// arena disabled (memory pattern left at its default).</item>
+    /// <item><see cref="OrtSessionVariant.NoPattern"/> — only the memory
+    /// pattern disabled (CPU memory arena left at its default).</item>
+    /// </list>
+    /// The last two exist to separate the individual contribution of each
+    /// option, which the compact variant (both off) cannot do.
+    /// </summary>
+    internal enum OrtSessionVariant
+    {
+        Default,
+        Compact,
+        NoArena,
+        NoPattern
+    }
+
+    /// <summary>
     /// The PP-OCRv6 preset with word boxes enabled. The recognition model
     /// concatenates per-character results and frequently drops the spaces
     /// between words; the word boxes let the mapping add back the spaces
@@ -40,6 +67,7 @@ public sealed class RapidOcrEngine : IOcrEngine, IDisposable
     private const double SpaceGapFactor = 0.5;
 
     private readonly RapidOcr _ocr;
+    private readonly OrtSessionVariant _sessionVariant;
     private bool _disposed;
 
     /// <summary>
@@ -56,16 +84,82 @@ public sealed class RapidOcrEngine : IOcrEngine, IDisposable
     }
 
     /// <summary>
+    /// The session-allocation variant this engine was initialized with
+    /// (<see cref="OrtSessionVariant.Default"/> in normal runs). Exposed so
+    /// the M7-C harness can record which variant a measurement was taken
+    /// under: it reflects what the engine actually did, not merely what the
+    /// environment variable said.
+    /// </summary>
+    internal OrtSessionVariant SessionVariant => _sessionVariant;
+
+    /// <summary>
+    /// Maps the raw <c>CAPPARSE_ORT_SESSION</c> value to a session variant.
+    /// The exact, case-sensitive strings <c>"compact"</c>, <c>"noarena"</c>
+    /// and <c>"nopattern"</c> select the three diagnostic variants; a
+    /// missing, empty, or unrecognized value selects the default
+    /// (production) variant. The match is deliberately ordinal so a typo
+    /// cannot silently switch a production run to a diagnostic configuration.
+    /// </summary>
+    internal static OrtSessionVariant ResolveSessionVariant(string? raw) => raw switch
+    {
+        "compact" => OrtSessionVariant.Compact,
+        "noarena" => OrtSessionVariant.NoArena,
+        "nopattern" => OrtSessionVariant.NoPattern,
+        _ => OrtSessionVariant.Default
+    };
+
+    /// <summary>
     /// Creates the engine with an explicit model set. Exposed to tests so
     /// initialization failures can be exercised without the real models.
     /// </summary>
     internal RapidOcrEngine(RapidOcrModelSet models)
     {
+        // The variant is resolved before any session is created, so the
+        // selected allocation options are in effect for the whole engine
+        // lifetime. Normal runs leave CAPPARSE_ORT_SESSION unset and take
+        // the default (production) path below.
+        var variant = ResolveSessionVariant(
+            Environment.GetEnvironmentVariable("CAPPARSE_ORT_SESSION"));
+
         var engine = new RapidOcr();
 
         try
         {
-            engine.InitModels(models);
+            if (variant == OrtSessionVariant.Default)
+            {
+                // Production path, unchanged: the library's default session
+                // options (CPU memory arena and memory pattern enabled).
+                engine.InitModels(models);
+            }
+            else
+            {
+                // Diagnostic opt-in: start from the library's default options
+                // and disable only the option(s) this variant targets, so the
+                // sole difference from production is the allocation strategy.
+                // The options are caller-owned: an InferenceSession reads only
+                // their handle at creation time, so they are disposed once the
+                // three sessions exist — the same ownership rule the library's
+                // own numThread overloads follow.
+                var options = RapidOcr.GetDefaultSessionOptions();
+                if (variant is OrtSessionVariant.Compact or OrtSessionVariant.NoArena)
+                {
+                    options.EnableCpuMemArena = false;
+                }
+
+                if (variant is OrtSessionVariant.Compact or OrtSessionVariant.NoPattern)
+                {
+                    options.EnableMemoryPattern = false;
+                }
+
+                try
+                {
+                    engine.InitModels(models, options);
+                }
+                finally
+                {
+                    options.Dispose();
+                }
+            }
         }
         catch
         {
@@ -74,6 +168,7 @@ public sealed class RapidOcrEngine : IOcrEngine, IDisposable
         }
 
         _ocr = engine;
+        _sessionVariant = variant;
     }
 
     public Task<OcrResult> RecognizeAsync(

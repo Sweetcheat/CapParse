@@ -1797,3 +1797,77 @@ Trabalho **local, sem commit** (base: `bdfde50`, 4 commits à frente de
 - Validação humana de capturas reais (a coleção sintética não representa
   ClearType/escala real — limite documentado em `ocr-integration.md` §10.5
   e §11.3).
+
+---
+
+## 58. Experimento A/B de memória do ONNX Runtime (sessão 2026-10-14)
+
+Trabalho **local, sem commit** (base: `bdfde50` + trabalho local da P1 —
+checkpoint intacto; nenhum push/tag/release). Sessão dedicada à investigação
+de memória; a reconstrução de espaços da P1 foi preservada intacta.
+
+### 58.1 O que foi feito
+
+- **Fase A (API real):** confirmou por decompilação (ilspycmd) da DLL de
+  RapidOcrNet 4.2.0 e do ONNX Runtime 1.29.0 que `InitModels(models)` usa
+  `GetDefaultSessionOptions()` (arena e padrão de memória habilitados pelo
+  native); existe a sobrecarga `InitModels(models, SessionOptions)`; o
+  `SessionOptions` é de propriedade do chamador e o `InferenceSession` lê só o
+  handle no create (descarte pós-init seguro — mesmo padrão dos overloads
+  `numThread` da própria lib e do MewuAI). Os campos-cacha do wrapper
+  (`_enableCpuMemArena`/`_enableMemoryPattern`) inicializam em `true` (como o
+  native), então `= false` no initializer efetiva o disable nativo.
+- **Variante opt-in:** `CAPPARSE_ORT_SESSION` no construtor do
+  `RapidOcrEngine` (resolvida **antes** das sessões): `compact` (ambas off),
+  `noarena` (só arena off), `nopattern` (só padrão off); ausente/outra =
+  `default` (produção, inalterada). As variantes partem de
+  `GetDefaultSessionOptions()` e desabilitam só a(s) opção(ões) do alvo.
+- **Instrumentação do harness:** Working Set **e** memória privada em todos os
+  pontos + snapshot após a 1ª inferência; variante efetiva gravada no
+  relatório; variante não-default grava em `evaluation-<Config>-<variante>.md`
+  (não sobrepõe o relatório de produção).
+- **Execução:** 12 processos `dotnet test -c Release` limpos (4 variantes × 3
+  repetições). Resultado: a **arena de CPU é a causa dominante** — só
+  desabilitá-la (C) já leva o pico de ~2,1 GB para ~0,47 GB e o platô de
+  ~2,0 GB para ~0,40 GB (≈ B, ambas off); o padrão de memória (D) é secundário
+  (−42%). Custo de latência: C ~+2,5%, B ~+16%, D ~0. Qualidade byte-idêntica
+  nas 12 execuções. Recomendação (sujeita ao usuário): desabilitar
+  `EnableCpuMemArena` (variante C).
+
+### 58.2 Arquivos
+
+- `src/CapParse/OCR/RapidOcrEngine.cs` — enum `OrtSessionVariant`,
+  `ResolveSessionVariant`, `SessionVariant`, construtor com seleção opt-in e
+  descarte do `SessionOptions`.
+- `tests/CapParse.Tests/OcrQualityEvaluationTests.cs` — métricas de Working
+  Set + privada + pós-1ª-inferência, variante no relatório, filename por
+  variante.
+- `tests/CapParse.Tests/OrtSessionVariantTests.cs` — novo (testes puros da
+  seleção de variante, sem estado global).
+- `tests/CapParse.Tests/TestData/Ocr/reports/memory-ab/` — 12 relatórios por
+  execução + `COMPARISON.md` (relatório do A/B) + `p1-{Debug,Release}.md`
+  (relatórios P1 preservados).
+- `docs/ocr-integration.md` — §11.4 atualizado com a execução e o resultado
+  (hipótese da arena confirmada);
+- `docs/development.md` — este registro.
+
+### 58.3 Evidências
+
+- `dotnet build` + `dotnet test` **Debug** e **Release**: 0 erros,
+  **402/402** (398 após a P1 + 4 novos da seleção de variante); apenas o
+  aviso preexistente xUnit2020.
+- 12 execuções do harness em processo limpo (Relatório:
+  `reports/memory-ab/COMPARISON.md`).
+- Produção inalterada: sem a variável, o caminho é `InitModels(models)`
+  (variante `default`), idêntico ao anterior.
+
+### 58.4 Pendências
+
+- **Decisão do usuário:** adotar a variante C (recomendada) ou B como padrão
+  de produção, ou manter o padrão e encerrar. Nenhuma mudança de produção
+  nesta sessão.
+- **Commit** de todo o trabalho local (P1 + experimento de memória) —
+  aguarda aprovação explícita do usuário.
+- Validação em capturas reais (o ganho medido foi na coleção sintética; o
+  mecanismo é o mesmo, os absolutos mudam).
+

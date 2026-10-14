@@ -32,6 +32,13 @@ public class OcrQualityEvaluationTests
         double WallMilliseconds,
         string? Error);
 
+    /// <summary>
+    /// A process memory sample: the resident Working Set and the private
+    /// (committed) memory. The two are reported separately because a Working
+    /// Set drop is not the same as a drop in committed memory.
+    /// </summary>
+    private readonly record struct MemorySnapshot(long WorkingSet, long PrivateMemory);
+
     private readonly ITestOutputHelper _output;
 
     public OcrQualityEvaluationTests(ITestOutputHelper output)
@@ -51,38 +58,42 @@ public class OcrQualityEvaluationTests
         var manifest = OcrCollectionManifest.Load(TestDataDirectory);
         var process = Process.GetCurrentProcess();
 
-        process.Refresh();
-        long memoryBeforeInit = process.WorkingSet64;
+        var memoryBeforeInit = Snapshot(process);
 
         var initStopwatch = Stopwatch.StartNew();
         using var engine = new RapidOcrEngine();
         initStopwatch.Stop();
         TimeSpan initTime = initStopwatch.Elapsed;
 
-        process.Refresh();
-        long memoryAfterInit = process.WorkingSet64;
+        var memoryAfterInit = Snapshot(process);
+        var variant = engine.SessionVariant;
 
         // Warm-up pass: primes the ONNX sessions. Reported separately and
-        // excluded from the recognition statistics.
+        // excluded from the recognition statistics. The first warm-up
+        // inference is where the ONNX CPU arena grows to its peak and retains
+        // it, so a snapshot is taken right after it to capture that peak.
         var warmup = new List<CaseRun>();
-        foreach (var spec in manifest.Cases)
+        MemorySnapshot? memoryAfterFirstInference = null;
+        for (var i = 0; i < manifest.Cases.Count; i++)
         {
-            warmup.Add(await RecognizeTimedAsync(engine, spec));
+            warmup.Add(await RecognizeTimedAsync(engine, manifest.Cases[i]));
+            if (i == 0)
+            {
+                memoryAfterFirstInference = Snapshot(process);
+            }
         }
 
         var measured = new List<CaseRun>();
-        var memorySamples = new List<long>();
+        var memorySamples = new List<MemorySnapshot>();
         foreach (var spec in manifest.Cases)
         {
-            process.Refresh();
-            memorySamples.Add(process.WorkingSet64);
+            memorySamples.Add(Snapshot(process));
 
             measured.Add(await RecognizeTimedAsync(engine, spec));
         }
 
         engine.Dispose();
-        process.Refresh();
-        long memoryAfterDispose = process.WorkingSet64;
+        var memoryAfterDispose = Snapshot(process);
 
         var report = BuildReport(
             manifest,
@@ -91,10 +102,12 @@ public class OcrQualityEvaluationTests
             memorySamples,
             memoryBeforeInit,
             memoryAfterInit,
+            memoryAfterFirstInference,
             memoryAfterDispose,
-            initTime);
+            initTime,
+            variant);
 
-        WriteReport(report, _output);
+        WriteReport(report, variant, _output);
 
         var failures = measured.Where(r => r.Error is not null).Select(r => $"{r.Spec.Id}: {r.Error}");
         Assert.True(
@@ -131,11 +144,13 @@ public class OcrQualityEvaluationTests
         OcrCollectionManifest manifest,
         List<CaseRun> warmup,
         List<CaseRun> measured,
-        List<long> memorySamples,
-        long memoryBeforeInit,
-        long memoryAfterInit,
-        long memoryAfterDispose,
-        TimeSpan initTime)
+        List<MemorySnapshot> memorySamples,
+        MemorySnapshot memoryBeforeInit,
+        MemorySnapshot memoryAfterInit,
+        MemorySnapshot? memoryAfterFirstInference,
+        MemorySnapshot memoryAfterDispose,
+        TimeSpan initTime,
+        RapidOcrEngine.OrtSessionVariant variant)
     {
         var builder = new StringBuilder();
         builder.AppendLine("# M7-C — Avaliação de qualidade do OCR (relatório gerado)");
@@ -147,6 +162,7 @@ public class OcrQualityEvaluationTests
         builder.AppendLine("| Item | Valor |");
         builder.AppendLine("| --- | --- |");
         builder.AppendLine($"| Configuração | {DetectConfiguration()} |");
+        builder.AppendLine($"| Variante de sessão ORT | {VariantLabel(variant)} |");
         builder.AppendLine($"| SO | {RuntimeInformation.OSDescription} |");
         builder.AppendLine($"| Arquitetura do processo | {RuntimeInformation.ProcessArchitecture} |");
         builder.AppendLine($"| Runtime | {RuntimeInformation.FrameworkDescription} |");
@@ -156,8 +172,8 @@ public class OcrQualityEvaluationTests
         builder.AppendLine("## Inicialização");
         builder.AppendLine();
         builder.AppendLine($"- Tempo de inicialização do engine: {initTime.TotalMilliseconds:0.0} ms");
-        builder.AppendLine($"- Memória do processo antes da inicialização: {Mebibytes(memoryBeforeInit)} MB");
-        builder.AppendLine($"- Memória do processo após a inicialização: {Mebibytes(memoryAfterInit)} MB (Δ {Mebibytes(memoryAfterInit - memoryBeforeInit)} MB)");
+        builder.AppendLine($"- Memória do processo (Working Set) antes da inicialização: {Mebibytes(memoryBeforeInit.WorkingSet)} MB");
+        builder.AppendLine($"- Memória do processo (Working Set) após a inicialização: {Mebibytes(memoryAfterInit.WorkingSet)} MB (Δ {Mebibytes(memoryAfterInit.WorkingSet - memoryBeforeInit.WorkingSet)} MB)");
         builder.AppendLine();
         builder.AppendLine("## Aquecimento (excluído das estatísticas)");
         builder.AppendLine();
@@ -285,15 +301,20 @@ public class OcrQualityEvaluationTests
         builder.AppendLine();
         builder.AppendLine("## Memória");
         builder.AppendLine();
-        builder.AppendLine("`Process.WorkingSet64`: amostra da memória residente do processo inteiro (test host + engine + modelos), não uma medição exclusiva do OCR.");
+        builder.AppendLine("`Process.WorkingSet64` (Working Set): memória residente do processo inteiro (test host + engine + modelos), não uma medição exclusiva do OCR. `Process.PrivateMemorySize64` (Privada): memória comprometida (commit) pelo processo. As duas são reportadas separadamente porque uma queda no Working Set não é equivalente a uma queda na memória comprometida.");
         builder.AppendLine();
-        builder.AppendLine("| Ponto | MB |");
-        builder.AppendLine("| --- | --- |");
-        builder.AppendLine($"| Antes da inicialização | {Mebibytes(memoryBeforeInit)} |");
-        builder.AppendLine($"| Após a inicialização | {Mebibytes(memoryAfterInit)} |");
-        builder.AppendLine($"| Mínimo durante a coleção | {Mebibytes(memorySamples.Min())} |");
-        builder.AppendLine($"| Máximo durante a coleção | {Mebibytes(memorySamples.Max())} |");
-        builder.AppendLine($"| Após o Dispose do engine | {Mebibytes(memoryAfterDispose)} |");
+        builder.AppendLine("| Ponto | Working Set (MB) | Privada (MB) |");
+        builder.AppendLine("| --- | --- | --- |");
+        builder.AppendLine($"| Antes da inicialização | {Mebibytes(memoryBeforeInit.WorkingSet)} | {Mebibytes(memoryBeforeInit.PrivateMemory)} |");
+        builder.AppendLine($"| Após a inicialização | {Mebibytes(memoryAfterInit.WorkingSet)} | {Mebibytes(memoryAfterInit.PrivateMemory)} |");
+        if (memoryAfterFirstInference is not null)
+        {
+            builder.AppendLine($"| Após a 1ª inferência | {Mebibytes(memoryAfterFirstInference.Value.WorkingSet)} | {Mebibytes(memoryAfterFirstInference.Value.PrivateMemory)} |");
+        }
+
+        builder.AppendLine($"| Mínimo durante a coleção | {Mebibytes(memorySamples.Min(s => s.WorkingSet))} | {Mebibytes(memorySamples.Min(s => s.PrivateMemory))} |");
+        builder.AppendLine($"| Máximo durante a coleção | {Mebibytes(memorySamples.Max(s => s.WorkingSet))} | {Mebibytes(memorySamples.Max(s => s.PrivateMemory))} |");
+        builder.AppendLine($"| Após o Dispose do engine | {Mebibytes(memoryAfterDispose.WorkingSet)} | {Mebibytes(memoryAfterDispose.PrivateMemory)} |");
 
         builder.AppendLine();
         builder.AppendLine("## Aquecimento — tempos por caso (para referência)");
@@ -308,7 +329,7 @@ public class OcrQualityEvaluationTests
         return builder.ToString();
     }
 
-    private static void WriteReport(string report, ITestOutputHelper output)
+    private static void WriteReport(string report, RapidOcrEngine.OrtSessionVariant variant, ITestOutputHelper output)
     {
         output.WriteLine(report);
 
@@ -319,7 +340,12 @@ public class OcrQualityEvaluationTests
         var reportsDirectory = Path.GetFullPath(
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestData", "Ocr", "reports"));
         Directory.CreateDirectory(reportsDirectory);
-        File.WriteAllText(Path.Combine(reportsDirectory, $"evaluation-{DetectConfiguration()}.md"), report);
+
+        // The default variant keeps the standard M7-C report name; each
+        // diagnostic variant writes a distinct file so a run never overwrites
+        // the production-configuration report.
+        var suffix = variant == RapidOcrEngine.OrtSessionVariant.Default ? string.Empty : $"-{VariantLabel(variant)}";
+        File.WriteAllText(Path.Combine(reportsDirectory, $"evaluation-{DetectConfiguration()}{suffix}.md"), report);
     }
 
     private static string DetectConfiguration()
@@ -337,6 +363,20 @@ public class OcrQualityEvaluationTests
 
         return "desconhecida (" + baseDirectory + ")";
     }
+
+    private static MemorySnapshot Snapshot(Process process)
+    {
+        process.Refresh();
+        return new MemorySnapshot(process.WorkingSet64, process.PrivateMemorySize64);
+    }
+
+    private static string VariantLabel(RapidOcrEngine.OrtSessionVariant variant) => variant switch
+    {
+        RapidOcrEngine.OrtSessionVariant.Compact => "compact",
+        RapidOcrEngine.OrtSessionVariant.NoArena => "noarena",
+        RapidOcrEngine.OrtSessionVariant.NoPattern => "nopattern",
+        _ => "default"
+    };
 
     private static string Mebibytes(long bytes) => (bytes / (1024.0 * 1024.0)).ToString("0.0");
 

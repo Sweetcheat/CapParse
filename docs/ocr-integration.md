@@ -787,7 +787,8 @@ em 32 bpp) — o consumo é desproporcional ao tamanho da entrada.
 Hipóteses, em ordem de evidência:
 
 1. **Arena de CPU do ONNX Runtime (`EnableCpuMemArena=true`, padrão)** —
-   hipótese dominante para a retenção. O CapParse chamava `InitModels(models)`, que usa o
+   **confirmada pelo experimento A/B (§11.4.1)** como a causa dominante da
+   retenção. O CapParse chamava `InitModels(models)`, que usa o
    `SessionOptions` padrão (`RapidOcr.GetDefaultSessionOptions()`, arena e
    padrão de memória habilitados); a arena cresce no pico de cada inferência e
    **retém** a alocução pelo lifetime da sessão. O app mantém o engine vivo pelo
@@ -807,6 +808,37 @@ Hipóteses, em ordem de evidência:
      .NET, não do OCR.
 5. **Vazamento nativo em `RapidOcr`**: enfraquecido pelo fato de o
    `Dispose` liberar a maior parte.
+
+**Execução do experimento A/B (sessão 2026-10-14) — §11.4.1.** O plano acima
+foi executado. A seleção de variante é opt-in por `CAPPARSE_ORT_SESSION`
+(`compact` = ambas off; `noarena` = só arena off; `nopattern` = só padrão off;
+ausente/outra = `default`, produção), resolvida **antes** da criação das
+sessões no construtor do `RapidOcrEngine`; as variantes experimentais partem de
+`GetDefaultSessionOptions()` e desabilitam apenas a(s) opção(ões) do alvo, de
+modo que a única diferença vs. produção é a estratégia de alocação. O
+`SessionOptions` é de propriedade do chamador e é descartado após a criação das
+sessões. Doze execuções (4 variantes × 3 repetições), cada uma em processo
+`dotnet test -c Release` limpo. Resultado (Working Set, mediana; memória privada
+entre parênteses):
+
+| Ponto | A (default) | B (compact) | C (noarena) | D (nopattern) |
+| --- | --- | --- | --- | --- |
+| Após a 1ª inferência | 942,6 (1264,8) | 230,9 (172,4) | 230,9 (172,3) | 942,5 (1264,7) |
+| Platô — mín. na coleção | 2003,3 (2518,4) | 391,6 (330,6) | 396,2 (335,4) | 1165,1 (1459,5) |
+| Pico — máx. na coleção | 2136,1 (2644,6) | 465,4 (405,8) | 468,5 (409,9) | 1243,5 (1539,4) |
+| Após o `Dispose` | 264,7 (204,7) | 263,5 (202,7) | 265,4 (205,3) | 264,6 (203,5) |
+
+Latência mediana de reconhecimento: A 807,9 ms · B 938,3 (+16%) · C 828,2
+(+2,5%) · D 800,4 (~0). Init idêntico (~180–195 ms). **Qualidade idêntica nas
+12 execuções** (CER bruto 0,058, frouxo 0,052, distância 65, exato 8/15 — texto
+byte-idêntico entre variantes). Conclusão: a **arena de CPU é a causa dominante**
+— desabilitá-la sozinha (C) elimina praticamente todo o pico/platô
+(indistinguível de B); o padrão de memória (D) é um fator secundário (−42%).
+Recomendação (sujeita à autorização do usuário; **nenhuma mudança de produção
+nesta sessão**): desabilitar `EnableCpuMemArena` (variante C) — maior ganho de
+memória ao menor custo de latência.
+Detalhes completos, valores individuais e limitações em
+`tests/CapParse.Tests/TestData/Ocr/reports/memory-ab/COMPARISON.md`.
 
 ### 11.5 Arquivos da P1
 
