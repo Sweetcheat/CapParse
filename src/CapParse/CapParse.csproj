@@ -23,10 +23,13 @@
     <!-- WFAC010 (WinForms analyzer): DPI awareness is declared in app.manifest because this is a WPF process.
          WinForms is used only for the tray icon and never calls Application.SetHighDpiMode. -->
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <!-- Official mascot icon (approved): the exe icon comes from here; the same file
+         is also a WPF Resource, so the main window and the tray load one shared source. -->
+    <ApplicationIcon>Assets\capparse.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\tray.ico" />
+    <Resource Include="Assets\capparse.ico" />
   </ItemGroup>
 
   <ItemGroup>
