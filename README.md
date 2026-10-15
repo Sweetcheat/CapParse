@@ -1,8 +1,17 @@
-# CapParse
+<p align="center">
+  <img src="src/CapParse/Assets/capparse.png" width="96" alt="Mascote oficial do CapParse" />
+</p>
 
-Utilitário desktop para Windows, local-first: capture uma região da tela e transforme o conteúdo visual em texto utilizável. O OCR roda 100% localmente, sem conta e sem nuvem.
+<h1 align="center">CapParse</h1>
 
-> **Estado atual:** o projeto está em desenvolvimento ativo. O pacote publicado é o **beta** `v0.1.0-beta.2` (inclui copiar/salvar imagem, configurações, primeira execução e refinamentos de UX); a beta `v0.1.0-beta.1` anterior não inclui essas funções — veja as [limitações conhecidas](#limitações-conhecidas).
+<p align="center">
+  <img src="https://img.shields.io/badge/version-v0.1.0--beta.3-2e6be6" alt="Versão: v0.1.0-beta.3" />
+  <img src="https://img.shields.io/badge/plataforma-Windows%20x64-555555" alt="Plataforma: Windows x64" />
+</p>
+
+Utilitário desktop para Windows, **local-first**: capture uma região da tela e transforme o conteúdo visual em texto utilizável. O OCR roda 100% localmente, sem conta e sem nuvem.
+
+> **Estado atual:** o projeto está em desenvolvimento ativo. O pacote publicado é o **beta** [`v0.1.0-beta.3`](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.3) — temas claro/escuro, Configurações acessíveis pela janela principal e pela bandeja, reconstrução de espaços no OCR e menor consumo de memória. Os pacotes anteriores (`v0.1.0-beta.1`, `v0.1.0-beta.2`) não incluem essas novidades — veja as [limitações conhecidas](#limitações-conhecidas).
 
 [Português](#português) | [English](#english)
 
@@ -25,14 +34,17 @@ O CapParse segue o conceito **Capture → Understand → Act**:
 - Suporte a múltiplos monitores, posições negativas e DPI diferente por monitor (PerMonitorV2);
 - Cancelamento da seleção com `Esc`;
 - OCR local de português e inglês (texto simples); o processamento não bloqueia a interface;
+- Reconstrução conservadora dos espaços entre palavras no texto reconhecido;
+- Menor consumo de memória no OCR (ajustes da sessão do ONNX Runtime, validados em avaliação A/B);
 - Janela de resultados com texto selecionável e as ações explícitas **Copiar texto**, **Copiar imagem** e **Salvar imagem** (o aplicativo nunca copia para a área de transferência por conta própria);
 - Cópia da imagem capturada para a área de transferência (colada em Paint, editores e outros aplicativos que aceitam imagem);
 - Salvamento da imagem capturada em arquivo (diálogo padrão do Windows, PNG);
 - Histórico da sessão em memória (resultados de capturas anteriores, na janela principal);
-- Tela de configurações (menu da bandeja): alterar o atalho de captura, com persistência entre reinícios;
+- Temas claro e escuro (segue a preferência do Windows ou a escolha em Configurações), aplicados a todas as janelas;
+- Tela de configurações (pela **engrenagem na janela principal** ou pelo **menu da bandeja** — a mesma janela, uma instância por vez): alterar o atalho de captura, com persistência entre reinícios;
 - Ícone na bandeja do sistema: **Capturar**, **Configurações**, **Sair**; duplo clique restaura a janela principal;
 - Atalho global configurável (`Ctrl + Shift + X` por padrão); se o atalho salvo já estiver em uso por outro aplicativo, o CapParse ativa o padrão e avisa;
-- Apresentação curta de primeira execução (exibida uma única vez);
+- Tela de primeira execução curta (exibida uma única vez);
 - Indicador de processamento e diálogo de erro de captura com "tentar novamente";
 - Instância única: um segundo lançamento não abre outra instância;
 - Interface em português brasileiro.
@@ -50,16 +62,22 @@ O CapParse segue o conceito **Capture → Understand → Act**:
 
 > A compatibilidade foi verificada no computador de desenvolvimento. O beta está sendo distribuído justamente para validar outros computadores — se algo não funcionar no seu, isso é um **bug a reportar**, não necessariamente incompatibilidade.
 
-### Como executar o beta
+### Como executar a beta 3
 
-1. Baixe o arquivo `.zip` do [release beta](https://github.com/Sweetcheat/CapParse/releases) e extraia em uma pasta (por exemplo, `CapParse`);
+1. Baixe o arquivo `.zip` da [release `v0.1.0-beta.3`](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.3) ([link direto para o ZIP](https://github.com/Sweetcheat/CapParse/releases/download/v0.1.0-beta.3/CapParse-v0.1.0-beta.3-win-x64.zip)) e extraia em uma pasta (por exemplo, `CapParse`);
 2. Se o Windows avisar (SmartScreen), clique em **Mais informações** → **Executar assim mesmo** — o pacote não é assinado digitalmente;
 3. Execute `CapParse.exe`;
 4. O aplicativo fica minimizado na bandeja do sistema. Pressione `Ctrl + Shift + X` para capturar, arraste para selecionar a região e solte o botão do mouse;
 5. O texto reconhecido aparece na janela principal — use **Copiar texto**, **Copiar imagem** ou **Salvar imagem** (as capturas anteriores ficam no histórico da janela);
 6. Para sair, use **Sair** no menu da bandeja (fechar a janela apenas a esconde).
 
+SHA-256 do pacote: `7123857bf0610e1fdadca8611e0d664d19baf3a36dd207f06d7582f9c7b083de`
+
 A pasta `models/` ao lado do executável contém os modelos de OCR (pasta `v6` + o classificador de orientação `v5`) — **não a remova**; sem ela o reconhecimento não funciona.
+
+### Como alterar o atalho de captura
+
+Abra **Configurações** pela engrenagem no canto superior direito da janela principal (ou pelo menu da bandeja), pressione a nova combinação na área de gravação e confirme. `Esc` cancela a alteração. A combinação precisa de `Ctrl`, `Alt` ou `Win` + uma tecla de letra, número ou F1–F24; se ela já estiver em uso por outro aplicativo, o CapParse volta ao padrão e avisa.
 
 ### Compilando a partir do código-fonte
 
@@ -82,9 +100,16 @@ powershell -ExecutionPolicy Bypass -File build/publish-win-x64.ps1
 
 O script executa restore, build, testes (incluindo os smoke tests de OCR com o modelo real), publish e empacotamento, e registra o tamanho e o SHA-256 do ZIP.
 
+### Documentação
+
+- [Product](docs/product.md) — objetivos, escopo e direção futura;
+- [UI](docs/ui.md) — comportamento visual e experiência do usuário;
+- [Arquitetura](docs/architecture.md) — arquitetura técnica e fronteiras;
+- [Desenvolvimento](docs/development.md) — processo, marcos e continuidade entre sessões.
+
 ### Solução de problemas
 
-- **O atalho não funciona:** outro aplicativo pode estar usando a combinação configurada. O CapParse avisa ao iniciar e ativa o atalho padrão; a captura continua disponível pelo menu da bandeja (**Capturar**). O atalho pode ser alterado em **Configurações**.
+- **O atalho não funciona:** outro aplicativo pode estar usando a combinação configurada. O CapParse avisa ao iniciar e ativa o atalho padrão; a captura continua disponível pelo menu da bandeja (**Capturar**) ou pela engrenagem da janela principal. O atalho pode ser alterado em **Configurações**.
 - **A primeira captura "trava" por alguns segundos:** é o carregamento do modelo de OCR (apenas no primeiro reconhecimento da sessão).
 - **Nada acontece ao capturar:** verifique se o aplicativo está na bandeja (ícone CapParse) e se não há outra instância aberta.
 - **SmartScreen/antivírus:** o pacote beta não é assinado; alguns antivírus podem sinalizar executáveis desconhecidos. O código-fonte está disponível para inspeção.
@@ -94,7 +119,7 @@ O script executa restore, build, testes (incluindo os smoke tests de OCR com o m
 
 - Windows x64 apenas (o pacote beta não inclui outras plataformas);
 - O histórico de resultados existe apenas em memória (é perdido ao sair do aplicativo) e mantém somente o texto reconhecido, não a imagem (melhoria no backlog);
-- O pacote `v0.1.0-beta.1` não inclui as funções adicionadas após a tag (copiar/salvar imagem, configurações, primeira execução) — elas estão na `v0.1.0-beta.2`;
+- Os pacotes `v0.1.0-beta.1` e `v0.1.0-beta.2` não incluem as funções adicionadas depois (temas, engrenagem de Configurações na janela principal, reconstrução de espaços no OCR) — elas estão na `v0.1.0-beta.3`;
 - O caminho de erro de captura (diálogo com "tentar novamente") foi inspecionado por código, mas sem gatilho reproduzível confirmado: não foi exercitado em teste automatizado nem em validação manual (risco residual documentado na M16-4);
 - Durante o período de testes, o comportamento em computadores não validados pode revelar bugs — reporte-os.
 
@@ -133,11 +158,14 @@ CapParse is a local-first Windows desktop utility built around **Capture → Und
 - Multi-monitor support, negative positions and per-monitor DPI (PerMonitorV2);
 - Cancel the selection with `Esc`;
 - Local OCR for Portuguese and English (plain text); processing never blocks the interface;
+- Conservative reconstruction of the spaces between words in the recognized text;
+- Lower OCR memory footprint (ONNX Runtime session tuning, validated with an A/B evaluation);
 - Results window with selectable text and the explicit actions **Copiar texto** (copy text), **Copiar imagem** (copy image) and **Salvar imagem** (save image) — the app never copies to the clipboard on its own;
 - Copying the captured image to the clipboard (pastes into Paint, editors and other apps that accept images);
 - Saving the captured image to a file (standard Windows dialog, PNG);
 - In-memory session history (previous capture results, shown in the main window);
-- A settings screen (tray menu): change the capture hotkey, persisted across restarts;
+- Light and dark themes (follows your Windows preference or your choice in Settings), applied to all windows;
+- A settings screen (from the **gear button on the main window** or from the **tray menu** — the same window, one instance at a time): change the capture hotkey, persisted across restarts;
 - System tray icon: **Capturar**, **Configurações**, **Sair** (menu labels are in Portuguese); double-click restores the main window;
 - Configurable global hotkey (`Ctrl + Shift + X` by default); when the saved shortcut is already in use by another app, CapParse activates the default and tells you;
 - A short first-run presentation (shown once);
@@ -158,16 +186,22 @@ CapParse is a local-first Windows desktop utility built around **Capture → Und
 
 > Compatibility was verified on the development machine. The beta is being distributed precisely to validate other computers — if something does not work on yours, that is a **bug to report**, not necessarily an incompatibility.
 
-### Running the beta
+### Running beta 3
 
-1. Download the `.zip` from the [beta release](https://github.com/Sweetcheat/CapParse/releases) and extract it to a folder (e.g. `CapParse`);
+1. Download the `.zip` from the [`v0.1.0-beta.3` release](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.3) ([direct ZIP link](https://github.com/Sweetcheat/CapParse/releases/download/v0.1.0-beta.3/CapParse-v0.1.0-beta.3-win-x64.zip)) and extract it to a folder (e.g. `CapParse`);
 2. If Windows warns you (SmartScreen), click **More info** → **Run anyway** — the package is not digitally signed;
 3. Run `CapParse.exe`;
 4. The app lives in the system tray. Press `Ctrl + Shift + X` to capture, drag to select the region and release the mouse button;
 5. The recognized text appears in the main window — use **Copiar texto** (copy text), **Copiar imagem** (copy image) or **Salvar imagem** (save image); previous captures are kept in the window's history;
 6. To quit, use **Sair** (Exit) in the tray menu (closing the window only hides it).
 
+Package SHA-256: `7123857bf0610e1fdadca8611e0d664d19baf3a36dd207f06d7582f9c7b083de`
+
 The `models/` folder next to the executable contains the OCR models (the `v6` folder plus the `v5` orientation classifier) — **do not delete it**; without it, recognition will not work.
+
+### Changing the capture hotkey
+
+Open **Configurações** (Settings) from the gear button at the top-right of the main window (or from the tray menu), press your new combination in the recording area and confirm. `Esc` cancels the change. The combination needs `Ctrl`, `Alt` or `Win` plus a letter, digit or F1–F24 key; if it is already in use by another app, CapParse falls back to the default and tells you.
 
 ### Building from source
 
@@ -190,9 +224,16 @@ powershell -ExecutionPolicy Bypass -File build/publish-win-x64.ps1
 
 The script performs restore, build, tests (including the OCR smoke tests with the real model), publish and packaging, and records the ZIP's size and SHA-256.
 
+### Documentation
+
+- [Product](docs/product.md) — goals, scope and future direction;
+- [UI](docs/ui.md) — visual behavior and user experience;
+- [Architecture](docs/architecture.md) — technical architecture and boundaries;
+- [Development](docs/development.md) — process, milestones and cross-session continuity.
+
 ### Troubleshooting
 
-- **The hotkey does nothing:** another application may be using the configured combination. CapParse warns at startup and activates the default shortcut; capture remains available from the tray menu (**Capturar**). The shortcut can be changed in **Configurações** (Settings).
+- **The hotkey does nothing:** another application may be using the configured combination. CapParse warns at startup and activates the default shortcut; capture remains available from the tray menu (**Capturar**) or the main window's gear button. The shortcut can be changed in **Configurações** (Settings).
 - **The first capture "freezes" for a few seconds:** that is the OCR model loading (only on the first recognition of a session).
 - **Nothing happens when capturing:** make sure the app is in the tray (CapParse icon) and that no other instance is running.
 - **SmartScreen/antivirus:** the beta package is unsigned; some antivirus products may flag unknown executables. The source code is available for inspection.
@@ -202,7 +243,7 @@ The script performs restore, build, tests (including the OCR smoke tests with th
 
 - Windows x64 only (the beta package does not include other platforms);
 - The results history is in-memory only (lost when the app exits) and keeps only the recognized text, not the image (a backlog improvement);
-- The `v0.1.0-beta.1` package does not include the features added after the tag (image copy/save, settings, first-run presentation) — they are in `v0.1.0-beta.2`;
+- The `v0.1.0-beta.1` and `v0.1.0-beta.2` packages do not include the features added later (themes, the settings gear button on the main window, OCR space reconstruction) — they are in `v0.1.0-beta.3`;
 - The capture-error path (the dialog offering a retry) was inspected in code, but there is no confirmed reproducible trigger: it has not been exercised by an automated test or manual validation (residual risk documented in M16-4);
 - During the testing period, behavior on unvalidated computers may reveal bugs — please report them.
 
