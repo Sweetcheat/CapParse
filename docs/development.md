@@ -1222,7 +1222,7 @@ Se uma mudança torna o projeto significativamente mais complexo sem entregar va
 
 # 50. Estado atual do projeto (continuidade entre sessões)
 
-Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidação documental pós-M11 (2026-10), substitui a versão da auditoria de 2026-10-12 (que descrevia o estado de um clone obsoleto); atualizada na sessão M14 (registro do M13 publicado e do trabalho M14 local) e na sessão M15 (preparação da candidata v0.1.0-beta.2: documentação, metadados de versão, procedimento de publicação reproduzível e pacote de validação), na sessão M16 (M16-1 consistência documental pós-publicação da beta.2; M16-2 validação automatizada do OCR em inglês; M16-3 validação manual do erro de OCR pelo usuário; M16-4 registro do erro de captura como risco residual), nas sessões da V0.2 (fase 1: fundação de tema, §51; fase 2: MainWindow, §52; fase 3: SettingsWindow + seletor de tema, §53; fase 4: FirstRunWindow, §55; fase 5: modernização visual do overlay de captura, §56) e na sessão M16-6 (consolidação documental pós-publicação do trabalho M16, das fases 1–5 da V0.2 e do ciclo OCR/memória: publicação em `main`/`origin/main` até `051493d`, working tree limpo), e na sessão de refinamentos da Settings/`MainWindow` (botão de engrenagem na linha de título, altura da `SettingsWindow` por medição, teste de tokens da `MainWindow` — §60; local, sem commit). O que está marcado como "executado" tem evidência de comando na sessão indicada; o restante vem do histórico Git e da documentação verificada contra o código.
+Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidação documental pós-M11 (2026-10), substitui a versão da auditoria de 2026-10-12 (que descrevia o estado de um clone obsoleto); atualizada na sessão M14 (registro do M13 publicado e do trabalho M14 local) e na sessão M15 (preparação da candidata v0.1.0-beta.2: documentação, metadados de versão, procedimento de publicação reproduzível e pacote de validação), na sessão M16 (M16-1 consistência documental pós-publicação da beta.2; M16-2 validação automatizada do OCR em inglês; M16-3 validação manual do erro de OCR pelo usuário; M16-4 registro do erro de captura como risco residual), nas sessões da V0.2 (fase 1: fundação de tema, §51; fase 2: MainWindow, §52; fase 3: SettingsWindow + seletor de tema, §53; fase 4: FirstRunWindow, §55; fase 5: modernização visual do overlay de captura, §56) e na sessão M16-6 (consolidação documental pós-publicação do trabalho M16, das fases 1–5 da V0.2 e do ciclo OCR/memória: publicação em `main`/`origin/main` até `051493d`, working tree limpo), e na sessão de refinamentos da Settings/`MainWindow` (botão de engrenagem na linha de título, altura da `SettingsWindow` por medição, teste de tokens da `MainWindow` — §60; publicado em `9256ec7` após validação manual do usuário) e na sessão de preparação da v0.1.0-beta.3 (bump de versão, pacote de distribuição e tag — §61). O que está marcado como "executado" tem evidência de comando na sessão indicada; o restante vem do histórico Git e da documentação verificada contra o código.
 
 ## 50.1 Repositório de referência
 
@@ -1231,10 +1231,11 @@ Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidaç
 
 ## 50.2 Estado do repositório (consolidação M16-6)
 
-- Branch: `main`; HEAD = `origin/main` = `9d56b8e` (docs: reconcile M16 continuity with published repository state) — sincronizada com o GitHub.
-- Working tree: trabalho **local desta sessão, sem commit** (botão de Settings na `MainWindow` + altura da `SettingsWindow` + teste de tokens da `MainWindow` + documentação — §60); todo o trabalho anterior está **publicado** em `main`/`origin/main` (2026-10-14): `04c293f` (M16-1 consistência documental + M16-2 smoke tests de OCR em inglês), `1df2a45` (ícone mascote: executável, janela principal e bandeja), `5a8446e` (V0.2 fases 1–4: sistema de tema, `MainWindow`, `SettingsWindow` + seletor de tema, `FirstRunWindow`), `bdfde50` (V0.2 fase 5: destaque da seleção do overlay), `9faccef` (P1: reconstrução de espaços no OCR), `e307ac8` (experimento A/B de memória do ONNX Runtime), `051493d` (promoção da variante `noarena` ao padrão de produção) e `9d56b8e` (consolidação documental da M16).
+- Branch: `main`; HEAD = `origin/main` = `9256ec7` (feat: add settings button to the main window) — sincronizada com o GitHub; o commit de preparação da v0.1.0-beta.3 (bump de versão + documentação, §61) é seu descendente direto.
+- Working tree: limpo (após o commit de preparação da beta.3); todo o trabalho está **publicado** em `main`/`origin/main`: `04c293f` (M16-1 consistência documental + M16-2 smoke tests de OCR em inglês), `1df2a45` (ícone mascote: executável, janela principal e bandeja), `5a8446e` (V0.2 fases 1–4: sistema de tema, `MainWindow`, `SettingsWindow` + seletor de tema, `FirstRunWindow`), `bdfde50` (V0.2 fase 5: destaque da seleção do overlay), `9faccef` (P1: reconstrução de espaços no OCR), `e307ac8` (experimento A/B de memória do ONNX Runtime), `051493d` (promoção da variante `noarena` ao padrão de produção), `9d56b8e` (consolidação documental da M16) e `9256ec7` (V0.2 §60: botão de Settings na `MainWindow`, altura da `SettingsWindow` por medição, teste de tokens + documentação).
 - Tag `v0.1.0-beta.1` → `86e3d17`: a release beta publicada **não inclui** o M11, o M12, o M13 nem o M14. A tag não foi movida nem alterada.
 - Tag `v0.1.0-beta.2` → `178c940`: release publicada no GitHub em 2026-10-13 ("Latest", 3 assets), com o pacote `build/dist/CapParse-v0.1.0-beta.2-win-x64.zip` (dados em §50.5). `build/dist/CapParse-v0.1.0-beta.1-win-x64.zip` é **desatualizado** (anterior a M11–M14) e não deve ser reutilizado como artefato final.
+- Tag `v0.1.0-beta.3` → commit de preparação desta sessão (§61, descendente de `9256ec7`): pacote `build/dist/CapParse-v0.1.0-beta.3-win-x64.zip`; a GitHub Release e o upload do asset são feitos manualmente pelo usuário.
 - `.gitignore` ignora `build/dist/` (pacotes de publicação).
 
 ## 50.3 Milestones — status
@@ -1260,7 +1261,7 @@ Statuses: **CV** = concluído e verificado (commitado + testes + evidência de v
 | M14 — UX Polish | CV (commitado e **publicado** em `main`: `a7d2c22` + `c4e76fd`; 331/331 testes em Debug e Release; validação manual concluída pelo usuário — interface, apresentação de primeira execução, feedbacks de cópia e fluxos funcionais) | `a7d2c22`, `c4e76fd` | construção assíncrona do overlay (`CreateAsync`, sem `Dispatcher.PushFrame`), `FirstRunWindow` (flag `FirstRunPresented` em `settings.json`), `ProgressBar` de processamento, diálogo de erro de captura `OKCancel` com retry, guards de shutdown em `RecognizeCropAsync`, ajustes de layout (feedbacks em slots fixos sob os botões; `FirstRunWindow` 520×300); atalhos pós-seleção (`ui.md` §22) fora do escopo (combinações não definitivas); **fora da release `v0.1.0-beta.1`** |
 | M15 — V0.1 Validation | CV (commitado em `178c940`, push para `origin/main`, tag `v0.1.0-beta.2` e release GitHub publicadas em 2026-10-13): documentação consistente, backlog (histórico com imagem), procedimento de publicação reproduzível (`build/publish-win-x64.ps1`), metadados de versão `0.1.0-beta.2`, pacote `CapParse-v0.1.0-beta.2-win-x64.zip` publicado na release; validação manual do produto informada pelo usuário (§28) | `178c940` | o OCR em inglês foi validado na M16-2 (testes automatizados com o modelo real) e o caminho de erro de OCR foi validado pelo usuário na M16-3; resta (M16): o caminho de erro de captura (§28, item `[ ]` — risco residual, M16-4) |
 | M16 — Beta Feedback & Stabilization | Concluída nos itens M16-1 a M16-4 e M16-6: M16-1 (consistência documental pós-beta.2) e M16-2 (validação automatizada do OCR em inglês — 2 smoke tests com o modelo real) publicadas em `04c293f`; M16-3 (validação manual do erro de OCR) concluída pelo usuário — ressalva mantida: o retry de inicialização do OCR na mesma sessão continua coberto apenas pelo teste automatizado `OcrCoordinatorTests.InitializationFailure_LeavesTheCoordinatorUsable`; M16-4 (registro do erro de captura como risco residual) encerrada como registro documental, sem gatilho reproduzível confirmado; M16-6 (consolidação desta seção) concluída neste commit; **pendente**: M16-5 (remoção dos diagnósticos `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` — preservados no código) aguarda decisão explícita do usuário | `04c293f` + commit M16-6 | feedback cotidiano do usuário como fonte principal; bugs triados por impacto × reproduzibilidade |
-| V0.2 — Modernização visual (temas + janelas) | Fases 1–5 implementadas e **publicadas** (fases 1–4: `5a8446e`, §51–§53/§55; fase 5: `bdfde50`, §56; ícone mascote: `1df2a45`); 363/363 testes em Debug e Release na época; refinamentos de Settings/`MainWindow` da sessão §60 **locais, sem commit** (botão de engrenagem na linha de título da `MainWindow`, altura da `SettingsWindow` 620→612 por medição, teste de tokens da `MainWindow` — suíte agora 412); **pendente**: validação humana completa no executável (temas, estados interativos, seletor, primeira execução, overlay, botão de Settings), de confirmação do usuário | `1df2a45`, `5a8446e`, `bdfde50` (+ §60 local) | fase 1: fundação de tema (tokens, `ThemeService`, persistência); fase 2: `MainWindow`; fase 3: `SettingsWindow` + seletor de tema; fase 4: `FirstRunWindow`; fase 5: overlay de captura (destaque por corte do escurecimento + borda de acento + escurecimento por tema); asset `.ico` da mascote integrado (`src/CapParse/Assets/capparse.ico` como ícone do executável, da janela principal e da bandeja) |
+| V0.2 — Modernização visual (temas + janelas) | Fases 1–5 implementadas e **publicadas** (fases 1–4: `5a8446e`, §51–§53/§55; fase 5: `bdfde50`, §56; ícone mascote: `1df2a45`); 363/363 testes em Debug e Release na época; refinamentos de Settings/`MainWindow` da sessão §60 **publicados** em `9256ec7` (botão de engrenagem na linha de título da `MainWindow`, altura da `SettingsWindow` 620→612 por medição, teste de tokens da `MainWindow` — suíte agora 412) após validação manual completa do usuário no executável (duas rotas de Settings, instância única, temas, teclado, estados, DPI 100/125/150) | `1df2a45`, `5a8446e`, `bdfde50`, `9256ec7` | fase 1: fundação de tema (tokens, `ThemeService`, persistência); fase 2: `MainWindow`; fase 3: `SettingsWindow` + seletor de tema; fase 4: `FirstRunWindow`; fase 5: overlay de captura (destaque por corte do escurecimento + borda de acento + escurecimento por tema); asset `.ico` da mascote integrado (`src/CapParse/Assets/capparse.ico` como ícone do executável, da janela principal e da bandeja); §60: botão de Configurações na linha de título da `MainWindow` (mesma entrada do tray) |
 | Futuro — HDR Capture & Tone Mapping | FI | — | `product.md` §9; `architecture.md` §45.1 |
 | Futuro — Spreadsheet Conversion | FI | — | `product.md` §9; `architecture.md` §45.2 |
 
@@ -1290,7 +1291,7 @@ Decisões de produto tomadas na linha principal (registradas aqui para evitar "c
 
 ## 50.5 Evidências de build e testes
 
-- Refinamentos de Settings/`MainWindow` (sessão atual, §60): `dotnet build` + `dotnet test` em **Debug** — 0 erros, **412/412 aprovados** (411 anteriores + 1 novo: `MainWindow_OnlyUsesTokensThatExistInBothThemes`); em **Release** — 0 erros, **412/412 aprovados**; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo. `git diff --check` limpo; diff limitado a `src/CapParse/MainWindow.xaml`, `src/CapParse/MainWindow.xaml.cs`, `src/CapParse/App.xaml.cs`, `src/CapParse/SettingsWindow.xaml`, `tests/CapParse.Tests/ThemeServiceTests.cs` e a documentação (`ui.md`, `architecture.md`, `development.md`) — OCR, captura, overlay, tray e hotkeys inalterados. Altura da `SettingsWindow` definida por **medição** com o harness offscreen (`%TEMP%\CapParseThemeHarness`, modo `measure`, estendido nesta sessão): chrome da janela 39 dip, largura do cliente 444 dip e alturas de conteúdo **568.67** (Current com nota de 2 linhas — o estado mais alto) / **550.68** (Recording com erro de 2 linhas) / **552.71** (Confirm) dip, idênticas nos dois temas → `Height` 620→**612** (chrome 39 + teto 569 + 4 dip de folga para variação de métricas de fonte entre máquinas). Renders offscreen dos 6 combinações estado×tema em 612 (sem corte de conteúdo; rodapé a ~24 dip do painel Tema) e da `MainWindow` nos dois temas (glifo da engrenagem U+E713 presente, via `Segoe Fluent Icons` com fallback `Segoe MDL2 Assets`) inspecionados com Vision (10/12 imagens da sessão). `settings.json` do usuário intocado (SHA-256 idêntico antes/depois: `557D8EB7…8BAE31DC`). **Limitações (não validadas):** estados interativos reais (hover/pressed/anel de foco do novo botão) e o fluxo no executável (clique na engrenagem, acionamento pelo teclado, tray, DPI 100/125/150) — pendentes com o usuário (§60.5).
+- Refinamentos de Settings/`MainWindow` (sessão atual, §60): `dotnet build` + `dotnet test` em **Debug** — 0 erros, **412/412 aprovados** (411 anteriores + 1 novo: `MainWindow_OnlyUsesTokensThatExistInBothThemes`); em **Release** — 0 erros, **412/412 aprovados**; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo. `git diff --check` limpo; diff limitado a `src/CapParse/MainWindow.xaml`, `src/CapParse/MainWindow.xaml.cs`, `src/CapParse/App.xaml.cs`, `src/CapParse/SettingsWindow.xaml`, `tests/CapParse.Tests/ThemeServiceTests.cs` e a documentação (`ui.md`, `architecture.md`, `development.md`) — OCR, captura, overlay, tray e hotkeys inalterados. Altura da `SettingsWindow` definida por **medição** com o harness offscreen (`%TEMP%\CapParseThemeHarness`, modo `measure`, estendido nesta sessão): chrome da janela 39 dip, largura do cliente 444 dip e alturas de conteúdo **568.67** (Current com nota de 2 linhas — o estado mais alto) / **550.68** (Recording com erro de 2 linhas) / **552.71** (Confirm) dip, idênticas nos dois temas → `Height` 620→**612** (chrome 39 + teto 569 + 4 dip de folga para variação de métricas de fonte entre máquinas). Renders offscreen dos 6 combinações estado×tema em 612 (sem corte de conteúdo; rodapé a ~24 dip do painel Tema) e da `MainWindow` nos dois temas (glifo da engrenagem U+E713 presente, via `Segoe Fluent Icons` com fallback `Segoe MDL2 Assets`) inspecionados com Vision (10/12 imagens da sessão). `settings.json` do usuário intocado (SHA-256 idêntico antes/depois: `557D8EB7…8BAE31DC`). **Validação manual concluída pelo usuário** no executável (duas rotas de Settings, mesma instância ativada, temas claro/escuro, tooltip/hover/foco com Tab/Enter/Espaço, estados Current/Recording/Confirm com erro, rodapé sem corte, DPI 100/125/150). Publicado em `9256ec7` (push para `origin/main`).
 - V0.2 fase 5 (sessão atual, modernização visual do overlay de captura): `dotnet build` + `dotnet test` em **Debug** — 0 erros, **363/363 aprovados** (359 anteriores + 4 novos: `MonitorOverlayWindowTests` — geometria do escurecimento: superfície integral, furo sobre a seleção, seleção de área zero ignorada, furo registrado como dado); em **Release** — 0 erros, **363/363 aprovados**; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo. `git diff --check` limpo; diff revisado: apenas `UI/MonitorOverlayWindow.cs`, `UI/FrozenOverlaySession.cs` (constante `DimOpacity` + construtor), `Themes/Theme.{Light,Dark}.xaml` (token `OverlayDimBrush`) e `tests/CapParse.Tests/MonitorOverlayWindowTests.cs` (novo) — a lógica de revelação em dois frames, congelamento, coordenadas, seleção, DPI e multi-monitor é **inalterada** (verificado no diff). **Vision validado na sessão** (imagem de teste inspecionada com sucesso; 11/12 imagens usadas). Validação visual do overlay real (executável, tema dark via `System`/`AppsUseLightTheme=0`): o overlay em repouso mostra o desktop congelado com o novo escurecimento dark (40%) — conteúdo mais reconhecível que o anterior (50%); durante a seleção, a área é destacada a brilho pleno (corte no escurecimento) com borda de acento de 2px — em ambos os estados, sem flash preto, sem janelas residuais, app vivo em todos os checkpoints e encerrado limpo. O tema light foi validado por render offscreen (harness) nos dois estados (repouso/seleção), pois a preferência do usuário é `System`→dark e o `settings.json` não pode ser alterado. **Limitações:** o driver sintético de mouse (`SendInput`) não produziu a seleção exata coordenada que foi enviada (o retângulo visível aparece deslocado/estreito; a seleção final do run resultou em cancelamento — janela principal em estado ocioso) — artefato do driver em monitor 133%, não do aplicativo (a seleção real foi validada pelo usuário na M15); a inspeção do flash preto em tempo de execução continua coberta pela lógica de revelação em dois frames inalterada + a ausência de flash nos frames capturados, não por gravação de vídeo; a validação humana (incluindo a preferência light no executável) permanece pendente com o usuário. `settings.json` do usuário intocado (SHA-256 idêntico antes/depois). PNGs de referência: `%TEMP%\overlay-{before,after}-{rest,drag,result}.png` (executável) e `%TEMP%\overlay-{before,after}-{light,dark}-{idle,select}.png` (harness offscreen).
 - V0.2 fase 4 (sessão atual, modernização visual da `FirstRunWindow`): `dotnet build` + `dotnet test` em **Debug** — 0 erros, **359/359 aprovados** (358 anteriores + 1 novo: `FirstRunWindow_OnlyUsesTokensThatExistInBothThemes`); em **Release** — 0 erros, **359/359 aprovados**; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo. Validação visual offscreen (harness descartável em `%TEMP%\CapParseThemeHarness`, estendido nesta fase com o modo `firstrun`/`firstrun-swap`): renders 520×300 da `FirstRunWindow` nos dois temas com a paleta exata dos tokens (light: `FFFFFF`/`F3F4F6`/`2E6BE6`/`464E58`/`1A1E24`/`D6DAE0`; dark: `22262E`/`1A1D23`/`5B93FF`/`B9C0CA`/`F1F3F6`/`39404C`) e sem nenhum controle sem tema; troca ao vivo (uma instância: render light → dicionário trocado para dark → render) produz contagens de pixels idênticas entre os dois temas (mesmo layout, paleta trocada) — re-tematização sem reinício; geometria do botão "Começar" medida no accent: `x=37, y=232, 130×31` nos dois temas (invariante); `settings.json` do usuário não tocado (SHA-256 idêntico antes/depois dos runs do harness). **Limitação:** a inspeção visual humana/modelada **não pôde ser realizada nesta sessão** — o modelo da sessão não aceita imagens (a política de Vision, `AGENTS.md` §39/§54, exige declarar isso explicitamente); os histogramas/medições de pixels acima são evidência objetiva complementar, não substituto da avaliação visual; estados interativos (hover, pressed, anel de foco) existem nos templates, mas não foram exercitados por interação real; o fluxo real de primeira execução no executável (com a flag re-armada) não foi exercitado nesta sessão — permanece a validação manual do usuário.
 - M16-3 (validação manual informada pelo usuário, pacote beta.2 extraído): o usuário renomeou a pasta `models/`, abriu o aplicativo e iniciou uma captura — o aplicativo exibiu uma mensagem informando que não era possível capturar, sem travar nem encerrar; depois de fechar o aplicativo, restaurar o nome da pasta e reabri-lo, a captura voltou a funcionar normalmente. O texto exato da mensagem **não foi registrado** e o agente **não executou** esta validação. Observação: a recuperação ocorreu com reinício do aplicativo — o retry dentro da mesma sessão (próxima captura após a falha de inicialização do engine, sem reiniciar) não foi exercitado manualmente e permanece coberto apenas pelo teste automatizado `OcrCoordinatorTests.InitializationFailure_LeavesTheCoordinatorUsable`.
@@ -1329,11 +1330,10 @@ Ciclo de OCR/memória (P1 + experimento A/B + promoção `noarena`) — **public
 
 Próximos passos — dependem de decisões e validações do usuário (nenhum deles deve ser presumido como já realizado):
 
-1. Validar manualmente os refinamentos da sessão §60 no executável: abrir Settings pela engrenagem da `MainWindow` e pelo tray; acionar a engrenagem com a janela já aberta (a mesma janela é ativada); temas claro/escuro; foco por teclado (Tab/Enter), tooltip e estados interativos; `SettingsWindow` nos estados Current/Recording/Confirm com erro; escalas de DPI 100/125/150, quando disponíveis.
-2. Validar manualmente a V0.2 no executável, caso ainda não tenha sido feito.
-3. Decidir se os diagnósticos `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` devem ser removidos (M16-5) ou mantidos.
-4. Commit do trabalho local da sessão §60 — somente após a validação manual acima e autorização explícita do usuário.
-5. Considerar uma nova beta (ex.: `v0.1.0-beta.3` com a V0.2 + melhorias de OCR) somente depois das verificações anteriores e de autorização explícita.
+1. Validar manualmente a V0.2 no executável, caso ainda não tenha sido feito (o refinamento §60 — temas, botão de Settings, `SettingsWindow`, teclado e DPI — já foi validado pelo usuário antes de `9256ec7`; restam, se não exercitados, a apresentação de primeira execução e o overlay em uso real).
+2. Decidir se os diagnósticos `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` devem ser removidos (M16-5) ou mantidos.
+3. Publicar a GitHub Release da `v0.1.0-beta.3` (tag já enviada ao repositório, §61): o usuário faz manualmente a criação da Release e o upload de `build/dist/CapParse-v0.1.0-beta.3-win-x64.zip`.
+4. Considerar uma nova beta seguinte somente depois das verificações anteriores e de autorização explícita.
 
 O feedback cotidiano do usuário é a fonte principal da M16; bugs encontrados são triados por impacto × reproduzibilidade, com correção mínima + teste de regressão quando reproduzível.
 
@@ -1369,7 +1369,7 @@ Restrição operacional: o OCR a partir do pacote beta.2 embalado só pode ser v
 ## 50.9 Como iniciar uma nova sessão
 
 1. Ler `AGENTS.md` e esta seção.
-2. Trabalhar somente em `C:\Dev\CapParseIntegI`; conferir `git status` / `git log` (HEAD deve ser `9d56b8e` ou um descendente; o working tree deve refletir apenas o trabalho da sessão atual).
+2. Trabalhar somente em `C:\Dev\CapParseIntegI`; conferir `git status` / `git log` (HEAD deve ser `9256ec7` ou um descendente; o working tree deve refletir apenas o trabalho da sessão atual).
 3. Iniciar o contador de imagens da sessão (política de Vision, `AGENTS.md` §39 / §54) em `0`.
 4. Executar `dotnet build` e `dotnet test` (suíte atual: 412 testes).
 5. Trabalhar apenas no milestone atual; não criar commit, tag ou push sem aprovação explícita.
@@ -1965,8 +1965,8 @@ linha principal na consolidação M16-6. O estado Git atual está em §50.2.
 # 60. V0.2 — Refinamentos da Settings e botão de acesso na MainWindow (sessão atual)
 
 Sessão de refinamento da V0.2, a partir do HEAD publicado `9d56b8e` (working
-tree limpo ao iniciar). Sem commit nesta sessão: o trabalho permanece local
-até a validação manual do usuário e autorização explícita.
+tree limpo ao iniciar). Concluída com a validação manual do usuário no
+executável e a publicação em `9256ec7` (push para `origin/main`).
 
 ## 60.1 Escopo executado
 
@@ -2003,8 +2003,63 @@ Fora do escopo (preservado, verificado no diff): OCR, captura, overlay, tray (me
 - `git diff --check` limpo; diff limitado aos arquivos do §60.2.
 - Medição e renders: §50.5 (números completos); PNGs de referência em `%TEMP%\capparse-settings-612\` (`settings-{light,dark}-{current,recording,confirm}.png`, `MainWindow-{light,dark}.png`).
 
-## 60.5 Validação visual e pendências
+## 60.5 Validação visual e conclusão
 
 - **Vision (10/12 imagens da sessão)**: os 6 renders estado×tema da `SettingsWindow` em 612 (sem corte de conteúdo; rodapé a ~24 dip do painel Tema nos dois temas) e os 2 renders da `MainWindow` (glifo da engrenagem presente no canto superior direito, título à esquerda, layout preservado nos dois temas).
-- **Pendente com o usuário (executável)**: abrir Settings pela engrenagem e pelo tray; acionar a engrenagem com a `SettingsWindow` já aberta (a mesma janela é ativada); temas claro e escuro; foco por teclado (Tab/Enter), tooltip e estados interativos (hover/pressed/anel de foco) da engrenagem; `SettingsWindow` nos estados Current/Recording/Confirm com erro; escalas de DPI 100/125/150, quando disponíveis.
-- **Commit**: nenhum nesta sessão; aguarda a validação manual acima e autorização explícita do usuário.
+- **Validação manual pelo usuário (executável)**: concluída antes do commit — abrir Settings pela engrenagem da `MainWindow` e pelo tray; acionar a engrenagem com a `SettingsWindow` já aberta (a mesma janela é ativada); temas claro e escuro; foco por teclado (Tab/Enter), tooltip e estados interativos (hover/pressed/anel de foco) da engrenagem; `SettingsWindow` nos estados Current/Recording/Confirm com erro; escalas de DPI 100/125/150, quando disponíveis.
+- **Commit**: publicado em `9256ec7` (feat: add settings button to the main window) + push para `origin/main`.
+
+---
+
+# 61. Preparação da v0.1.0-beta.3 (sessão atual)
+
+Sessão de preparação da terceira candidata beta, a partir do HEAD publicado
+`9256ec7` (working tree limpo ao iniciar). Autorizada explicitamente pelo
+usuário (Opção A: bump de versão + pacote + tag; a GitHub Release e o upload
+do asset serão feitos manualmente pelo usuário).
+
+## 61.1 Escopo executado
+
+- **Bump de versão**: `<Version>` `0.1.0-beta.2`→`0.1.0-beta.3` em
+  `src/CapParse/CapParse.csproj` (fonte única de verdade do nome do pacote,
+  lida por `build/publish-win-x64.ps1`; `AssemblyVersion`/`FileVersion`
+  numéricas inalteradas, como exige o Windows).
+- **Pacote de distribuição**: gerado pelo script oficial
+  `build/publish-win-x64.ps1` (Restore → build Release → testes Release →
+  publish win-x64 self-contained single-file → remoção dos 3 modelos v5 não
+  utilizados pelo preset PP-OCRv6 Small → inspeção → ZIP + SHA-256).
+- **Tag `v0.1.0-beta.3`** (anotada) criada neste commit e enviada ao
+  `origin` (somente a tag; `main` já estava sincronizada).
+
+## 61.2 Evidências
+
+- Build **Release**: 0 erros; 1 aviso — o preexistente xUnit2020 em
+  `OcrCollectionGeneratorTests.cs`; nenhum aviso novo.
+- Testes **Release**: **412/412 aprovados** (suíte completa, incluindo os
+  smoke tests de OCR com o modelo real).
+- Pacote: `build/dist/CapParse-v0.1.0-beta.3-win-x64.zip` —
+  **104.732.247 bytes**; SHA-256
+  `7123857BF0610E1FDADCA8611E0D664D19BAF3A36DD207F06D7582F9C7B083DE`
+  (recalculado independentemente com `certutil`, idêntico ao do script).
+- Conteúdo do ZIP (inspecionado e extraído com sucesso em pasta temporária):
+  exatamente os 5 arquivos esperados — `CapParse.exe` (191.788.182 bytes,
+  single-file self-contained com runtime .NET e nativas embutidas) +
+  `models/v5/ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx`,
+  `models/v6/PP-OCRv6_det_small.onnx`, `models/v6/PP-OCRv6_rec_small.onnx`,
+  `models/v6/ppocrv6_dict.txt`. Sem PDB, sem artefatos de desenvolvimento,
+  sem segredos.
+- Executável publicado: COFF machine `0x8664` (x86_64 / win-x64);
+  `ProductVersion` embutida `0.1.0-beta.3+9256ec790de78be14bc00d6cfbe98a641c910f1c`
+  (versão correta no commit auditado); `FileVersion` `0.1.0.0` (numérica,
+  por design).
+- Artefatos históricos preservados: `CapParse-v0.1.0-beta.1-win-x64.zip` e
+  `CapParse-v0.1.0-beta.2-win-x64.zip` em `build/dist` intactos (o script só
+  substitui o ZIP com o mesmo nome — inexistente para beta.3).
+- Tags preexistentes `v0.1.0-beta.1`/`v0.1.0-beta.2` inalteradas; nenhum
+  outro commit foi criado além deste; `main` permanece sincronizada com
+  `origin/main`.
+
+## 61.3 Pendência
+
+- Publicação da GitHub Release `v0.1.0-beta.3` + upload do ZIP: **manual,
+  pelo usuário** (a tag já está no repositório).

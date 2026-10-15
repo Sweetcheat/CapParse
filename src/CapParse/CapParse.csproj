@@ -8,11 +8,11 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <!-- Version metadata (M15): the candidate version for the next beta
-         package. Version feeds InformationalVersion ("0.1.0-beta.2");
+         package. Version feeds InformationalVersion ("0.1.0-beta.3");
          AssemblyVersion/FileVersion stay numeric (4-part) as Windows
          requires. build/publish-win-x64.ps1 reads <Version> as the single
          source of truth for the package name. -->
-    <Version>0.1.0-beta.2</Version>
+    <Version>0.1.0-beta.3</Version>
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <FileVersion>0.1.0.0</FileVersion>
     <ApplicationManifest>$(MSBuildThisFileDirectory)app.manifest</ApplicationManifest>
