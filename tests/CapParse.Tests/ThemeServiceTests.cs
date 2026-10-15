@@ -142,6 +142,13 @@ public class ThemeServiceTests
             ReadWindowXaml("FirstRunWindow.xaml"));
     }
 
+    [Fact]
+    public void MainWindow_OnlyUsesTokensThatExistInBothThemes()
+    {
+        AssertWindowUsesSharedTokens("MainWindow.xaml",
+            ReadWindowXaml("MainWindow.xaml"));
+    }
+
     // Every DynamicResource reference a window makes must be a shared
     // semantic token, so the window re-skins when the theme dictionary is
     // swapped: the key must exist in both dictionaries.

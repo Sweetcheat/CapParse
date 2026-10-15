@@ -583,10 +583,15 @@ public partial class App : Application
         _mainWindow.Activate();
     }
 
-    private void ShowSettings()
+    /// <summary>
+    /// Opens the settings window — called by the tray menu and by the
+    /// main window's title-row button, so both routes share one entry
+    /// point. One window at a time: a request while one is already open
+    /// activates that window; it is not recreated and its state is not
+    /// re-read (the window shows the state it was created with).
+    /// </summary>
+    internal void ShowSettings()
     {
-        // One settings window at a time: a second request activates the
-        // window that is already open (which re-reads the app's state).
         if (_settingsWindow is null)
         {
             _settingsWindow = new SettingsWindow();

@@ -88,6 +88,26 @@
             <Setter Property="BorderThickness" Value="0" />
         </Style>
 
+        <!-- Discreet square icon button for title-bar actions (the
+             settings gear): no fill of its own, the shared hover/pressed
+             overlay and focus ring (inherited from the neutral style), a
+             system icon font (Segoe Fluent Icons on Windows 11, Segoe
+             MDL2 Assets on Windows 10 — both carry the same gear glyph
+             at U+E713, so the font list is a per-glyph fallback). -->
+        <Style x:Key="IconButtonStyle" TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+
         <!-- Read-only text area (result / history detail): no chrome of
              its own — the surrounding Border provides the surface and the
              line — but a focus ring, so keyboard focus stays visible. -->
@@ -335,12 +355,27 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="CapParse"
-                   FontSize="20"
-                   FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextPrimaryBrush}"
-                   HorizontalAlignment="Left" />
+        <Grid Grid.Row="0">
+            <TextBlock Text="CapParse"
+                       FontSize="20"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Center" />
+
+            <!-- Settings access from the title row: the same entry point
+                 as the tray menu (App.ShowSettings), so both routes share
+                 the one-instance behavior — a window that is already open
+                 is activated, never duplicated. -->
+            <Button x:Name="SettingsButton"
+                    Style="{StaticResource IconButtonStyle}"
+                    Content="&#xE713;"
+                    ToolTip="Configurações"
+                    AutomationProperties.Name="Configurações"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Click="SettingsButton_Click" />
+        </Grid>
 
         <TextBlock x:Name="HintText"
                    Grid.Row="1"

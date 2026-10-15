@@ -279,4 +279,13 @@ public partial class MainWindow : Window
         MessageBox.Show(this, outcome.Message, "CapParse",
             MessageBoxButton.OK, MessageBoxImage.Warning);
     }
+
+    /// <summary>
+    /// Opens the settings window through the application's single entry
+    /// point — the same call the tray menu makes — so both routes share
+    /// the one-instance behavior (an open window is activated, never
+    /// duplicated) and no second settings window can exist.
+    /// </summary>
+    private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        => ((App)Application.Current).ShowSettings();
 }

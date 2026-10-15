@@ -574,7 +574,7 @@ StartCapture()
 
 ### Configurações
 
-Abre a janela de configurações (`SettingsWindow`; implementado no M13).
+Abre a janela de configurações (`SettingsWindow`; implementado no M13). A mesma entrada (`ShowSettings`) é exposta como botão de engrenagem na linha de título da `MainWindow`; as duas rotas compartilham o comportamento de uma única instância — uma janela já aberta é ativada, nunca duplicada.
 
 ### Sair
 
@@ -1069,7 +1069,9 @@ src/CapParse/
 ├── MainWindow.xaml(.cs)   janela principal = view do resultado: status,
 │                          barra de progresso (indeterminada, apenas em
 │                          Processing, M14), texto reconhecido, Copiar texto /
-│                          Copiar imagem / Salvar imagem, histórico
+│                          Copiar imagem / Salvar imagem, histórico, botão de
+│                          Configurações na linha de título (mesma entrada do
+│                          tray: `ShowSettings`)
 ├── Capture/
 │   ├── ScreenCapture.cs       GDI BitBlt do desktop virtual
 │   ├── DesktopCapture.cs      captura completa do desktop virtual

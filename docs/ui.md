@@ -140,7 +140,7 @@ Starts the same capture workflow as the global hotkey.
 
 ### Configurações
 
-Opens the Settings window (implemented in M13): a small window with the capture hotkey as its single setting — see section 14.
+Opens the Settings window (implemented in M13): a small window with the capture hotkey as its single setting — see section 14. The main window's title row offers the same access through a discreet gear button; both routes call the same entry point and share the one-instance behavior (an open window is activated, never duplicated).
 
 ### Sair
 
@@ -350,7 +350,7 @@ No capture files are created unless the user explicitly chooses to save one.
 
 **Status (M13): implemented.** The V0.1 Settings window is intentionally small: a single setting — the capture hotkey.
 
-The window (title "Configurações", opened from the tray menu; one instance at a time) has three states:
+The window (title "Configurações", opened from the tray menu or from the gear button in the main window's title row — both routes call the same entry point, so one instance is kept at a time: a request while the window is already open activates it, and the window is not recreated nor its state re-read) has three states:
 
 1. **Current:** shows the combination that is active right now (e.g. `Ctrl + Shift + X`), with a note when the saved combination is unavailable (the active one is the default) or when no global hotkey could be registered at all (capture stays available through the tray menu). Actions: **Alterar atalho**, **Restaurar padrão**, **Fechar**.
 2. **Recording:** a dashed target area receives the keyboard focus and the user presses the new combination. `Esc` cancels the change. Invalid combinations (no Ctrl/Alt/Windows, or a key outside letters/digits/F1–F24) are rejected with an inline message and recording continues.
