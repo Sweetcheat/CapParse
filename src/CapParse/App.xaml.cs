@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using CapParse.Capture;
 using CapParse.Configuration;
@@ -33,12 +34,30 @@ public partial class App : Application
     // Explicit state of the OCR runs; the main window is a view of it.
     private readonly OcrRunState _ocrState = new();
     private WinForms.NotifyIcon? _trayIcon;
+    // The tray icon's context menu (its items and their callbacks). The
+    // "Capturar" item's enabled state is kept in sync with the mode that
+    // is effectively in force (see UpdateTrayCaptureItem), so the direct
+    // mode disables it visually and its guarded callback can never start
+    // a traditional capture.
+    private TrayMenu? _trayMenu;
     private MainWindow? _mainWindow;
     private SettingsWindow? _settingsWindow;
     private GlobalHotkey? _hotkey;
-    // The hotkey that is currently registered globally, or null when no
-    // combination could be registered (the tray menu keeps working).
-    private HotkeySetting? _activeHotkey;
+    // The operational owner of the traditional capture hotkey's
+    // registration (the combination it is registered with, or null): it
+    // starts at startup according to the mode, follows the settings
+    // window's pending mode while the window is open (a pending direct
+    // mode suspends it for the duration of the shortcut mapping), and is
+    // the single source the views read through ActiveHotkey. Created in
+    // OnStartup, like the other services that need the UI thread.
+    private CaptureHotkeyCoordinator? _captureHotkey;
+    // The open settings window's pending direct mode (its toggle), or
+    // false when no settings window is open: the traditional capture's
+    // callback guard reads it, so a press of the traditional combination
+    // while the window holds a pending direct mode can never start a
+    // capture. Kept in the application — not the window — because the
+    // guard runs in the hotkey callback, outside the window.
+    private bool _settingsPendingDirectMode;
     private FrozenOverlaySession? _overlaySession;
     // True from the first trigger of a capture until the attempt ends
     // (session closed, or the attempt failed). Unlike _overlaySession,
@@ -58,6 +77,18 @@ public partial class App : Application
     // when it completes validly (see RecognizeCropAsync), so a superseded or
     // cancelled run never records a stale result here.
     private readonly OcrHistory _history = new();
+    // The services the direct capture actions use (direct mode). The
+    // runner owns its own stateless clipboard and save-dialog services
+    // (the main window keeps its copies); its recognition delegate is the
+    // same core the traditional flow uses (see RunRecognitionAsync), so a
+    // direct OCR run updates the shared run state and history exactly like
+    // any other run — there is no second OCR pipeline. Its save delegate
+    // composes the configured save policy at the moment of the action
+    // (dialog, or the configured folder), so a settings change applies to
+    // the next action without a restart. Created in OnStartup because a
+    // field initializer cannot bind its delegates to this instance's
+    // methods.
+    private DirectActionRunner? _directRunner;
     // Single-instance guard: acquired on the UI thread in OnStartup and
     // released on the same thread in OnExit; the OS also reclaims the mutex
     // if the process terminates unexpectedly.
@@ -72,27 +103,33 @@ public partial class App : Application
     public CaptureCoordinator CaptureCoordinator => _captureCoordinator;
 
     /// <summary>
-    /// The capture hotkey that is currently registered globally, or null
-    /// when no combination could be registered. Views read this to display
-    /// the active shortcut.
+    /// The traditional capture hotkey that is currently registered
+    /// globally, or null when no combination could be registered (or the
+    /// direct mode is in force, which keeps it unregistered for the whole
+    /// session). Views read this to display the active shortcut.
     /// </summary>
-    public HotkeySetting? ActiveHotkey => _activeHotkey;
+    public HotkeySetting? ActiveHotkey => _captureHotkey?.Active;
 
     /// <summary>
-    /// The hotkey persisted in the settings file (what the application
-    /// will try to register at the next startup). It can differ from
-    /// <see cref="ActiveHotkey"/> when the saved combination is currently
-    /// taken by another application and the default is active instead.
+    /// A full copy of the persisted settings: the settings window starts
+    /// from this snapshot (its pending change) and commits it back through
+    /// <see cref="ApplySettings"/> only when the user saves.
     /// </summary>
-    public HotkeySetting SavedCaptureHotkey => _settings.CaptureHotkey;
+    public AppSettings SavedSettingsSnapshot() => _settings.Clone();
 
     /// <summary>
-    /// The theme preference stored in the settings (what the application
-    /// will resolve at the next startup). Views read this to display the
-    /// current choice — the *preference*, which is distinct from the
-    /// resolved theme in effect right now.
+    /// The operational state of a direct-mode slot (see
+    /// <see cref="DirectSlotState"/>): registered with the OS, and with
+    /// which combination, right now. Views read this to note a configured
+    /// slot whose combination could not be registered.
     /// </summary>
-    public ThemePreference SavedThemePreference => _settings.ThemePreference;
+    public DirectSlotState DirectSlotOperationalState(int slot)
+    {
+        var registered = _hotkey is not null && _hotkey.IsRegistered(slot);
+        return registered
+            ? new DirectSlotState(true, _settings.DirectSlot(slot))
+            : DirectSlotState.Off;
+    }
 
     /// <summary>
     /// The selection of the last finished capture, in virtual-desktop
@@ -170,13 +207,89 @@ public partial class App : Application
         // so no window is ever shown with the default (unresolved) colors.
         _themeService.Apply(_settings.ThemePreference);
 
+        var imageSaver = new CropImageSaver(new WpfCropImageSaveDialog());
+
+        _directRunner = new DirectActionRunner(
+            new CropImageCopier(new WpfImageClipboard()),
+            new OcrTextCopier(new WpfTextClipboard()),
+            // The save policy is consulted when the action runs, not when
+            // the runner is created: a settings change (manual/automatic,
+            // the folder) applies to the next action without a restart.
+            (crop, dpi) => _settings.DirectSavePolicy == ImageSavePolicy.Automatic
+                ? imageSaver.TrySaveToFolder(crop, dpi, _settings.DirectSaveFolder)
+                : imageSaver.TrySave(crop, dpi),
+            crop => RunRecognitionAsync(crop),
+            OnDirectFeedback);
+
         _mainWindow = new MainWindow();
         _mainWindow.Closing += OnMainWindowClosing;
         _mainWindow.Show();
 
         CreateTrayIcon();
-        RegisterCaptureHotkey();
+
+        // The mode decides which hotkey family the startup registers: in
+        // direct mode the traditional capture hotkey stays unregistered —
+        // its saved combination is kept in the settings (free to be
+        // assigned to a direct slot) and only the direct slots are
+        // registered, so a launch that is already configured for direct
+        // mode never starts a traditional capture by itself. One hidden
+        // window serves every slot in both modes.
+        _hotkey = new GlobalHotkey();
+        _captureHotkey = new CaptureHotkeyCoordinator(
+            TryRegisterHotkey,
+            () => _hotkey?.Unregister(HotkeySlots.Capture));
+
+        if (HotkeyTransaction.RegisterCaptureAtStartup(_settings))
+        {
+            RegisterCaptureHotkey();
+        }
+
+        RegisterDirectHotkeys();
         ShowFirstRunPresentationIfDue();
+    }
+
+    /// <summary>
+    /// Registers the direct-mode hotkeys at startup: only when the direct
+    /// mode is enabled and only the configured combinations — a legacy
+    /// installation (mode disabled, or no combination configured) registers
+    /// nothing, so an update never activates the direct mode on its own.
+    /// A combination that is taken by another application is left
+    /// unregistered (the configured value is preserved in the settings);
+    /// a single notice lists every combination that could not be
+    /// registered, and the remaining hotkeys keep working.
+    /// </summary>
+    private void RegisterDirectHotkeys()
+    {
+        if (!_settings.DirectModeEnabled)
+        {
+            return;
+        }
+
+        var failures = new List<HotkeySetting>();
+        foreach (var slot in HotkeySlots.Direct)
+        {
+            var configured = _settings.DirectSlot(slot);
+            if (configured is null)
+            {
+                continue;
+            }
+
+            if (!TryRegisterDirectHotkey(slot, configured))
+            {
+                failures.Add(configured);
+            }
+        }
+
+        if (failures.Count > 0)
+        {
+            MessageBox.Show(
+                $"O(s) atalho(s) {string.Join(", ", failures.Select(f => f.DisplayString))} não puderam ser registrados agora.\n" +
+                "Outro aplicativo pode já estar usando essa(s) combinação(ões).\n\n" +
+                "Os demais atalhos continuam ativos.",
+                "CapParse",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     /// <summary>
@@ -185,7 +298,10 @@ public partial class App : Application
     /// shown, so a later launch - even if the window was never dismissed -
     /// never shows it again. A settings write failure is ignored: the
     /// presentation simply appears one more time on the next launch, which
-    /// is a harmless degradation, never a startup failure.
+    /// is a harmless degradation, never a startup failure. The mode the
+    /// user chooses in the presentation is applied when the window closes
+    /// (see <see cref="OnFirstRunModeChosen"/>); closing it without choosing
+    /// changes nothing.
     /// </summary>
     private void ShowFirstRunPresentationIfDue()
     {
@@ -197,21 +313,63 @@ public partial class App : Application
         _settings.FirstRunPresented = true;
         _settings.TrySave();
 
-        var howTo = _activeHotkey is { } active
+        var howTo = ActiveHotkey is { } active
             ? $"Inicie uma captura com {active.DisplayString}, ou pelo menu do ícone na bandeja (Capturar)."
             : "Inicie uma captura pelo menu do ícone na bandeja (Capturar).";
 
-        new FirstRunWindow(howTo).Show();
+        var window = new FirstRunWindow(howTo);
+        window.Closed += (_, _) => OnFirstRunModeChosen(window);
+        window.Show();
     }
 
-    private async void StartCapture()
+    /// <summary>
+    /// Applies the mode chosen in the first-run presentation through the
+    /// existing settings transaction (the same one the settings window
+    /// uses): the traditional mode and a deferred decision keep
+    /// <c>DirectModeEnabled</c> at the value of a new installation
+    /// (disabled), so they change nothing and register nothing; the direct
+    /// mode flips the flag through <see cref="ApplySettings"/> — the
+    /// presentation never creates a hotkey on its own, so the transaction
+    /// registers nothing and only persists the flag. The user is then
+    /// pointed at the settings to configure the direct shortcuts.
+    /// </summary>
+    private void OnFirstRunModeChosen(FirstRunWindow window)
+    {
+        // A choice made while the application is shutting down is dropped:
+        // the process is terminating, and the mode of a dead session is
+        // meaningless.
+        if (Dispatcher.HasShutdownStarted
+            || window.Choice != FirstRunModeChoice.Direct)
+        {
+            return;
+        }
+
+        var pending = _settings.Clone();
+        pending.DirectModeEnabled = true;
+        ApplySettings(pending);
+
+        // A rejection cannot happen here: no direct hotkey is configured at
+        // first run (no conflict) and the save policy is the dialog one
+        // (no folder to validate). When the file could not be written the
+        // mode stays active for this session — the same degradation the
+        // settings window reports — and the next launch re-shows the
+        // presentation because the flag was not persisted.
+        ShowTrayNotification(
+            "CapParse",
+            "Modo Direto ativado. Configure os atalhos em Configurações para usá-lo.",
+            WinForms.ToolTipIcon.Info);
+    }
+
+    private async void StartCapture(DirectAction action = DirectAction.None)
     {
         // While a capture attempt is in flight (GDI capture, session
         // construction, active overlays) further triggers are ignored
         // until it ends (Idle -> Capturing). The async session construction
         // yields the UI thread between its steps, so a second trigger can
         // arrive in the middle of it: this guard, set before the attempt
-        // starts, is what keeps it from reentering.
+        // starts, is what keeps it from reentering. The guard is shared by
+        // the traditional flow and the direct actions: no second capture
+        // of any kind can start while one is in flight.
         if (_captureInFlight)
         {
             return;
@@ -251,7 +409,17 @@ public partial class App : Application
 
                 if (crop is not null)
                 {
-                    RecognizeCropAsync(crop);
+                    // The action this capture was started with rides in
+                    // this closure — explicitly, so the capture can never
+                    // execute the action of another trigger.
+                    if (action == DirectAction.None)
+                    {
+                        RecognizeCropAsync(crop);
+                    }
+                    else
+                    {
+                        HandleDirectActionAsync(action, selection, crop);
+                    }
                 }
                 else
                 {
@@ -305,7 +473,8 @@ public partial class App : Application
     /// blocking the UI thread: the engine is created lazily (first use
     /// only) and the recognition itself is asynchronous.
     ///
-    /// The run is tracked in <see cref="OcrState"/> by the id
+    /// The run goes through the shared core <see cref="RunRecognitionAsync"/>,
+    /// which tracks it in <see cref="OcrState"/> by the id
     /// <see cref="OcrRunState.BeginRun"/> returns: a recognition already in
     /// flight is cancelled first, and only the most recent run may complete
     /// or fail the state, so a stale (superseded or cancelled) recognition
@@ -328,6 +497,31 @@ public partial class App : Application
             return;
         }
 
+        var outcome = await RunRecognitionAsync(crop);
+
+        if (outcome.Failed && !Dispatcher.HasShutdownStarted)
+        {
+            MessageBox.Show(
+                "Não foi possível reconhecer o texto na região capturada.\n\nTente novamente.",
+                "CapParse",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
+    /// <summary>
+    /// The recognition core shared by the traditional flow and the direct
+    /// actions: it starts the run in <see cref="OcrState"/>, cancels any
+    /// recognition already in flight, recognizes the crop and records the
+    /// result in <see cref="LastOcrResult"/> and <see cref="History"/> when
+    /// the run validly completes. Returns what happened to this run
+    /// specifically: its result, a failure (only when this run is the one
+    /// that recorded it), or neither when it was superseded or cancelled.
+    /// The direct actions consume this outcome to decide their feedback; a
+    /// superseded run must stay silent.
+    /// </summary>
+    private async Task<OcrRunOutcome> RunRecognitionAsync(System.Drawing.Bitmap crop)
+    {
         // Called on the UI thread (the session's closed callback), so the
         // state move to Processing is observed by the window immediately.
         var runId = _ocrState.BeginRun();
@@ -345,7 +539,7 @@ public partial class App : Application
 
             if (cancellation.IsCancellationRequested)
             {
-                return;
+                return new OcrRunOutcome(null, false);
             }
 
             if (_ocrState.CompleteRun(runId, result))
@@ -359,26 +553,36 @@ public partial class App : Application
                 _history.Add(runId, result.Text, DateTime.Now);
 
                 PublishOcrState();
+                return new OcrRunOutcome(result, false);
             }
+
+            // Superseded by a newer run: it owns the state now.
+            return new OcrRunOutcome(null, false);
         }
         catch (OperationCanceledException)
         {
             // Superseded by a newer capture: nothing to report.
+            return new OcrRunOutcome(null, false);
         }
         catch (Exception) when (!cancellation.IsCancellationRequested)
         {
             // The token check keeps a failure that raced the cancellation
             // (for example the previous crop being disposed while the
             // engine was still reading it) from surfacing as an error.
-            if (_ocrState.FailRun(runId) && !Dispatcher.HasShutdownStarted)
+            // Only this run failing it — being the most recent — makes the
+            // outcome a failure; a run that was superseded in the meantime
+            // must not be reported as one.
+            if (_ocrState.FailRun(runId))
             {
-                PublishOcrState();
-                MessageBox.Show(
-                    "Não foi possível reconhecer o texto na região capturada.\n\nTente novamente.",
-                    "CapParse",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                if (!Dispatcher.HasShutdownStarted)
+                {
+                    PublishOcrState();
+                }
+
+                return new OcrRunOutcome(null, true);
             }
+
+            return new OcrRunOutcome(null, false);
         }
         finally
         {
@@ -388,6 +592,95 @@ public partial class App : Application
             }
 
             cancellation.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Runs a direct capture action (direct mode) on the finished
+    /// selection: the action happens right away, with tray feedback
+    /// instead of the result window. The CopyText action goes through the
+    /// same recognition core as the traditional flow, so the shared run
+    /// state and history update exactly as they do for any capture. A
+    /// cancelled selection (no crop) never reaches here: the session
+    /// callback starts the action only when a crop exists.
+    /// </summary>
+    private async void HandleDirectActionAsync(
+        DirectAction action,
+        System.Drawing.Rectangle? selection,
+        System.Drawing.Bitmap crop)
+    {
+        // The runner is created in OnStartup; the direct actions can only
+        // be triggered through the hotkeys and tray created there, so this
+        // is a defensive check, not an expected path.
+        var runner = _directRunner;
+        if (runner is null || Dispatcher.HasShutdownStarted)
+        {
+            return;
+        }
+
+        // The same DPI convention the result window's buttons use: the
+        // effective DPI of the monitor the selection came from, 96 when the
+        // selection is unknown.
+        var dpi = selection is { } s
+            ? MonitorDiscovery.GetEffectiveDpiForSelection(s)
+            : 96;
+
+        try
+        {
+            await runner.RunAsync(action, crop, dpi);
+        }
+        catch
+        {
+            // The runner reports the failures of the services it wraps as
+            // feedback; anything escaping it is unexpected (for example a
+            // crop disposed by a newer capture mid-action) and must not
+            // take the application down.
+            OnDirectFeedback(new DirectFeedback(
+                DirectFeedbackKind.Error,
+                "Não foi possível concluir a ação."));
+        }
+    }
+
+    /// <summary>
+    /// Presents a direct action's feedback as a tray balloon — the discreet
+    /// channel the direct mode uses, since no window is involved. A notice
+    /// that cannot be shown (for example during shutdown) is dropped
+    /// silently: the action itself already happened, and the application
+    /// must never fail because of its own feedback.
+    /// </summary>
+    private void OnDirectFeedback(DirectFeedback feedback)
+    {
+        if (Dispatcher.HasShutdownStarted)
+        {
+            return;
+        }
+
+        var icon = feedback.Kind == DirectFeedbackKind.Error
+            ? WinForms.ToolTipIcon.Warning
+            : WinForms.ToolTipIcon.Info;
+
+        ShowTrayNotification("CapParse", feedback.Message, icon);
+    }
+
+    private void ShowTrayNotification(
+        string title,
+        string message,
+        WinForms.ToolTipIcon icon)
+    {
+        if (_trayIcon is not { Visible: true })
+        {
+            return;
+        }
+
+        try
+        {
+            _trayIcon.ShowBalloonTip(3000, title, message, icon);
+        }
+        catch
+        {
+            // ShowBalloonTip can fail when the tray is unavailable (for
+            // example while the application is shutting down): dropping the
+            // notice is the right degradation, never a crash.
         }
     }
 
@@ -412,17 +705,23 @@ public partial class App : Application
 
     private void RegisterCaptureHotkey()
     {
-        _hotkey = new GlobalHotkey(StartCapture);
-
-        var configured = _settings.CaptureHotkey;
-        _activeHotkey = HotkeyRecovery.Resolve(null, configured, TryRegisterHotkey);
-
-        if (_activeHotkey is not null && _activeHotkey.Equals(configured))
+        // Called from OnStartup right after the coordinator is created; the
+        // guard is defensive, not an expected path.
+        var coordinator = _captureHotkey;
+        if (coordinator is null)
         {
             return;
         }
 
-        if (_activeHotkey is not null)
+        var configured = _settings.CaptureHotkey;
+        coordinator.Start(_settings);
+
+        if (coordinator.Active is not null && coordinator.Active.Equals(configured))
+        {
+            return;
+        }
+
+        if (coordinator.Active is not null)
         {
             // The saved combination is unavailable right now (another
             // application owns it); the default is active instead.
@@ -449,84 +748,337 @@ public partial class App : Application
 
     private bool TryRegisterHotkey(HotkeySetting setting)
         => _hotkey is not null
-            && _hotkey.Register((GlobalHotkey.Modifier)setting.Modifiers, setting.Key);
+            && _hotkey.Register(
+                HotkeySlots.Capture,
+                (GlobalHotkey.Modifier)setting.Modifiers,
+                setting.Key,
+                TryStartTraditionalCapture);
 
     /// <summary>
-    /// Re-registers the global capture hotkey with the given combination.
-    /// When the new combination cannot be registered, the previous active
-    /// combination is restored first and, if that is also unavailable, the
-    /// default (see <see cref="HotkeyRecovery"/>). Returns the hotkey that
-    /// is active afterwards, or null when nothing could be registered. The
-    /// views are notified so they can refresh the displayed shortcut.
+    /// The single entry point of a traditional capture: the traditional
+    /// mode must be effectively in force — the committed mode is
+    /// traditional and the open settings window is not holding a pending
+    /// direct mode (which suspends the hotkey registration for the
+    /// duration of the shortcut mapping) — or the trigger is dropped. This
+    /// is the second line of the isolation: a stale WM_HOTKEY queued
+    /// before the suspension, a registration that should not exist, or a
+    /// click on the tray menu's "Capturar" item (whose callback is this
+    /// method, mirroring the tray item's disabled state) can never start
+    /// a traditional capture while the direct mode is in effect. Both the
+    /// traditional capture hotkey and the tray menu call it.
     /// </summary>
-    public HotkeySetting? ApplyCaptureHotkey(HotkeySetting requested)
+    private void TryStartTraditionalCapture()
     {
-        if (_hotkey is null)
+        if (!HotkeyTransaction.TraditionalCaptureAllowed(
+            _settings.DirectModeEnabled, _settingsPendingDirectMode))
         {
-            return _activeHotkey;
+            return;
         }
 
-        _activeHotkey = HotkeyRecovery.Resolve(_activeHotkey, requested, TryRegisterHotkey);
+        StartCapture();
+    }
 
-        // The same publication event the OCR flow uses: the views simply
-        // refresh, which also updates the displayed capture shortcut.
+    /// <summary>
+    /// Registers a direct-mode slot with the given combination. The slot's
+    /// action (copy image, OCR + copy text, save image) is bound at
+    /// registration time, so the hotkey can never run the action of
+    /// another slot.
+    /// </summary>
+    private bool TryRegisterDirectHotkey(int slot, HotkeySetting setting)
+        => _hotkey is not null
+            && _hotkey.Register(
+                slot,
+                (GlobalHotkey.Modifier)setting.Modifiers,
+                setting.Key,
+                () => StartCapture(ActionForSlot(slot)));
+
+    /// <summary>The direct action a hotkey slot triggers.</summary>
+    private static DirectAction ActionForSlot(int slot) => slot switch
+    {
+        HotkeySlots.DirectCopyImage => DirectAction.CopyImage,
+        HotkeySlots.DirectCopyText => DirectAction.CopyText,
+        HotkeySlots.DirectSaveImage => DirectAction.SaveImage,
+        _ => DirectAction.None
+    };
+
+    /// <summary>
+    /// The operational state of the direct-mode slots right now (what is
+    /// registered with the OS): the snapshot a settings transaction takes
+    /// before it changes anything, so a failed change can be rolled back
+    /// to exactly this state.
+    /// </summary>
+    private DirectHotkeyState CurrentDirectState()
+    {
+        var state = new DirectHotkeyState();
+        foreach (var slot in HotkeySlots.Direct)
+        {
+            state[slot] = DirectSlotOperationalState(slot);
+        }
+
+        return state;
+    }
+
+    /// <summary>The outcome of a settings application (the settings window's "Salvar").</summary>
+    public enum SettingsApplyOutcome
+    {
+        /// <summary>The new settings are active and persisted.</summary>
+        Applied,
+
+        /// <summary>
+        /// The new settings are active (in memory), but the file could not
+        /// be written: they last for this session and revert on the next
+        /// launch.
+        /// </summary>
+        SaveFailed,
+
+        /// <summary>
+        /// The change was rejected (validation) or a registration failed:
+        /// the previous settings and registrations are kept, and nothing
+        /// was persisted. <see cref="SettingsApplyResult.Message"/> carries
+        /// the user-facing explanation.
+        /// </summary>
+        Rejected
+    }
+
+    /// <summary>
+    /// The result of <see cref="ApplySettings"/>; <see cref="Message"/>
+    /// carries the user-facing explanation of a rejection.
+    /// </summary>
+    public sealed record SettingsApplyResult(SettingsApplyOutcome Outcome, string? Message);
+
+    /// <summary>
+    /// Transactionally applies the settings the user chose in the settings
+    /// window: the change is validated first (hotkey conflicts between the
+    /// capture and the direct slots, the automatic save policy's folder),
+    /// then applied (the capture hotkey through the recovery chain, the
+    /// direct-mode registrations, the theme), and only then persisted.
+    /// Any failure restores the operational state the application had
+    /// before the attempt and persists nothing, so a failed change can
+    /// never leave a partial configuration or an orphan registration
+    /// behind. Call on the UI thread.
+    /// </summary>
+    public SettingsApplyResult ApplySettings(AppSettings pending)
+    {
+        ArgumentNullException.ThrowIfNull(pending);
+
+        // 1) Validate before touching anything: a conflicting combination
+        // would make one shortcut fire two actions, and the automatic
+        // policy without a usable folder would fail on every save. Only
+        // the hotkeys that will be active in the destination mode
+        // participate in the check: in direct mode the direct slots check
+        // against each other (the traditional capture hotkey is not
+        // registered, so its saved combination does not block a direct
+        // slot); in traditional mode the capture hotkey stands alone (the
+        // direct slots are not registered), so a combination saved in
+        // both modes is valid in both.
+        var conflicts = HotkeyTransaction.FindConflicts(pending);
+
+        if (conflicts.Count > 0)
+        {
+            return new SettingsApplyResult(
+                SettingsApplyOutcome.Rejected,
+                $"Dois atalhos usam a mesma combinação: {string.Join(", ", conflicts.Select(c => c.DisplayString))}.\n" +
+                "Escolha combinações diferentes para aplicar as alterações.");
+        }
+
+        if (pending.DirectSavePolicy == ImageSavePolicy.Automatic
+            && (string.IsNullOrWhiteSpace(pending.DirectSaveFolder) || !Directory.Exists(pending.DirectSaveFolder)))
+        {
+            return new SettingsApplyResult(
+                SettingsApplyOutcome.Rejected,
+                "A política de salvamento automático exige uma pasta de destino válida.\n" +
+                "Escolha uma pasta existente ou use a política manual.");
+        }
+
+        // 2) Snapshot of the operational state, for the rollback.
+        var beforeDirect = CurrentDirectState();
+        var beforeCapture = _captureHotkey?.Active;
+
+        // 3) Release the direct-mode registrations the destination state
+        // does not want, before the capture side runs: RegisterHotKey
+        // refuses a combination that any live registration of the
+        // process already holds, so a direct slot that is about to go
+        // off must give up its combination before the traditional capture
+        // hotkey — which may carry the very same combination, the modes
+        // being mutually exclusive — is registered. Without this release
+        // first, the direct-to-traditional switch with a shared
+        // combination would fail against the process's own registration
+        // and roll back for no external reason. Unregistering cannot
+        // fail; the rollback in step 6 restores the released slots.
+        DirectHotkeyApplier.Release(
+            pending,
+            beforeDirect,
+            slot => _hotkey?.Unregister(slot));
+
+        // 4) The capture hotkey follows the mode (see
+        // HotkeyTransaction.PlanCapture): direct mode unregisters it (the
+        // saved combination stays in the settings and becomes free for a
+        // direct slot); traditional mode registers the combination when it
+        // changed, through the recovery chain. While the settings window
+        // held a pending direct mode the registration is already
+        // suspended, so the direct-mode plan is a no-op; unregistering
+        // cannot fail, and a failed registration is rolled back with the
+        // snapshot taken in step 2, and in direct mode that snapshot has
+        // no capture registration, so the recovery chain can never bring
+        // the traditional hotkey back while the mode is on.
+        var captureOk = _captureHotkey is { } captureCoordinator
+            ? captureCoordinator.ApplyPlan(_settings, pending)
+            : true;
         PublishOcrState();
 
-        return _activeHotkey;
-    }
+        // 5) The direct-mode registrations: disabled mode unregisters every
+        // slot (the configured combinations are preserved in the settings);
+        // enabled mode registers only the configured combinations. The slots
+        // step 3 released are already off (re-releasing them is a no-op),
+        // and in the other direction the capture hotkey is suspended by
+        // step 4 before any direct slot is registered — so a registration
+        // here can never collide with the process's own other family.
+        var direct = DirectHotkeyApplier.Apply(
+            pending,
+            beforeDirect,
+            (slot, combination) => TryRegisterDirectHotkey(slot, combination),
+            slot => _hotkey?.Unregister(slot));
 
-    /// <summary>
-    /// Persists the settings. The saved hotkey is the one that is active
-    /// right now, so the settings file always describes a combination the
-    /// application can actually use. Returns false when the file could not
-    /// be written; the in-memory settings are left as they were.
-    /// </summary>
-    public bool SaveSettings()
-    {
-        if (_activeHotkey is not null)
+        // 6) Commit, or roll the whole transaction back.
+        if (captureOk && direct.Succeeded)
         {
-            _settings.CaptureHotkey = _activeHotkey;
+            CommitSettings(pending);
+
+            return _settings.TrySave()
+                ? new SettingsApplyResult(SettingsApplyOutcome.Applied, null)
+                : new SettingsApplyResult(SettingsApplyOutcome.SaveFailed, null);
         }
 
-        return _settings.TrySave();
+        // A failure anywhere in the transaction: the direct slots and the
+        // capture hotkey go back to the state they had before the attempt,
+        // and the settings file is left untouched.
+        DirectHotkeyApplier.Restore(
+            beforeDirect,
+            (slot, combination) => TryRegisterDirectHotkey(slot, combination),
+            slot => _hotkey?.Unregister(slot));
+        _captureHotkey?.Restore(beforeCapture);
+        PublishOcrState();
+
+        var message = !direct.Succeeded && direct.FailureMessage is { } failed
+            ? $"A combinação {failed} não pôde ser registrada. Outro aplicativo pode já estar usando essa combinação.\n\n" +
+              "As configurações anteriores continuam ativas."
+            : "O novo atalho de captura não pôde ser registrado. Outro aplicativo pode já estar usando essa combinação.\n\n" +
+              "As configurações anteriores continuam ativas.";
+
+        return new SettingsApplyResult(SettingsApplyOutcome.Rejected, message);
     }
 
     /// <summary>
-    /// Changes the theme preference (V0.2): persists it and applies the
-    /// resolved theme to the application resources, so the windows that
-    /// consume the shared tokens update without a restart. This is the
-    /// single, centralized way to change the theme; the settings window
-    /// calls it and nothing else does. Call on the UI thread.
-    /// Returns false when the settings file could not be written: the
-    /// in-memory preference and the applied theme keep the new value, the
-    /// file keeps the previous one (the choice reverts on the next launch).
+    /// Copies the committed settings into the application's live settings
+    /// and applies the theme when it changed. Only called when the whole
+    /// transaction succeeded, so a rejected change never re-skins the
+    /// application.
     /// </summary>
-    public bool ApplyThemePreference(ThemePreference preference)
+    private void CommitSettings(AppSettings pending)
     {
-        _settings.ThemePreference = preference;
-        var saved = _settings.TrySave();
-        _themeService.Apply(preference);
-        return saved;
+        var themeChanged = pending.ThemePreference != _settings.ThemePreference;
+
+        _settings.CaptureHotkey = pending.CaptureHotkey;
+        _settings.FirstRunPresented = pending.FirstRunPresented;
+        _settings.ThemePreference = pending.ThemePreference;
+        _settings.DirectModeEnabled = pending.DirectModeEnabled;
+        _settings.DirectCopyImageHotkey = pending.DirectCopyImageHotkey;
+        _settings.DirectCopyTextHotkey = pending.DirectCopyTextHotkey;
+        _settings.DirectSaveImageHotkey = pending.DirectSaveImageHotkey;
+        _settings.DirectSavePolicy = pending.DirectSavePolicy;
+        _settings.DirectSaveFolder = pending.DirectSaveFolder;
+
+        // The committed mode just changed: the tray menu's "Capturar" item
+        // follows it right away (no restart needed).
+        UpdateTrayCaptureItem();
+
+        if (themeChanged)
+        {
+            // The single, centralized way to change the theme: the windows
+            // that consume the shared tokens update without a restart.
+            _themeService.Apply(pending.ThemePreference);
+        }
+    }
+
+    /// <summary>
+    /// The settings window's pending direct-mode change (its toggle): the
+    /// traditional capture hotkey follows the pending mode immediately —
+    /// a pending direct mode suspends it for the duration of the shortcut
+    /// mapping (so its combination can be recorded into a direct slot
+    /// without starting a capture), a pending traditional mode restores it
+    /// only when the committed mode is traditional. The saved combination
+    /// is never touched. Call on the UI thread.
+    /// </summary>
+    internal void SettingsWindowPendingDirectModeChanged(bool pendingDirectMode)
+    {
+        _settingsPendingDirectMode = pendingDirectMode;
+        _captureHotkey?.ApplyPendingMode(_settings, pendingDirectMode);
+        UpdateTrayCaptureItem();
+        PublishOcrState();
+    }
+
+    /// <summary>
+    /// The settings window closed: the pending mode no longer exists, and
+    /// the traditional capture hotkey goes back to the state the committed
+    /// mode prescribes (registered in traditional mode, unregistered in
+    /// direct mode). A canceled session thus never leaves a suspended
+    /// registration behind, and a saved mode needs no re-application. Call
+    /// on the UI thread.
+    /// </summary>
+    internal void SettingsWindowClosed()
+    {
+        _settingsPendingDirectMode = false;
+        _captureHotkey?.SyncWithCommittedMode(_settings);
+        UpdateTrayCaptureItem();
+        PublishOcrState();
     }
 
     private void CreateTrayIcon()
     {
+        // The "Capturar" item calls the same guarded entry point the
+        // traditional capture hotkey uses: while the direct mode is in
+        // force the guard refuses the capture, whatever the item's visual
+        // state a stale trigger may see.
+        _trayMenu = new TrayMenu(
+            TryStartTraditionalCapture,
+            ShowSettings,
+            ExitApplication);
+
         _trayIcon = new WinForms.NotifyIcon
         {
             Icon = LoadTrayIcon(),
             Text = "CapParse",
+            ContextMenuStrip = _trayMenu.Menu,
             Visible = true
         };
-
-        var menu = new WinForms.ContextMenuStrip();
-        menu.Items.Add("Capturar", null, (_, _) => StartCapture());
-        menu.Items.Add("Configurações", null, (_, _) => ShowSettings());
-        menu.Items.Add("Sair", null, (_, _) => ExitApplication());
-        _trayIcon.ContextMenuStrip = menu;
 
         // Left double-click on the tray icon restores the main window
         // (the capture workflow stays on the global hotkey and the menu).
         _trayIcon.DoubleClick += (_, _) => RestoreMainWindow();
+
+        // The "Capturar" item starts reflecting the mode that is
+        // effectively in force at startup (enabled in the traditional
+        // mode, disabled in the direct mode).
+        UpdateTrayCaptureItem();
+    }
+
+    /// <summary>
+    /// Keeps the tray menu's "Capturar" item in sync with the mode that is
+    /// effectively in force: disabled while the direct mode is in effect
+    /// (committed, or pending in the open settings window — the same
+    /// guard the traditional capture's entry point applies), enabled in
+    /// the traditional mode. The item's callback applies the very same
+    /// guard, so the visual state and the action can never disagree. Call
+    /// on the UI thread, whenever the committed mode or the pending mode
+    /// changes.
+    /// </summary>
+    private void UpdateTrayCaptureItem()
+    {
+        if (_trayMenu is { } menu)
+        {
+            menu.SetCaptureEnabled(HotkeyTransaction.TraditionalCaptureAllowed(
+                _settings.DirectModeEnabled, _settingsPendingDirectMode));
+        }
     }
 
     private static System.Drawing.Icon LoadTrayIcon()
@@ -595,7 +1147,11 @@ public partial class App : Application
         if (_settingsWindow is null)
         {
             _settingsWindow = new SettingsWindow();
-            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            _settingsWindow.Closed += (_, _) =>
+            {
+                _settingsWindow = null;
+                SettingsWindowClosed();
+            };
             _settingsWindow.Show();
         }
 

@@ -113,12 +113,12 @@ Capture is started from the global hotkey or the tray menu, which must call the 
 Conceptually:
 
 ```text
-Global Hotkey ──────────> StartCapture()
-Tray Menu "Capturar" ───> StartCapture()
+Global Hotkey ──────────> guarded traditional capture entry point
+Tray Menu "Capturar" ───> guarded traditional capture entry point
 Tray Double Click ──────> RestoreMainWindow()
 ```
 
-There must not be two separate capture implementations.
+There must not be two separate capture implementations. The shared entry point validates the mode that is effectively in force before starting a capture: while the direct mode is in effect (committed, or pending in the open settings window) it refuses the traditional capture, whatever the trigger.
 
 ## Right Click
 
@@ -136,7 +136,7 @@ Sair
 
 ### Capturar
 
-Starts the same capture workflow as the global hotkey.
+Starts the same capture workflow as the global hotkey. While the **direct mode** is in effect the item is visually disabled and its entry point refuses to start a traditional capture (the direct mode's shortcuts are the only capture triggers then); in the traditional mode the item is enabled and works as before. The item's state follows the mode that is effectively in force — it updates when the settings are saved and when the open settings window's pending mode changes or is discarded, without a restart.
 
 ### Configurações
 
@@ -340,37 +340,41 @@ message is shown. If the file cannot be written (invalid path, access
 denied, file in use), a friendly error message is shown and the application
 keeps running.
 
-The application never saves screenshots automatically.
-
-No capture files are created unless the user explicitly chooses to save one.
+The application never saves screenshots implicitly: no file is created
+without an explicit user action (a button, or a direct-mode hotkey, see
+section 22). In the direct mode with the automatic save policy, the
+user-triggered "save image" action writes to the user-configured folder
+without a dialog, with a generated unique file name that never overwrites
+an existing file.
 
 ---
 
 # 14. Settings
 
-**Status (M13): implemented.** The V0.1 Settings window is intentionally small: a single setting — the capture hotkey.
+**Status (M13): implemented.** The Settings window started as a single setting — the capture hotkey — and, with the direct mode (V0.3, stage 4, section 22), it also configures the direct hotkey slots, the save policy and the automatic save folder.
 
-The window (title "Configurações", opened from the tray menu or from the gear button in the main window's title row — both routes call the same entry point, so one instance is kept at a time: a request while the window is already open activates it, and the window is not recreated nor its state re-read) has three states:
+The window (title "Configurações", opened from the tray menu or from the gear button in the main window's title row — both routes call the same entry point, so one instance is kept at a time: a request while the window is already open activates it, and the window is not recreated nor its state re-read) is **transactional**: every control edits only a pending copy of the settings; nothing is applied or persisted while the window is open. **Salvar** commits the whole pending change as a unit — validated (hotkey conflicts between the capture and the direct slots, the automatic policy's folder), applied (the capture hotkey through the recovery chain, the direct-mode registrations, the theme) and persisted to `%LOCALAPPDATA%\CapParse\settings.json`. **Cancelar** — like closing the window — discards the pending change and keeps the settings and the registrations that were active before. A rejected change (a conflict, an invalid folder, a combination that could not be registered) restores the previous operational state and persists nothing, with a friendly message explaining why.
 
-1. **Current:** shows the combination that is active right now (e.g. `Ctrl + Shift + X`), with a note when the saved combination is unavailable (the active one is the default) or when no global hotkey could be registered at all (capture stays available through the tray menu). Actions: **Alterar atalho**, **Restaurar padrão**, **Fechar**.
-2. **Recording:** a dashed target area receives the keyboard focus and the user presses the new combination. `Esc` cancels the change. Invalid combinations (no Ctrl/Alt/Windows, or a key outside letters/digits/F1–F24) are rejected with an inline message and recording continues.
-3. **Confirm:** shows the recorded combination with **Salvar** / **Cancelar**.
+The panes:
 
-Applying a new combination:
+1. **Atalho de captura:** the pending capture hotkey, with a note when the saved combination is unavailable (the active one is the default) or when no global hotkey could be registered at all (capture stays available through the tray menu), and a note when the pending value differs from the saved one. Actions: **Alterar atalho** (recording), **Restaurar padrão**.
+2. **Recording** (capture and direct slots): a dashed target area receives the keyboard focus and the user presses the combination. `Esc` cancels the recording (the previous pending value is kept). Invalid combinations (no Ctrl/Alt/Windows, or a key outside letters/digits/F1–F24) are rejected with an inline message and recording continues. A recorded combination is stored as a pending change, like every other edit.
+3. **Modo Direto:** the toggle enables/disables the direct mode (section 22). A dynamic status line tells the user the state of the pending configuration: with no slot configured it points to configuring at least one shortcut; with some configured it names the actions that still have no shortcut (a partial configuration is a valid state, never an error); with the three slots configured and registered it reports the configuration complete; with a registration failure it points at the per-slot warnings. The line is hidden while the mode is off. The three independent slots — **Copiar imagem**, **OCR + copiar texto**, **Salvar imagem** — each show their configured combination (or "Não configurado") with **Alterar** / **Limpar**. A slot shows a registration note only when the running application actually has the mode enabled, the slot configured in the saved settings, and the OS without that slot's registration — the note reflects the effective state, never the not-yet-saved pending edit, and it is cleared as soon as the combination registers (a new working combination removes the previous warning). Disabling the mode unregisters the direct hotkeys but preserves the stored combinations. **Política de salvamento** (Manual/Automático) and, with the automatic policy, the **pasta de salvamento automático** (chosen through the standard folder dialog; a missing folder blocks saving the settings).
+4. **Tema:** the pending theme preference (Sistema/Claro/Escuro); the selection is applied when the settings are saved.
 
-- the combination is validated (at least one of Ctrl/Alt/Windows, plus a letter, digit or F key F1–F24);
-- the application tries to register it globally; on success it becomes the active hotkey and is persisted to `%LOCALAPPDATA%\CapParse\settings.json`;
-- when the combination is taken by another application, the application recovers (previous active combination, then the default) and shows a friendly message; the settings are left unchanged;
-- a settings-file write failure is reported without rolling the (already active) hotkey back.
+The traditional capture hotkey follows the mode: in the traditional mode it is registered with the configured combination; in the direct mode it is **not registered** — the saved combination is preserved in the settings (unregistering never deletes the preference) and becomes free to be assigned to one of the direct slots. Switching back to the traditional mode registers the saved combination again and unregisters the direct hotkeys; a launch that is already configured for the direct mode registers only the direct slots.
+
+Applying a change (the "Salvar" button):
+
+- the combinations are validated (at least one of Ctrl/Alt/Windows, plus a letter, digit or F key F1–F24; no two of the four slots may carry the same combination — in the direct mode the saved traditional combination is not part of the check, because the traditional hotkey is not registered then; the direct slots always check against each other; the automatic policy requires an existing folder);
+- the capture hotkey follows the mode: direct mode unregisters it, traditional mode registers it through the recovery chain (the previous active combination, then the default, when the requested one is taken by another application);
+- the direct slots are registered only for their configured combinations (none when the mode is disabled);
+- only when everything is active is the settings file written; any failure restores the previous state and persists nothing (in a direct-mode transaction the previous state has no capture registration, so the recovery chain can never re-register the traditional hotkey while the mode is on), and a settings-file write failure is reported without rolling the (already active) change back.
 
 The key press interpretation (key, system key, modifier state → decision) is isolated in `Configuration/HotkeyInput` and unit-tested; the window only applies the decision to its states.
 
-Additional settings should not be added unless required by a future feature.
-
 Future settings (not part of the current UI, documented for direction only):
 
-- configurable shortcuts for the post-selection image actions (section 22);
-- image save directory (section 24);
 - spreadsheet preferences (section 24);
 - advanced HDR options in their own section (section 24).
 
@@ -525,44 +529,42 @@ Every UI element should have a functional reason to exist.
 
 ---
 
-# 22. Post-Selection Shortcuts (proposed — not finalized)
+# 22. Post-Selection Shortcuts (direct mode — implemented, V0.3 stage 4)
 
-After the user completes a region selection, the intended flow runs OCR automatically (`Ctrl + Shift + X` captures a region and executes OCR). On top of the result view actions (section 10), the product direction includes configurable shortcuts that act on the just-selected region:
+After the user completes a region selection, the traditional flow runs OCR automatically (`Ctrl + Shift + X` captures a region and executes OCR) and presents the result view. On top of it, the **direct mode** provides configurable global shortcuts that act on the just-selected region immediately, with no result window interaction — the action runs right after the selection and reports the outcome through a discreet tray notice:
 
 - a configurable shortcut to **copy the image** to the clipboard;
-- a configurable shortcut to **save the image**.
+- a configurable shortcut to **run OCR and copy the text**;
+- a configurable shortcut to **save the image** (the save policy of the settings decides: ask for a location on every action, or write to the configured folder with a unique file name).
 
-These shortcuts are part of the intent to minimize clicks and interruptions.
-
-**The proposed key combinations are not final.** They still need ergonomic validation and a conflict check against the capture hotkey, the `Esc` cancel key and common system/application shortcuts. Do not implement or document a specific combination as definitive until that validation is done.
-
-Both shortcuts must be configurable in Settings (section 24) once implemented.
+The combinations are **not predefined**: the slots start unset, and the user records any combination in Settings (section 14) — the ergonomic validation and the conflict check against the capture hotkey are the user's, with the application validating and reporting conflicts. No direct shortcut is registered by default, and an installation that upgrades into the direct mode never activates it automatically: the mode starts disabled, and enabling it registers only the configured combinations.
 
 ---
 
 # 23. First-Run Presentation
 
-**Status (M14): implemented.** On the first run only, a short window ("Bem-vindo
-ao CapParse") is shown: what the application does, how to start a capture (the
-active hotkey and the tray menu) and what happens after a selection. It is
-skippable (the window's close button dismisses it) and needs no configuration
-step — a single "Começar" button closes it. The "first run" state is persisted
-in the settings file (`FirstRunPresented`); a missing or legacy file reads as
-first run, so the presentation is shown exactly once per installation and never
-again.
+**Status (M14): implemented; mode choice added in V0.3 (stage 5).** On the first run only, a short window ("Bem-vindo ao CapParse") is shown: what the application does, how to start a capture (the active hotkey and the tray menu) and the choice of how the user wants to use the application:
+
+- **Modo Tradicional** — select a region, see the result and choose to copy or save manually. The recommended option for people starting out; it keeps the known CapParse behavior.
+- **Modo Direto** — select a region and the configured action runs right away, with no result window interaction. The shortcuts (copy image, OCR + copy text, save image) are defined by the user in the settings; the presentation never creates a combination on the user's behalf.
+- **Agora não** — defer the decision and continue with the traditional mode; the choice can be made later in the settings.
+
+The presentation is skippable: closing the window without choosing (the close button) keeps the traditional mode, so a dismissed presentation never changes a setting, never creates a hotkey and never blocks the normal use of the application.
+
+The mode is applied through the existing settings transaction: choosing the direct mode flips the persisted `DirectModeEnabled` flag (with no direct hotkey configured, it registers nothing), and the user is then pointed at the settings to configure the direct shortcuts. The "first run" state is persisted in the settings file (`FirstRunPresented`); a missing or legacy file reads as first run, so the presentation is shown exactly once per installation and never again — an existing installation that already has settings never sees it repeatedly.
 
 On the first run only, CapParse may show a short presentation:
 
 - what the application does;
 - how to start a capture (hotkey and tray);
-- what happens after a selection.
+- the choice between the traditional mode and the direct mode (or deferring it).
 
 It must be:
 
 - short;
 - non-blocking and skippable (not mandatory);
 - shown only on the first run; it must not appear again;
-- dismissible without any configuration step.
+- dismissible without any configuration step; choosing the direct mode creates no shortcut by itself.
 
 No first-run experience may be created beyond this.
 
@@ -570,11 +572,11 @@ No first-run experience may be created beyond this.
 
 # 24. Future Settings (direction only — not implemented)
 
-The Settings window (M13) ships with a single setting: the capture hotkey. The direction for later growth:
+The Settings window (M13) shipped with a single setting: the capture hotkey. Since the direct mode (V0.3, stage 4) it also configures the post-selection shortcuts (section 22) and the automatic image save directory (the destination folder of the direct "save image" action with the automatic policy).
 
-- configurable post-selection shortcuts (section 22);
-- image save directory (default location for Save Image);
+The remaining direction for later growth:
+
 - spreadsheet preferences (dedicated section, when spreadsheet conversion exists);
 - advanced HDR options in a dedicated section (only when the HDR initiative becomes available).
 
-None of these settings exist today. Do not build UI for them before the corresponding feature is implemented.
+None of the remaining settings exist today. Do not build UI for them before the corresponding feature is implemented.

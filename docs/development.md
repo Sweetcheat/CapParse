@@ -1222,7 +1222,7 @@ Se uma mudança torna o projeto significativamente mais complexo sem entregar va
 
 # 50. Estado atual do projeto (continuidade entre sessões)
 
-Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidação documental pós-M11 (2026-10), substitui a versão da auditoria de 2026-10-12 (que descrevia o estado de um clone obsoleto); atualizada na sessão M14 (registro do M13 publicado e do trabalho M14 local) e na sessão M15 (preparação da candidata v0.1.0-beta.2: documentação, metadados de versão, procedimento de publicação reproduzível e pacote de validação), na sessão M16 (M16-1 consistência documental pós-publicação da beta.2; M16-2 validação automatizada do OCR em inglês; M16-3 validação manual do erro de OCR pelo usuário; M16-4 registro do erro de captura como risco residual), nas sessões da V0.2 (fase 1: fundação de tema, §51; fase 2: MainWindow, §52; fase 3: SettingsWindow + seletor de tema, §53; fase 4: FirstRunWindow, §55; fase 5: modernização visual do overlay de captura, §56) e na sessão M16-6 (consolidação documental pós-publicação do trabalho M16, das fases 1–5 da V0.2 e do ciclo OCR/memória: publicação em `main`/`origin/main` até `051493d`, working tree limpo), e na sessão de refinamentos da Settings/`MainWindow` (botão de engrenagem na linha de título, altura da `SettingsWindow` por medição, teste de tokens da `MainWindow` — §60; publicado em `9256ec7` após validação manual do usuário) e na sessão de preparação da v0.1.0-beta.3 (bump de versão, pacote de distribuição e tag — §61). O que está marcado como "executado" tem evidência de comando na sessão indicada; o restante vem do histórico Git e da documentação verificada contra o código.
+Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidação documental pós-M11 (2026-10), substitui a versão da auditoria de 2026-10-12 (que descrevia o estado de um clone obsoleto); atualizada na sessão M14 (registro do M13 publicado e do trabalho M14 local) e na sessão M15 (preparação da candidata v0.1.0-beta.2: documentação, metadados de versão, procedimento de publicação reproduzível e pacote de validação), na sessão M16 (M16-1 consistência documental pós-publicação da beta.2; M16-2 validação automatizada do OCR em inglês; M16-3 validação manual do erro de OCR pelo usuário; M16-4 registro do erro de captura como risco residual), nas sessões da V0.2 (fase 1: fundação de tema, §51; fase 2: MainWindow, §52; fase 3: SettingsWindow + seletor de tema, §53; fase 4: FirstRunWindow, §55; fase 5: modernização visual do overlay de captura, §56) e na sessão M16-6 (consolidação documental pós-publicação do trabalho M16, das fases 1–5 da V0.2 e do ciclo OCR/memória: publicação em `main`/`origin/main` até `051493d`, working tree limpo), e na sessão de refinamentos da Settings/`MainWindow` (botão de engrenagem na linha de título, altura da `SettingsWindow` por medição, teste de tokens da `MainWindow` — §60; publicado em `9256ec7` após validação manual do usuário) e na sessão de preparação da v0.1.0-beta.3 (bump de versão, pacote de distribuição e tag — §61) e na sessão da Etapa 4 (Settings, persistência e ativação do Modo Direto — §62; trabalho local, sem commit) e na sessão da Etapa 5 (escolha do modo na primeira execução — §63; trabalho local, sem commit), nas sessões dos estágios corretivos e hotfixes (hotkey tradicional no Modo Direto §65, isolamento absoluto entre os modos §66, conflitos de hotkey entre modos mutuamente exclusivos §67, falha residual de registro na transição Direto → Tradicional §68, falha de cópia de texto com clipboard travado §69; todos trabalho local, sem commit) e na sessão do refinamento da bandeja ("Capturar" desabilitado no Modo Direto — §70; trabalho local, sem commit) e na sessão de validação manual da primeira execução (Fases 3A/3B: testes A1–A4.2 no executável Debug — §71; trabalho local, sem commit). O que está marcado como "executado" tem evidência de comando na sessão indicada; o restante vem do histórico Git e da documentação verificada contra o código.
 
 ## 50.1 Repositório de referência
 
@@ -1231,8 +1231,8 @@ Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidaç
 
 ## 50.2 Estado do repositório (consolidação M16-6)
 
-- Branch: `main`; HEAD = `origin/main` = `9256ec7` (feat: add settings button to the main window) — sincronizada com o GitHub; o commit de preparação da v0.1.0-beta.3 (bump de versão + documentação, §61) é seu descendente direto.
-- Working tree: limpo (após o commit de preparação da beta.3); todo o trabalho está **publicado** em `main`/`origin/main`: `04c293f` (M16-1 consistência documental + M16-2 smoke tests de OCR em inglês), `1df2a45` (ícone mascote: executável, janela principal e bandeja), `5a8446e` (V0.2 fases 1–4: sistema de tema, `MainWindow`, `SettingsWindow` + seletor de tema, `FirstRunWindow`), `bdfde50` (V0.2 fase 5: destaque da seleção do overlay), `9faccef` (P1: reconstrução de espaços no OCR), `e307ac8` (experimento A/B de memória do ONNX Runtime), `051493d` (promoção da variante `noarena` ao padrão de produção), `9d56b8e` (consolidação documental da M16) e `9256ec7` (V0.2 §60: botão de Settings na `MainWindow`, altura da `SettingsWindow` por medição, teste de tokens + documentação).
+- Branch: `main`; HEAD = `origin/main` = `e225eb6` (docs: refresh README for the v0.1.0-beta.3 release) — sincronizada com o GitHub.
+- Working tree: **alterações locais não commitadas** — Etapas 1–5 (Etapa 1: layout da `FirstRunWindow`; Etapa 2: `GlobalHotkey` multi-id + `HotkeySlots`; Etapa 3: `DirectAction`/`OcrRunOutcome`/`DirectActionRunner` + integração no `App`; Etapa 4: Settings transacional + persistência do Modo Direto + política de salvamento — §62; Etapa 5: escolha do modo na primeira execução — §63), os estágios corretivos/hotfixes §64–§69, o refinamento da bandeja §70 ("Capturar" desabilitado no Modo Direto) e o registro da validação manual da primeira execução §71 (Fases 3A/3B). Nenhum commit, tag ou push foi feito; o estado anterior foi integralmente preservado e estendido em cada sessão.
 - Tag `v0.1.0-beta.1` → `86e3d17`: a release beta publicada **não inclui** o M11, o M12, o M13 nem o M14. A tag não foi movida nem alterada.
 - Tag `v0.1.0-beta.2` → `178c940`: release publicada no GitHub em 2026-10-13 ("Latest", 3 assets), com o pacote `build/dist/CapParse-v0.1.0-beta.2-win-x64.zip` (dados em §50.5). `build/dist/CapParse-v0.1.0-beta.1-win-x64.zip` é **desatualizado** (anterior a M11–M14) e não deve ser reutilizado como artefato final.
 - Tag `v0.1.0-beta.3` → commit de preparação desta sessão (§61, descendente de `9256ec7`): pacote `build/dist/CapParse-v0.1.0-beta.3-win-x64.zip`; a GitHub Release e o upload do asset são feitos manualmente pelo usuário.
@@ -1291,6 +1291,9 @@ Decisões de produto tomadas na linha principal (registradas aqui para evitar "c
 
 ## 50.5 Evidências de build e testes
 
+- Refinamento da bandeja — "Capturar" desabilitado no Modo Direto (sessão atual, §70): baseline pré-mudança **554/554** aprovados em Debug (suíte das Etapas 1–5 + hotfixes §64–§69, verificada por timestamps: build e testes concluíram antes da criação de qualquer arquivo novo desta sessão). `dotnet build` + `dotnet test` em **Debug** — 0 erros, **559/559 aprovados** (554 anteriores + 5 novos em `TrayMenuTests`); em **Release** — 0 erros, **559/559 aprovados**; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo. Validação automática cobre: o item "Capturar" habilitado por padrão, `SetCaptureEnabled(false)` desabilitando-o (e `true` reabilitando), o clique disparando o callback de captura, os itens Configurações/Sair funcionando com o "Capturar" desabilitado e a ordem/descrição dos três itens. A decisão de modo (quais estados commitado/pendente desabilitam o item) é o guard puro já coberto por `HotkeyTransactionTests` (`TraditionalCaptureAllowed`); a inspeção visual do item acinzentado foi observada pelo usuário nas Fases 3A/3B (§71: desabilitado no A3 — Modo Direto; habilitado no A2/A4.2 — Modo Tradicional) e o fluxo completo com as configurações em execução foi exercitado nesses mesmos cenários (hotkey, captura, bandeja); os demais itens de §70.4 permanecem como registrados.
+- Etapa 5 — escolha do modo na primeira execução (sessão atual, §63): baseline pré-mudança com 476/476 aprovados em Debug e Release (consolidação da auditoria das Etapas 1–4). `dotnet build` + `dotnet test` em **Debug** — 0 erros, **483/483 aprovados** (476 anteriores + 7 novos: `FirstRunWindow` — choice padrão `Deferred`, três botões de escolha (setam a choice e fecham a janela), apresentação explica os dois modos + nota dos atalhos (5); `AppSettings` — a escolha do Modo Direto persiste o flag sem criar nenhuma hotkey, e a escolha/adiamento do Modo Tradicional mantém o modo desativado entre inicializações (2)); em **Release** — 0 erros, **483/483 aprovados**; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo. Validação automática cobre: a janela nunca cria hotkey por si (a choice é apenas um dado), `Close()` sem escolha mantém `Deferred`, o layout da Etapa 1 (`SizeToContent=Height` + teto do `ScrollViewer`) continua íntegro, e a persistência reusa o `settings.json` existente (`DirectModeEnabled` + `FirstRunPresented`) sem novo mecanismo. A apresentação de primeira execução em execução foi **validada pelo usuário** nas Fases 3A/3B (§71: A1 tela sem cortes, A2 "Agora não", A3 "Modo Direto" — persistência e nenhum atalho criado automaticamente, A4.1 Enter/Tradicional, A4.2 X/Esc), com a ressalva da notificação de bandeja em §71.3 (investigação em aberto). Permanece pendente no desktop real: a configuração subsequente dos atalhos diretos nas Settings e o comportamento em DPI/monitores reais (incluindo a validação visual da Etapa 1).
+- Etapa 4 — Settings, persistência e ativação do Modo Direto (sessão atual, §62): baseline pré-mudança com 447/447 aprovados em Debug. `dotnet build` + `dotnet test` em **Debug** — 0 erros, **476/476 aprovados** (447 anteriores + 29 novos: `DirectHotkeyApplierTests` (9), migração/defaults/fallback por campo/clone/slots do `AppSettings` (10), `TrySaveToFolder`/`UniqueFileName` no `CropImageSaver` (10)); em **Release** — 0 erros, **476/476 aprovados**; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo. Validação automática cobre: defaults e migração de configurações antigas (modo direto nunca se ativa sozinho), conflitos entre os quatro slots, transação de registro (desativar não registra; ativar registra só o configurado; falha restaura o estado anterior), nomes únicos sem sobrescrita e cancelamento silencioso do diálogo na política manual. **Pendente no desktop real** (usuário): a UI da `SettingsWindow` completa (gravação das 4 hotkeys, toggle, pasta, temas), o registro global real das hotkeys diretas e a execução das ações diretas (copiar/OCR/salvar) com feedback de bandeja, em DPI/monitores reais.
 - Refinamentos de Settings/`MainWindow` (sessão atual, §60): `dotnet build` + `dotnet test` em **Debug** — 0 erros, **412/412 aprovados** (411 anteriores + 1 novo: `MainWindow_OnlyUsesTokensThatExistInBothThemes`); em **Release** — 0 erros, **412/412 aprovados**; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo. `git diff --check` limpo; diff limitado a `src/CapParse/MainWindow.xaml`, `src/CapParse/MainWindow.xaml.cs`, `src/CapParse/App.xaml.cs`, `src/CapParse/SettingsWindow.xaml`, `tests/CapParse.Tests/ThemeServiceTests.cs` e a documentação (`ui.md`, `architecture.md`, `development.md`) — OCR, captura, overlay, tray e hotkeys inalterados. Altura da `SettingsWindow` definida por **medição** com o harness offscreen (`%TEMP%\CapParseThemeHarness`, modo `measure`, estendido nesta sessão): chrome da janela 39 dip, largura do cliente 444 dip e alturas de conteúdo **568.67** (Current com nota de 2 linhas — o estado mais alto) / **550.68** (Recording com erro de 2 linhas) / **552.71** (Confirm) dip, idênticas nos dois temas → `Height` 620→**612** (chrome 39 + teto 569 + 4 dip de folga para variação de métricas de fonte entre máquinas). Renders offscreen dos 6 combinações estado×tema em 612 (sem corte de conteúdo; rodapé a ~24 dip do painel Tema) e da `MainWindow` nos dois temas (glifo da engrenagem U+E713 presente, via `Segoe Fluent Icons` com fallback `Segoe MDL2 Assets`) inspecionados com Vision (10/12 imagens da sessão). `settings.json` do usuário intocado (SHA-256 idêntico antes/depois: `557D8EB7…8BAE31DC`). **Validação manual concluída pelo usuário** no executável (duas rotas de Settings, mesma instância ativada, temas claro/escuro, tooltip/hover/foco com Tab/Enter/Espaço, estados Current/Recording/Confirm com erro, rodapé sem corte, DPI 100/125/150). Publicado em `9256ec7` (push para `origin/main`).
 - V0.2 fase 5 (sessão atual, modernização visual do overlay de captura): `dotnet build` + `dotnet test` em **Debug** — 0 erros, **363/363 aprovados** (359 anteriores + 4 novos: `MonitorOverlayWindowTests` — geometria do escurecimento: superfície integral, furo sobre a seleção, seleção de área zero ignorada, furo registrado como dado); em **Release** — 0 erros, **363/363 aprovados**; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo. `git diff --check` limpo; diff revisado: apenas `UI/MonitorOverlayWindow.cs`, `UI/FrozenOverlaySession.cs` (constante `DimOpacity` + construtor), `Themes/Theme.{Light,Dark}.xaml` (token `OverlayDimBrush`) e `tests/CapParse.Tests/MonitorOverlayWindowTests.cs` (novo) — a lógica de revelação em dois frames, congelamento, coordenadas, seleção, DPI e multi-monitor é **inalterada** (verificado no diff). **Vision validado na sessão** (imagem de teste inspecionada com sucesso; 11/12 imagens usadas). Validação visual do overlay real (executável, tema dark via `System`/`AppsUseLightTheme=0`): o overlay em repouso mostra o desktop congelado com o novo escurecimento dark (40%) — conteúdo mais reconhecível que o anterior (50%); durante a seleção, a área é destacada a brilho pleno (corte no escurecimento) com borda de acento de 2px — em ambos os estados, sem flash preto, sem janelas residuais, app vivo em todos os checkpoints e encerrado limpo. O tema light foi validado por render offscreen (harness) nos dois estados (repouso/seleção), pois a preferência do usuário é `System`→dark e o `settings.json` não pode ser alterado. **Limitações:** o driver sintético de mouse (`SendInput`) não produziu a seleção exata coordenada que foi enviada (o retângulo visível aparece deslocado/estreito; a seleção final do run resultou em cancelamento — janela principal em estado ocioso) — artefato do driver em monitor 133%, não do aplicativo (a seleção real foi validada pelo usuário na M15); a inspeção do flash preto em tempo de execução continua coberta pela lógica de revelação em dois frames inalterada + a ausência de flash nos frames capturados, não por gravação de vídeo; a validação humana (incluindo a preferência light no executável) permanece pendente com o usuário. `settings.json` do usuário intocado (SHA-256 idêntico antes/depois). PNGs de referência: `%TEMP%\overlay-{before,after}-{rest,drag,result}.png` (executável) e `%TEMP%\overlay-{before,after}-{light,dark}-{idle,select}.png` (harness offscreen).
 - V0.2 fase 4 (sessão atual, modernização visual da `FirstRunWindow`): `dotnet build` + `dotnet test` em **Debug** — 0 erros, **359/359 aprovados** (358 anteriores + 1 novo: `FirstRunWindow_OnlyUsesTokensThatExistInBothThemes`); em **Release** — 0 erros, **359/359 aprovados**; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo. Validação visual offscreen (harness descartável em `%TEMP%\CapParseThemeHarness`, estendido nesta fase com o modo `firstrun`/`firstrun-swap`): renders 520×300 da `FirstRunWindow` nos dois temas com a paleta exata dos tokens (light: `FFFFFF`/`F3F4F6`/`2E6BE6`/`464E58`/`1A1E24`/`D6DAE0`; dark: `22262E`/`1A1D23`/`5B93FF`/`B9C0CA`/`F1F3F6`/`39404C`) e sem nenhum controle sem tema; troca ao vivo (uma instância: render light → dicionário trocado para dark → render) produz contagens de pixels idênticas entre os dois temas (mesmo layout, paleta trocada) — re-tematização sem reinício; geometria do botão "Começar" medida no accent: `x=37, y=232, 130×31` nos dois temas (invariante); `settings.json` do usuário não tocado (SHA-256 idêntico antes/depois dos runs do harness). **Limitação:** a inspeção visual humana/modelada **não pôde ser realizada nesta sessão** — o modelo da sessão não aceita imagens (a política de Vision, `AGENTS.md` §39/§54, exige declarar isso explicitamente); os histogramas/medições de pixels acima são evidência objetiva complementar, não substituto da avaliação visual; estados interativos (hover, pressed, anel de foco) existem nos templates, mas não foram exercitados por interação real; o fluxo real de primeira execução no executável (com a flag re-armada) não foi exercitado nesta sessão — permanece a validação manual do usuário.
@@ -1324,13 +1327,14 @@ M16 (Beta Feedback & Stabilização) — itens M16-1 a M16-4 concluídos e M16-6
 6. M16-6 consolidação da documentação de continuidade (esta seção) — **concluída** neste commit.
 
 V0.2 (Modernização visual) — fases 1–5 **publicadas** (`5a8446e` fases 1–4, `bdfde50` fase 5; ícone mascote em `1df2a45`): fundação de tema §51, `MainWindow` §52, `SettingsWindow` + seletor §53, `FirstRunWindow` §55, overlay de captura §56. O asset `.ico` da mascote foi integrado em `src/CapParse/Assets/capparse.ico` (ícone do executável via `ApplicationIcon`, janela principal via recurso WPF e bandeja via `NotifyIcon`, com descarte do `Icon` no `ExitApplication`). Pendência:
-1. Validação humana completa no executável (dois temas, estados interativos (hover/foco), seletor, apresentação de primeira execução e overlay em repouso/seleção, multi-monitor/DPI) — pendente de confirmação do usuário; não presumir que já foi realizada.
+1. Validação humana completa no executável (dois temas, estados interativos (hover/foco), seletor, overlay em repouso/seleção, multi-monitor/DPI) — pendente de confirmação do usuário, exceto a apresentação de primeira execução, validada nas Fases 3A/3B (§71); não presumir que os demais itens já foram realizados.
 
 Ciclo de OCR/memória (P1 + experimento A/B + promoção `noarena`) — **publicado** (`9faccef`, `e307ac8`, `051493d`) e encerrado; a validação manual da aplicação (inicialização, captura, OCR, cópia de texto e imagem, salvamento e encerramento) foi realizada pelo usuário.
 
 Próximos passos — dependem de decisões e validações do usuário (nenhum deles deve ser presumido como já realizado):
 
-1. Validar manualmente a V0.2 no executável, caso ainda não tenha sido feito (o refinamento §60 — temas, botão de Settings, `SettingsWindow`, teclado e DPI — já foi validado pelo usuário antes de `9256ec7`; restam, se não exercitados, a apresentação de primeira execução e o overlay em uso real).
+0. **Revisão e commit do trabalho local acumulado** (Etapas 1–5, estágios corretivos/hotfixes §64–§69, refinamento da bandeja §70 e registro de validação §71) — tudo está no working tree (sem commit) e aguarda revisão do usuário; a validação manual da primeira execução foi concluída (§71, com a ressalva de notificação em §71.3) e as demais validações manuais no desktop estão listadas em §50.5 e nas seções correspondentes.
+1. Validar manualmente a V0.2 no executável, caso ainda não tenha sido feito (o refinamento §60 — temas, botão de Settings, `SettingsWindow`, teclado e DPI — já foi validado pelo usuário antes de `9256ec7`; a apresentação de primeira execução foi validada nas Fases 3A/3B — §71; resta, se não exercitado, o overlay em uso real).
 2. Decidir se os diagnósticos `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` devem ser removidos (M16-5) ou mantidos.
 3. Publicar a GitHub Release da `v0.1.0-beta.3` (tag já enviada ao repositório, §61): o usuário faz manualmente a criação da Release e o upload de `build/dist/CapParse-v0.1.0-beta.3-win-x64.zip`.
 4. Considerar uma nova beta seguinte somente depois das verificações anteriores e de autorização explícita.
@@ -1369,9 +1373,9 @@ Restrição operacional: o OCR a partir do pacote beta.2 embalado só pode ser v
 ## 50.9 Como iniciar uma nova sessão
 
 1. Ler `AGENTS.md` e esta seção.
-2. Trabalhar somente em `C:\Dev\CapParseIntegI`; conferir `git status` / `git log` (HEAD deve ser `9256ec7` ou um descendente; o working tree deve refletir apenas o trabalho da sessão atual).
+2. Trabalhar somente em `C:\Dev\CapParseIntegI`; conferir `git status` / `git log` (HEAD deve ser `e225eb6` ou um descendente, §50.2; o working tree contém o trabalho local acumulado e não commitado das Etapas 1–5, dos estágios §64–§69, do refinamento §70 e do registro de validação §71 — §50.2 —, que deve ser preservado integralmente: nenhum `git clean`, `git reset` ou descarte de alterações).
 3. Iniciar o contador de imagens da sessão (política de Vision, `AGENTS.md` §39 / §54) em `0`.
-4. Executar `dotnet build` e `dotnet test` (suíte atual: 412 testes).
+4. Executar `dotnet build` e `dotnet test` (suíte atual: 559 testes — última execução registrada em §50.5/§70: 559/559 aprovados em Debug e Release, 0 erros, apenas o aviso preexistente xUnit2020).
 5. Trabalhar apenas no milestone atual; não criar commit, tag ou push sem aprovação explícita.
 6. Atualizar esta seção ao final da sessão (estado, evidências, pendências).
 
@@ -2063,3 +2067,443 @@ do asset serão feitos manualmente pelo usuário).
 
 - Publicação da GitHub Release `v0.1.0-beta.3` + upload do ZIP: **manual,
   pelo usuário** (a tag já está no repositório).
+
+---
+
+# 62. Etapa 4 — Settings, persistência e ativação do Modo Direto (sessão atual, trabalho local)
+
+Sessão da Etapa 4 do plano de evolução do Modo Direto (Etapa 1: layout da `FirstRunWindow`; Etapa 2: `GlobalHotkey` multi-id + `HotkeySlots`; Etapa 3: `DirectActionRunner` + integração no `App` — tudo preservado e estendido neste trabalho). **Sem commit, tag ou push**: o trabalho permanece no working tree para revisão.
+
+## 62.1 Escopo executado
+
+- **Preferências persistentes** (`Configuration/AppSettings.cs`, novo campo por campo, `Version` do arquivo mantida em 1): `DirectModeEnabled` (padrão `false`), três hotkeys diretas independentes (`DirectCopyImageHotkey`/`DirectCopyTextHotkey`/`DirectSaveImageHotkey`, padrão null = não configurada), `DirectSavePolicy` (`Manual`/`Automatic`, padrão `Manual` — novo `Configuration/ImageSavePolicy`) e `DirectSaveFolder` (padrão vazio). Migração compatível: cada campo novo é lido com fallback próprio (arquivo legado → modo desativado, slots não configurados, política manual, pasta vazia) e um campo corrompido degrada só a si mesmo — uma instalação existente nunca entra no Modo Direto após a atualização. `Clone()` suporta a semântica transacional da janela.
+- **`Configuration/DirectHotkeyApplier.cs`** (novo, puro, testável sem Win32): `Apply` (modo desativado desregistra tudo preservando as combinações; modo ativado registra apenas os slots configurados; slot já na combinação desejada não é re-registrado; falha de registro reporta as combinações) e `Restore` (força os slots de volta ao estado operacional anterior — o rollback da transação).
+- **Política de salvamento** (`UI/CropImageSaver.cs`): novo `TrySaveToFolder` (pasta válida exigida; nome gerado com a convenção existente `CapParse-yyyymmdd-HHmmss.png` tornado único por `UniqueFileName` — sufixos ` (2)`, ` (3)`…; nunca sobrescreve; reusa o `WritePng` existente — uma única implementação de salvamento para as duas políticas). `UI/DirectActionRunner.cs`: a dependência de `CropImageSaver` virou um delegate de salvamento que o `App` compõe no momento da ação (manual → diálogo, com cancelamento silencioso; automático → pasta), de modo que a mudança de política vale para a próxima ação sem reinício.
+- **Transação de configurações** (`App.xaml.cs`): novo `ApplySettings(AppSettings)` — valida (conflitos entre os quatro slots via `HotkeyConflictValidator`; política automática exige pasta existente) → snapshot do estado operacional (hotkey de captura ativa + slots diretos registrados) → aplica a hotkey de captura (somente se mudada; cadeia de recuperação intacta) → aplica os slots diretos → **só então** commita (configurações em memória + `TrySave` + tema, quando mudado). Qualquer falha restaura o estado operacional anterior (slots diretos via `Restore` + hotkey de captura) e não persiste nada. Substitui as APIs imediatas `SaveSettings`/`ApplyThemePreference`/`SavedCaptureHotkey` (janela agora usa `SavedSettingsSnapshot()` + `DirectSlotOperationalState(slot)` + `ApplySettings`).
+- **Registro em startup** (`App.xaml.cs`): `RegisterDirectHotkeys()` registra, apenas quando o modo está ativado, apenas as combinações configuradas; falhas de registro são listadas em uma única mensagem e as combinações permanecem salvas. Nenhuma hotkey direta é registrada por padrão; o `Dispose` do `GlobalHotkey` em `OnExit` libera todos os ids (sem órfãos).
+- **`SettingsWindow`** (XAML + code-behind reescritos no mesmo estilo/tema): semântica transacional — todos os controles editam apenas uma cópia pendente (`AppSettings` clone); **Salvar** commita via `ApplySettings` (aplicado → fecha; falha de arquivo → aviso e fecha; rejeitado → restaura o pendente para o salvo, mostra o motivo e mantém a janela aberta); **Cancelar**/fechar descarta o pendente. Painel **Modo Direto**: toggle, três slots com gravação (mesmo padrão de tecla existente, alvo compartilhado), `Limpar`, notas de slots que não puderam ser registrados; seletor de **política de salvamento** e **pasta** (diálogo de pasta do WPF .NET 8, `OpenFolderDialog`; a pasta só aparece/exige-se com a política automática). O painel de tema passa a ser pendente ("aplicada ao salvar"). Altura da janela por `SizeToContent` + teto do `ScrollViewer` na área de trabalho (padrão da Etapa 1, reutilizando `FirstRunWindow.ContentMaxHeight`) — a altura fixa 612 não comportava o novo painel.
+- **Documentação**: `ui.md` §13 (salvamento implícito → explícito, com a nuance da política automática), §14 (janela transacional + painéis), §22 (atalhos pós-seleção implementados como Modo Direto, combinações não predefinidas) e §24 (direções remanescentes); `development.md` §50 (estado, evidências, próximos passos) e esta seção.
+
+## 62.2 Decisões de implementação e compatibilidade
+
+1. **`Version` do `settings.json` permanece 1**: os campos novos são aditivos e o loader já tolera campos ausentes (mesma estratégia de `FirstRunPresented` e `ThemePreference`); bumpar a versão faria arquivos legítimos lerem como corrompidos.
+2. **Fallback por campo, não por arquivo**: um `DirectSavePolicy` inválido degrada só a política (para `Manual`); uma hotkey direta inválida lê como slot não configurado — o mesmo princípio do tema, estendido aos novos campos.
+3. **O runner não conhece a política**: o delegate de salvamento compõe `TrySave` (diálogo) ou `TrySaveToFolder` (pasta) a partir das configurações vivas no instante da ação — sem reconstruir o runner nem reiniciar, e sem uma segunda implementação de salvamento (ambos os caminhos passam pelo `CropImageSaver`).
+4. **Rollback unitário**: a transação restaura captura **e** slots diretos juntos (`DirectHotkeyApplier.Restore` + cadeia de recuperação da captura), porque uma falha em qualquer parte rejeita o conjunto; o arquivo só é gravado quando tudo está ativo.
+5. **Sem combinações padrão para os slots diretos**: a Etapa 5 (escolha de modo na primeira execução) decidirá eventuais sugestões; nada é registrado por padrão.
+6. **Auditoria da Etapa 3** (item obrigatório): concorrência do OCR (`RunRecognitionAsync` — cancelamento, `CompleteRun`/`FailRun` só pelo run mais recente), liberação do `_captureInFlight` em todos os caminhos (callback da sessão, `CAPPARSE_NO_OVERLAY`, `catch`), tratamento de exceções do runner (feedback de bandeja, nunca crash) e descarte da bandeja (`ShowTrayNotification` com guarda de shutdown) foram inspecionados; **nenhuma correção concreta foi necessária** — a única lacuna era a própria integração desta etapa.
+7. `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` preservados; versões/tags/releases intocadas; nenhum processo do usuário foi encerrado; `C:\Dev\CapParse` não foi tocado.
+
+## 62.3 Evidências
+
+- Baseline (antes das edições da etapa): build Debug 0 erros + **447/447** aprovados.
+- `dotnet build` + `dotnet test` **Debug**: 0 erros, **476/476 aprovados** (+29 novos: 9 `DirectHotkeyApplierTests`, 10 de `AppSettings` — migração/defaults/fallback por campo/round-trip/clone/slots, 10 de `CropImageSaver` — `TrySaveToFolder`/`UniqueFileName`); `DirectActionRunnerTests` adaptados ao delegate de salvamento (cancelamento do diálogo segue silencioso).
+- `dotnet build -c Release` + `dotnet test -c Release`: 0 erros, **476/476 aprovados**; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo.
+- Cobertura automática do comportamento transacional: modo desativado não registra slots diretos; ativação registra apenas o configurado; desativação desregistra sem apagar as combinações; falha de registro + `Restore` recupera o estado operacional exato; conflitos entre os quatro slots; rejeição da política automática sem pasta válida (validação no `ApplySettings`); nomes únicos sem sobrescrita (dois saves no mesmo segundo → dois arquivos, o primeiro byte-idêntico).
+- **Não validado automaticamente** (exige desktop real): a `SettingsWindow` em execução (gravação das quatro hotkeys, toggle, diálogo de pasta, temas), o registro global real das hotkeys diretas (`RegisterHotKey`), a execução das ações diretas com feedback de bandeja, e o comportamento em monitores/DPI reais. A suíte não simula como validado nenhum desses comportamentos.
+
+## 62.4 Arquivos
+
+- Novos: `src/CapParse/Configuration/ImageSavePolicy.cs`, `src/CapParse/Configuration/DirectHotkeyApplier.cs`, `tests/CapParse.Tests/DirectHotkeyApplierTests.cs`.
+- Alterados: `src/CapParse/Configuration/AppSettings.cs`, `src/CapParse/Configuration/HotkeySlots.cs`, `src/CapParse/UI/CropImageSaver.cs`, `src/CapParse/UI/DirectActionRunner.cs`, `src/CapParse/App.xaml.cs`, `src/CapParse/SettingsWindow.xaml`, `src/CapParse/SettingsWindow.xaml.cs`, `tests/CapParse.Tests/AppSettingsTests.cs`, `tests/CapParse.Tests/CropImageSaverTests.cs`, `tests/CapParse.Tests/DirectActionRunnerTests.cs`, `docs/ui.md`, `docs/development.md`.
+- Preservados intatos (Etapas 1–3): `src/CapParse/FirstRunWindow.*`, `src/CapParse/Platform/GlobalHotkey.cs`, `src/CapParse/Capture/DirectAction.cs`, `src/CapParse/Configuration/HotkeyConflictValidator.cs`, `src/CapParse/OCR/OcrRunOutcome.cs`, `tests/CapParse.Tests/GlobalHotkeyTests.cs`, `tests/CapParse.Tests/FirstRunWindowTests.cs`, `tests/CapParse.Tests/HotkeyConflictValidatorTests.cs`.
+
+## 62.5 Pendências
+
+- **Revisão do usuário** desta etapa (incluindo a validação manual no desktop listada em §62.3) antes de qualquer commit.
+- **Etapa 5** (escolha do modo na primeira execução): não iniciada, por escopo.
+
+---
+
+# 63. Etapa 5 — Escolha do modo na primeira execução (sessão atual, trabalho local)
+
+Sessão da Etapa 5 do plano de evolução do Modo Direto (Etapas 1–4 preservadas e estendidas neste trabalho: layout da `FirstRunWindow`, `GlobalHotkey` multi-id, `DirectActionRunner`, Settings transacional + persistência do Modo Direto). **Sem commit, tag ou push**: o trabalho permanece no working tree para revisão.
+
+## 63.1 Escopo executado
+
+- **Escolha do modo na `FirstRunWindow`** (`FirstRunWindow.xaml` + `.xaml.cs`): a apresentação de primeira execução agora explica os dois modos — **Modo Tradicional** (selecionar a região, ver o resultado e escolher copiar ou salvar; recomendado para quem está começando) e **Modo Direto** (a ação configurada é executada na hora, sem a janela de resultado; os atalhos — copiar imagem, OCR + copiar texto, salvar imagem — são definidos pelo usuário em Configurações) — e oferece três ações: **Modo Tradicional** (botão de destaque, confirmado com Enter), **Modo Direto** e **Agora não** (adiar a decisão e continuar com o Modo Tradicional; a escolha pode ser feita depois nas Settings). O botão "Começar" foi substituído por esses três. O shell da Etapa 1 é preservado: `SizeToContent="Height"` + `ScrollViewer` com teto derivado da área de trabalho (`ContentMaxHeight`), então nenhum texto é cortado em qualquer escala de DPI.
+- **`FirstRunModeChoice`** (novo enum no code-behind da janela): `Deferred` (padrão — fecha a janela sem escolher, X/Esc, ou "Agora não"), `Traditional`, `Direct`. A janela expõe a choice e não tem efeito colateral próprio: ela não grava nada, não registra hotkey e não toca nas configurações.
+- **Integração no `App`** (`App.xaml.cs`): `ShowFirstRunPresentationIfDue` (inalterado no seu gatilho — `FirstRunPresented`, marcado quando a apresentação é *mostrada*, logo a janela nunca reaparece independentemente de como é fechada) agora assina `Closed` da janela. No fechamento, `OnFirstRunModeChosen` aplica a escolha **pelo mecanismo existente de configurações**: `Traditional`/`Deferred` não fazem nada (o flag já está `false` numa instalação nova — nada é gravado, nada é registrado); `Direct` inverte `DirectModeEnabled` através da transação `ApplySettings` (clone pendente com apenas o flag alterado) — como a apresentação nunca cria hotkey, a transação não registra nada e só persiste o flag — e então uma notificação de bandeja aponta o usuário para as Configurações para definir os atalhos. Guard de shutdown: uma escolha feita durante o encerramento é descartada.
+- **Documentação**: `ui.md` §23 (apresentação de primeira execução com a escolha do modo) e esta seção + §50.
+
+## 63.2 Decisões de implementação e compatibilidade
+
+1. **Sem novo mecanismo de persistência**: a detecção da primeira execução reusa `FirstRunPresented` e a escolha reusa `DirectModeEnabled` — os dois campos já existiam e já são persistidos no `settings.json` (`Version` permanece 1; nenhuma migração, nem destrutiva nem aditiva, foi necessária).
+2. **A escolha é aplicada pela transação existente** (`ApplySettings`), não por uma segunda implementação de ativação: o caminho `Direct` percorre a mesma validação/snapshot/rollback da Settings, e com nenhum slot configurado o applier de hotkeys diretas não emite nenhuma chamada de registro.
+3. **A apresentação nunca inventa combinação**: escolher o Modo Direto não preenche as três hotkeys (elas continuam vazias e sem registro global); a janela e a notificação explicam que os atalhos são configurados nas Settings.
+4. **Fechar sem escolher é inofensivo**: `Choice` nasce `Deferred`; X/Esc/fechar não gravam nada, não alteram o modo e não impedem o uso normal do aplicativo.
+5. **Instalações existentes não veem o assistente repetidamente**: `FirstRunPresented` é `true` em qualquer instalação que já tenha visto a apresentação (marcado no momento em que ela é *mostrada*), e um arquivo legado/ausente é a única condição que a exibe.
+6. `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` preservados; pipeline de captura/OCR, política de salvamento, `SettingsWindow` e `GlobalHotkey` intocados nesta etapa; versões/tags/releases intocadas; nenhum processo do usuário foi encerrado; `C:\Dev\CapParse` não foi tocado.
+7. Os achados M1–M5/I1–I3 da auditoria integrada das Etapas 1–4 permanecem abertos (fora do escopo desta etapa, por regra).
+
+## 63.3 Evidências
+
+- Baseline (auditoria integrada das Etapas 1–4): 476/476 aprovados em Debug e Release.
+- `dotnet build` + `dotnet test` **Debug**: 0 erros, **483/483 aprovados** (+7 novos: 5 de `FirstRunWindow` — choice padrão `Deferred` ao fechar sem escolher, os três botões setam a choice e fecham a janela, a apresentação explica os dois modos com a nota dos atalhos; 2 de `AppSettings` — a escolha do Modo Direto persiste o flag sem criar nenhuma hotkey (slots permanecem nulos, política manual), e a escolha/adiamento do Modo Tradicional mantém o modo desativado entre inicializações com `FirstRunPresented` persistido).
+- `dotnet build -c Release` + `dotnet test -c Release`: 0 erros, **483/483 aprovados**; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo.
+- O smoke test real de OCR (engine + modelos locais) segue aprovado dentro da suíte.
+- **Não validado automaticamente** (exige desktop real): a apresentação em execução (clique nos três botões, Enter no modo recomendado, X/Esc), o modo direto ativado na primeira execução com a configuração subsequente dos atalhos nas Settings e a notificação de bandeja, o registro global real das hotkeys diretas, e o comportamento em monitores/DPI reais (a validação visual da `FirstRunWindow` em diferentes escalas — pendente da Etapa 1 — continua devida, agora com o conteúdo ampliado).
+
+## 63.4 Arquivos
+
+- Alterados: `src/CapParse/FirstRunWindow.xaml`, `src/CapParse/FirstRunWindow.xaml.cs`, `src/CapParse/App.xaml.cs`, `tests/CapParse.Tests/FirstRunWindowTests.cs`, `tests/CapParse.Tests/AppSettingsTests.cs`, `docs/ui.md`, `docs/development.md`.
+- Nenhum arquivo novo nesta etapa (o enum `FirstRunModeChoice` vive no code-behind da janela); nenhum outro arquivo foi tocado.
+
+## 63.5 Pendências
+
+- **Revisão do usuário** desta etapa (incluindo a validação manual no desktop listada em §63.3) antes de qualquer commit.
+
+---
+
+# 64. Hotfix — `SettingsWindow` crash no `ControlTemplate` do toggle (sessão local)
+
+Correção de um crash real reportado: ao abrir a Configurações, o processo morria com `O TargetType de ControlTemplate 'Button' não corresponde ao tipo de modelo 'ToggleButton'`.
+
+## 64.1 Causa raiz
+
+Em `SettingsWindow.xaml`, o `Style x:Key="ToggleSwitchStyle"` (TargetType `ToggleButton`) referenciava `Template = {StaticResource ButtonTemplate}` — um `ControlTemplate` com `TargetType="Button"`, aplicado ao `ToggleButton x:Name="DirectModeToggle"`. O WPF valida o `TargetType` do template contra o tipo do controle no **primeiro layout pass** (quando a janela é exibida); compilação XAML e testes que nunca exibem a janela não capturam a falha — o crash só apareceu no desktop.
+
+## 64.2 Correção
+
+- `SettingsWindow.xaml`: novo `ControlTemplate x:Key="ToggleButtonTemplate"` com `TargetType="ToggleButton"` (mesmo visual do toggle); `ToggleSwitchStyle` agora usa esse template. `ButtonTemplate` e os estilos de `Button` intactos; `DirectModeToggle` e o UI de Modo Direto preservados.
+- `SettingsWindow.xaml.cs` (testabilidade, sem mudança de comportamento em produção): `App` passou de cast duro `(App)Application.Current` para `Application.Current as App` (nulo apenas no host de teste); construtor, `ShowState` e `ShowSlot` usam fallback `AppSettings.Load()`/null-conditional (a mesma fonte que o `App` carrega); `SaveButton_Click` usa `App!` (só é alcançável com o app em execução).
+- **Teste de regressão** (`tests/CapParse.Tests/SettingsWindowTemplateTests.cs`, novo): constrói a janela real em thread STA e força a instanciação dos templates (Measure/Arrange em `DirectModeToggle` + `ChangeButton`/`SaveButton`/`CancelButton`) — o passo exato que lançava. Verificado red/green: com o style apontando para `ButtonTemplate` o teste **falha** com a exceção exata; com a correção, **passa**.
+
+## 64.3 Defeitos de infraestrutura de teste encontrados e corrigidos
+
+1. `RunOnStaThread` (em `FirstRunWindowTests`) **engolia exceções** do action (o dispatcher as descartava): qualquer teste STA era incapaz de falhar — verificado com probe. Corrigido para capturar e re-lançar na thread do teste.
+2. Conflito do `Application` único por processo entre `ThemeServiceTests` (criava um `Application` estático) e os testes da `SettingsWindow`: resolvido com `TestApplication.Ensure()` (novo, `tests/CapParse.Tests/TestApplication.cs` — lock + adotar-ou-criar) e serialização das classes na collection `WpfApp` (as dictionaries de tema do `Application` compartilhado não são thread-safe).
+
+## 64.4 Evidências
+
+- `dotnet build` + `dotnet test` Debug: 0 erros, **484/484 aprovados** (4 execuções consecutivas — estável).
+- `dotnet build -c Release` + `dotnet test -c Release`: 0 erros, **484/484 aprovados**.
+- Único aviso: o preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs`.
+- **Não validado automaticamente** (exige desktop real): abrir a janela de Configurações em execução.
+
+## 64.5 Pendências
+
+- Revisão do usuário (incluindo a validação manual da janela) antes de qualquer commit.
+
+---
+
+# 65. Etapa corretiva — hotkey tradicional no Modo Direto + estado dos atalhos (sessão atual, trabalho local)
+
+Corrige três problemas confirmados pelo usuário: (1) com o Modo Direto ativo, o hotkey tradicional continuava registrado e iniciava a captura tradicional; (2) a combinação tradicional salva bloqueava os slots diretos (impossibilitando, p. ex., atribuir `Ctrl + Shift + X` a um slot); (3) a UI mantinha um aviso de falha de registro mesmo depois que a combinação passa a funcionar. **Sem commit, tag ou push.**
+
+## 65.1 Causas raiz
+
+1. **Ciclo de vida** (`App.xaml.cs`): `OnStartup` chamava `RegisterCaptureHotkey()` incondicionalmente (o startup em Modo Direto registrava o atalho tradicional), e `ApplySettings` nunca desregistrava o hotkey tradicional ao ativar o Modo Direto (a transação só tocava os slots diretos).
+2. **Validação** (`ApplySettings`): o mapa de conflitos incluía sempre `[Capture] = pending.CaptureHotkey`, mesmo com o Modo Direto ativo (quando o hotkey tradicional não está registrado).
+3. **Feedback** (`SettingsWindow.ShowSlot`): o aviso por slot era calculado a partir do **estado pendente** da janela (`_pending.DirectModeEnabled` + combinação pendente) comparado com o registro atual — um ajuste ainda não salvo já produzia um falso "não pôde ser registrado", e o aviso só sumia se a condição pendente mudasse, não quando o registro real era corrigido.
+
+## 65.2 Correção
+
+- **`Configuration/HotkeyTransaction.cs`** (novo): as decisões puras do lado de hotkeys da transação — `RegisterCaptureAtStartup` (o startup em Modo Direto não registra a captura tradicional), `PlanCapture` (Modo Direto → desregistrar o hotkey tradicional, preservando a combinação salva; Modo Tradicional → registrar quando a combinação mudou ou quando o modo volta do Direto, senão manter) e `FindConflicts` (consciente do modo: no Direto a combinação tradicional salva não bloqueia slot direto; os slots diretos sempre se checam entre si; no Tradicional a validação anterior se mantém).
+- **`App.xaml.cs`**: `OnStartup` ramifica no modo (Direto → cria o `GlobalHotkey` e registra apenas os slots diretos; Tradicional → `RegisterCaptureHotkey` + `RegisterDirectHotkeys`, que no Direto retorna cedo); `ApplySettings` usa `HotkeyTransaction.FindConflicts` e `PlanCapture` — a desregistração do hotkey tradicional faz parte da transação (snapshot + rollback: no rollback de uma transação em Modo Direto o estado anterior não tem hotkey tradicional, então a cadeia de `HotkeyRecovery` nunca o re-registra com o modo ativo).
+- **`Configuration/DirectModeStatus.cs`** (novo): o modelo de estado pequeno da UI — `SlotWarningVisible` (aviso só com modo ativo + combinação salva + slot sem registro no OS: o aviso reflete o estado **efetivo**, nunca o pendente, e é limpo assim que o registro vira bem-sucedido) e `Message` (status dinâmico: nenhum slot configurado → orienta configurar; alguns → nomeia as ações sem atalho, sem tratar como erro; três configurados e registrados → "configuração completa"; três configurados com falha de registro → aponta para os avisos por slot).
+- **`SettingsWindow.xaml` / `.xaml.cs`**: nova `DirectModeStateText` no painel do Modo Direto (oculta com o modo desligado, desabilitada junto do painel); `ShowState` atualiza a mensagem via `DirectModeStatus.Message` (configuração pendente + registros vivos); `ShowSlot` calcula o aviso via `DirectModeStatus.SlotWarningVisible` a partir do snapshot **commitado** + `DirectSlotOperationalState` (estado real do OS); `SlotLabel` reusa `DirectModeStatus.SlotName` (fonte única dos nomes).
+- **Testes** (novos): `HotkeyTransactionTests` (10 testes: startup em ambos os modos, transições entre modos — incluindo "Modo Direto → desregistrar sem apagar a preferência" e "voltar ao Tradicional re-registra a combinação salva" — a combinação `Ctrl + Shift + X` livre para slot direto no Direto, conflitos entre slots diretos mantidos, rollback completo de uma transação com falha de registro) e `DirectModeStatusTests` (9 testes: o aviso por slot nas quatro combinações de estado, a mensagem dinâmica em zero/um/dois/três slots configurados + estado de registro) e `SettingsWindowCancelTests` (1 teste WPF: cancelar a janela descarta as alterações pendentes e o arquivo de configurações não é tocado).
+
+## 65.3 Evidências
+
+- `dotnet build` + `dotnet test` **Debug**: 0 erros, **507/507 aprovados** (3 execuções consecutivas — estável; +23 testes novos).
+- `dotnet build -c Release` + `dotnet test -c Release`: 0 erros, **507/507 aprovados**; sem avisos novos (apenas o preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs`).
+- **Não validado automaticamente** (exige desktop real): o registro/desregistro global real de `Ctrl + Shift + X` entre os modos (transições nas Settings e o startup já configurado para o Modo Direto), a atribuição de `Ctrl + Shift + X` a um slot direto com o Modo Direto ativo, o sumir do aviso de falha após a combinação passar a funcionar, e as mensagens de status em execução.
+
+## 65.4 Arquivos
+
+- Novos: `src/CapParse/Configuration/HotkeyTransaction.cs`, `src/CapParse/Configuration/DirectModeStatus.cs`, `tests/CapParse.Tests/HotkeyTransactionTests.cs`, `tests/CapParse.Tests/DirectModeStatusTests.cs`, `tests/CapParse.Tests/SettingsWindowCancelTests.cs`.
+- Alterados: `src/CapParse/App.xaml.cs`, `src/CapParse/SettingsWindow.xaml`, `src/CapParse/SettingsWindow.xaml.cs`, `docs/ui.md`, `docs/development.md`.
+- Nenhum outro arquivo foi tocado; `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` preservados; nenhum processo do usuário foi encerrado; `C:\Dev\CapParse` não foi tocado.
+
+## 65.5 Pendências
+
+- **Revisão do usuário** desta etapa (incluindo a validação manual em execução listada em §65.3) antes de qualquer commit.
+- Nenhum passo seguinte está iniciado: o trabalho acumulado (Etapas 1–5, hotfix §64 e esta etapa corretiva) aguarda revisão.
+
+
+---
+
+# 66. Etapa corretiva — isolamento absoluto entre Modo Tradicional e Modo Direto (sessão atual, trabalho local)
+
+Corrige o defeito reportado pelo usuário: com o Modo Direto ativo (ou pendente na janela de Configurações), clicar em **Alterar** para mapear uma das três ações diretas e pressionar `Ctrl + Shift + X` iniciava a **captura tradicional** em vez de registrar a combinação no slot selecionado. **Sem commit, tag ou push.**
+
+## 66.1 Causa raiz (evidências da auditoria)
+
+1. **A alteração de modo é pendente, mas o registro no OS só reage no "Salvar"** (`App.xaml.cs` + `SettingsWindow.xaml.cs`): o toggle "Ativar Modo Direto" da janela só modifica o clone `_pending`; a desregistração do hotkey tradicional (id=1, callback `() => StartCapture()`) acontecia apenas em `ApplySettings` (botão Salvar) ou no startup. Assim, com o modo ligado (na percepção do usuário) e a janela aberta, o hotkey global `Ctrl + Shift + X` **continuava registrado no OS**: ao pressioná-lo durante o mapeamento, o Windows despachava `WM_HOTKEY` para a janela oculta → `GlobalHotkey.OnWindowMessage` encontrava o id=1 em `_entries` → `StartCapture()` → o overlay tradicional abria em paralelo ao alvo de gravação. O §65 havia corrigido o ciclo de vida do modo **commitado** (startup + Salvar), mas não a **janela de modo pendente** (a sessão da janela de Configurações) — exatamente o caminho do defeito.
+2. **O callback da captura tradicional não validava o modo**: `() => StartCapture()` disparava incondicionalmente. Qualquer caminho que deixasse o registro vivo (modo pendente, `WM_HOTKEY` enfileirado antes da desregistração, registro residual) iniciava uma captura tradicional.
+3. **Mensagens `WM_HOTKEY` enfileiradas**: são entregues quando o dispatcher faz o pump; a entrega consulta `_entries` no momento da entrega (após `Unregister`, o id não tem entrada → mensagem descartada). A propriedade já existia no código, mas **nenhum teste a fixava** — e era a única proteção do caminho de fila de mensagens.
+4. Demais peças auditadas e confirmadas corretas: `PlanCapture`/`RegisterCaptureAtStartup`/`DirectHotkeyApplier`/rollback (não há caminho que re-registre a captura tradicional com o modo commitado no Direto), uma única instância de `GlobalHotkey`/janela oculta, sem `InputBinding`/`KeyBinding` WPF de captura, e a `FirstRunWindow` aplicando o modo pela mesma transação.
+
+## 66.2 Correção
+
+- **`Configuration/CaptureHotkeyCoordinator.cs`** (novo): dono operacional do registro da captura tradicional — `Active` (combinação registrada, ou null) + as operações conscientes do modo **efetivamente em vigor** (commitado + pendente da janela aberta): `Start` (startup por modo), `ApplyPendingMode` (toggle da janela: pendente Direto suspende — desregistrar não falha, e libera até um registro que o estado-sombra não conhecia; pendente Tradicional re-registra só se o commitado for Tradicional), `SyncWithCommittedMode` (janela fechada sem salvar: o registro volta ao estado que o modo commitado prescreve), `ApplyPlan` (metade de captura da transação de Salvar, via `HotkeyTransaction.PlanCapture` + cadeia de `HotkeyRecovery`), `Restore` (metade de rollback: anterior nulo → suspende; a cadeia de recuperação **nunca** re-registra a captura com o modo Direto em vigor). Toda a interação com o OS entra por delegates injetados (testável sem Windows).
+- **`Configuration/HotkeyTransaction.cs`**: nova decisão pura `TraditionalCaptureAllowed(committedDirectMode, pendingDirectMode)` — o guard do callback: só dispara quando o modo Tradicional está efetivamente em vigor.
+- **`App.xaml.cs`**: o campo `_activeHotkey` foi substituído pelo `CaptureHotkeyCoordinator` (fonte única; `ActiveHotkey` agora lê `coordinator.Active`); o startup cria **uma** `GlobalHotkey` nos dois ramos de modo e o coordenador; o callback da captura tradicional passou a ser `OnTraditionalCaptureHotkey()` (guard do modo antes de `StartCapture()`); `ApplySettings` usa `ApplyPlan`/`Restore` do coordenador (snapshot/rollback preservados); novos métodos `internal` `SettingsWindowPendingDirectModeChanged`/`SettingsWindowClosed` (o `Closed` da janela de Configurações chama o segundo); `ApplyCaptureHotkey`/`RestoreCaptureHotkey` removidos — a lógica vive no coordenador.
+- **`SettingsWindow.xaml.cs`**: `DirectModeToggle_Toggled` notifica o aplicativo (`App?.SettingsWindowPendingDirectModeChanged`) — a suspensão/restauração do registro acompanha o toggle **imediatamente**, não no Salvar; no host de teste (`App` nulo) a notificação é no-op.
+- **`Platform/GlobalHotkey.cs`**: seam de teste `internal IntPtr WindowHandle` (usado apenas pelos testes via `InternalsVisibleTo`) para postar uma `WM_HOTKEY` real na janela oculta exata.
+- **Testes**: ver §66.3.
+
+## 66.3 Testes de regressão (os 9 cenários obrigatórios)
+
+| # | Cenário | Cobertura |
+|---|---------|-----------|
+| 1 | Modo Direto ativo nunca chama `StartCapture` via callback tradicional | `HotkeyTransactionTests.TraditionalCaptureAllowed_*` (guard puro, 4 combinações) + `GlobalHotkeyStaleMessageTests` (mensagem real neutralizada) + `CaptureHotkeyCoordinatorTests` (nenhum registro vivo no Direto) |
+| 2 | Mensagem de captura previamente enfileirada não inicia captura após a transição | `GlobalHotkeyStaleMessageTests.StaleHotkeyMessage_AfterUnregister_DoesNotTriggerTheAction` — `WM_HOTKEY` **real** postado na janela oculta real, pump do message loop real, hook real; controle positivo (`HotkeyMessage_ForARegisteredId_StillTriggersTheAction`) |
+| 3 | `Ctrl + Shift + X` é aceito pelo mapeador no Direto sem disparar captura/ação global | `CaptureHotkeyCoordinatorTests.PendingDirectMode_SuspendsTheTraditionalCapture_ForTheMapping` + guard (#1); a aceitação pela tecla no controle WPF é a parte manual |
+| 4 | Salvar Modo Direto deixa registrados somente os slots diretos configurados | `CaptureHotkeyCoordinatorTests.SavingDirectMode_LeavesOnlyTheConfiguredDirectSlotsRegistered` (transação completa com fakes: captura desregistrada, só o slot configurado vivo) |
+| 5 | Voltar ao Tradicional desregistra os slots diretos e restaura a captura | `CaptureHotkeyCoordinatorTests.SavingTraditionalMode_UnregistersTheDirectSlots_RestoresTheCapture` |
+| 6 | Cancelar o mapeamento não modifica registros nem preferências | `CaptureHotkeyCoordinatorTests.CancelingTheWindow_RestoresTheRegistration_TheCommittedModePrescribes` + `ClosingTheWindow_WithoutAnyPendingChange_IsANoOp` + `SettingsWindowCancelTests` (janela real, arquivo intocado) |
+| 7 | Startup em Modo Direto nunca registra a captura tradicional | `CaptureHotkeyCoordinatorTests.Startup_DirectMode_NeverRegistersTheTraditionalCapture` + `HotkeyTransactionTests.Startup_DirectMode_*` (preexistente) |
+| 8 | Falha de registro não deixa a recuperação reativar a captura no Direto | `CaptureHotkeyCoordinatorTests.FailedTransactionInDirectMode_TheRecoveryChainCannotReactivateTheCapture` (+ `PendingTraditionalMode_WhileCommittedDirect_NeverRegistersTheCapture`) |
+| 9 | Combinações duplicadas entre slots diretos continuam rejeitadas | `HotkeyTransactionTests`/`HotkeyConflictValidatorTests` (preexistentes, intactos) |
+
+Infraestrutura: as duas classes que usam `RegisterHotKey` real (`GlobalHotkeyMultiIdTests`, `GlobalHotkeyStaleMessageTests`) passaram a compartilhar a collection `Win32Hotkeys` (serialização — `RegisterHotKey` é processual), e o novo teste usa combinações disjuntas (`Ctrl + Alt + F18/F19`).
+
+## 66.4 Evidências
+
+- `dotnet build` + `dotnet test` **Debug**: 0 erros, **527/527 aprovados** (3 execuções consecutivas — estável; +20 testes novos: 12 do coordenador, 2 da mensagem `WM_HOTKEY` real, 4 do guard, 2 de coleção/combinações).
+- `dotnet build -c Release` + `dotnet test -c Release`: 0 erros, **527/527 aprovados**; sem avisos novos (apenas o preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs`).
+- **Não validado automaticamente** (exige desktop real): a reprodução exata do defeito (ligar o Modo Direto → Configurações → *Alterar* num slot → pressionar `Ctrl + Shift + X` → a combinação é gravada no slot e nenhum overlay abre), o `WM_HOTKEY` gerado pelo próprio OS a partir de uma tecla real, as transições de modo em execução e o startup já configurado para o Modo Direto.
+
+## 66.5 Arquivos
+
+- Novos: `src/CapParse/Configuration/CaptureHotkeyCoordinator.cs`, `tests/CapParse.Tests/CaptureHotkeyCoordinatorTests.cs`, `tests/CapParse.Tests/GlobalHotkeyStaleMessageTests.cs`.
+- Alterados: `src/CapParse/App.xaml.cs`, `src/CapParse/SettingsWindow.xaml.cs`, `src/CapParse/Platform/GlobalHotkey.cs` (seam `WindowHandle`), `src/CapParse/Configuration/HotkeyTransaction.cs` (`TraditionalCaptureAllowed`), `tests/CapParse.Tests/HotkeyTransactionTests.cs`, `tests/CapParse.Tests/GlobalHotkeyTests.cs` (collection `Win32Hotkeys`), `docs/development.md`.
+- Não alterados: pipeline de captura/OCR, política de salvamento, `DirectHotkeyApplier`, `HotkeyRecovery`, `DirectModeStatus`, `HotkeyConflictValidator`, `FirstRunWindow`, design visual; `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` preservados; nenhum processo do usuário foi encerrado; `C:\Dev\CapParse` não foi tocado.
+
+## 66.6 Pendências
+
+- **Revisão do usuário** desta etapa (incluindo a validação manual no desktop listada em §66.4) antes de qualquer commit.
+- O trabalho acumulado (Etapas 1–5, hotfix §64, etapa corretiva §65 e esta §66) permanece no working tree aguardando revisão.
+
+---
+
+# 67. Etapa corretiva — conflitos de hotkey entre modos mutuamente exclusivos (sessão atual, trabalho local)
+
+Corrige o defeito reportado pelo usuário: com a hotkey tradicional de captura e um slot direto configurados com a **mesma** combinação (p. ex., `Ctrl + Shift + X` nas duas), ao **desativar** o Modo Direto e clicar em **Salvar** a janela rejeitava a mudança: “Dois atalhos usam a mesma combinação: Ctrl + Shift + X. Escolha combinações diferentes para aplicar as alterações.” Os modos são mutuamente exclusivos e nunca ativos ao mesmo tempo, portanto não existe conflito lógico entre as famílias de hotkey. **Sem commit, tag ou push.**
+
+## 67.1 Causa raiz (evidências da auditoria)
+
+- **Caminho real do Salvar**: `SettingsWindow.SaveButton_Click` → `App.ApplySettings(_pending)` (`App.xaml.cs:864`) → `HotkeyTransaction.FindConflicts(pending)`; a janela **não** valida conflitos por conta própria. `conflicts.Count > 0` → `Rejected` com a mensagem exata observada pelo usuário.
+- **`HotkeyTransaction.FindConflicts`** (`src/CapParse/Configuration/HotkeyTransaction.cs`): o mapa de slots incluía **sempre** os três slots diretos e adicionava o slot de captura quando `!DirectModeEnabled`. No cenário reproduzido (`pending.DirectModeEnabled == false`, captura = `Ctrl + Shift + X`, slot “salvar imagem” = `Ctrl + Shift + X`), o mapa continha a combinação nos dois slots → `HotkeyConflictValidator.FindConflicts` (função pura: reporta combinações com contagem > 1 no mapa dado) reportou o conflito → rejeição.
+- O hotfix §65 corrigiu apenas o lado do Modo Direto (excluir a captura do mapa no Direto) e deixou o lado do Modo Tradicional comparando o hotkey de captura **registrado** com os slots diretos **desregistrados** — o espelho do mesmo bug. O teste `TraditionalMode_TheCaptureCombination_StillBlocksADirectSlot` fixava o comportamento incorreto.
+
+## 67.2 Correção
+
+- **`HotkeyTransaction.FindConflicts`** (função pura de validação — o menor reparo possível, sem tocar na transação, no rollback nem na UI): o mapa de slots passou a ser **exclusivo por modo de destino** — no Modo Direto entram apenas os três slots diretos (que continuam se validando entre si; a hotkey tradicional desregistrada não participa); no Modo Tradicional entra apenas o slot de captura (os slots diretos desregistrados não participam). Uma combinação salva nas duas famílias é válida nas duas; alternar modo nunca exige mudar atalho. `HotkeyConflictValidator` (contrato: duplicatas dentro do mapa fornecido) e o restante do fluxo transacional (`PlanCapture`, `CaptureHotkeyCoordinator`, `DirectHotkeyApplier`, snapshots/rollback, cancelamento) ficaram intactos.
+- **`App.xaml.cs`**: apenas o comentário do passo 1 de `ApplySettings` atualizado para descrever a regra por modo de destino (sem mudança de código).
+
+## 67.3 Regra final de validação de conflitos
+
+| Modo de destino (`pending.DirectModeEnabled`) | Slots validados | Consequência |
+|---|---|---|
+| `false` (Tradicional) | apenas `Capture` | slots diretos desregistrados não conflitam com a captura; combinação compartilhada entre as famílias é válida |
+| `true` (Direto) | os 3 slots diretos, entre si | a captura desregistrada não bloqueia slot direto; dois slots diretos iguais **continuam rejeitados** |
+
+Falhas reais de `RegisterHotKey` (combinação possuída por outro aplicativo) continuam sendo tratadas como falha operacional no passo de registro (mensagem “não pôde ser registrada” + rollback), e nunca como duplicação lógica entre modos. Cancelar a janela continua sem aplicar nem persistir nada (coberto pelos testes preexistentes de §66).
+
+## 67.4 Testes de regressão
+
+Novos em `HotkeyTransactionTests` (6): `TraditionalMode_EveryDirectSlotMayShareTheCaptureCombination`; `TraditionalToDirect_SwitchWithSharedCombination_IsAllowed`; `DirectToTraditional_SwitchWithSharedCombination_IsAllowed`; `DirectToTraditional_SwitchWithSharedCombination_LeavesOnlyTheCaptureActive` (transação completa com fakes: só a captura permanece registrada); `TraditionalToDirect_SwitchWithSharedCombination_LeavesOnlyTheDirectSlotsActive` (transação completa com fakes: só o slot direto permanece registrado); `SharedCombination_WhoseRegistrationFails_IsAnOperationalFailure_NotAConflict` (falha de registro ≠ conflito lógico, rollback restaura o estado anterior). Alterado (1): `TraditionalMode_TheCaptureCombination_StillBlocksADirectSlot` → `..._DoesNotBlockADirectSlot` (regra nova: sem conflito no Tradicional). Preexistentes que cobrem o restante da lista obrigatória: `DirectMode_TheSavedCaptureCombination_DoesNotBlockADirectSlot` (Direto), `DirectMode_TheSameCombinationOnTwoDirectSlots_StillConflicts` (slots diretos iguais), `SettingsWindowCancelTests` + `CaptureHotkeyCoordinatorTests.CancelingTheWindow_*` (cancelamento). Testes de decisão pura (sem Windows) — os cenários de mensagem `WM_HOTKEY` real do §66 não foram tocados.
+
+## 67.5 Evidências
+
+- `dotnet build CapParse.sln -c Debug`: 0 erros; 1 aviso (o preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs`).
+- `dotnet test CapParse.sln -c Debug`: 0 falhas, **533/533 aprovados** (527 anteriores + 6 novos; 1 alterado).
+- `dotnet build CapParse.sln -c Release`: 0 erros; 1 aviso (o mesmo preexistente).
+- `dotnet test CapParse.sln -c Release`: 0 falhas, **533/533 aprovados**.
+- `HotkeyTransactionTests` isoladamente: 22/22; os 8 testes diretos do cenário compartilhado (novos + alterado + o preexistente de Direto): 8/8.
+- **Não validado automaticamente** (exige desktop real): o cenário manual §11 do prompt (alternar os modos com a mesma combinação salva nos dois).
+
+## 67.6 Arquivos
+
+- Alterados: `src/CapParse/Configuration/HotkeyTransaction.cs` (`FindConflicts`), `src/CapParse/App.xaml.cs` (comentário do passo 1 de `ApplySettings`), `tests/CapParse.Tests/HotkeyTransactionTests.cs`, `docs/development.md`.
+- Novos: nenhum.
+- Não alterados: `HotkeyConflictValidator`, `CaptureHotkeyCoordinator`, `DirectHotkeyApplier`, `GlobalHotkey`, `SettingsWindow` (layout e código), pipeline de captura/OCR, `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY`; nenhum processo do usuário foi encerrado; `C:\Dev\CapParse` não foi tocado.
+
+## 67.7 Pendências
+
+- **Validação manual** do cenário §11 do prompt no desktop (mesma combinação nos dois modos, alternar nos dois sentidos).
+- **Revisão do usuário** antes de qualquer commit; o trabalho acumulado (Etapas 1–5, hotfixes §64, §65, §66 e esta §67) permanece no working tree.
+
+---
+
+# 68. Etapa corretiva — falha residual de registro do hotkey tradicional na transição Direto → Tradicional (sessão atual, trabalho local)
+
+Corrige o defeito reportado pelo usuário: na janela Configurações, ao alternar de volta ao Modo Tradicional com a **mesma** combinação salva nos dois modos (p. ex., `Ctrl + Shift + X` na captura e num slot direto), a aplicação rejeitava o Salvar com “O novo atalho de captura não pôde ser registrado. Outro aplicativo pode já estar usando essa combinação.” — falha falsa: o “outro aplicativo” era o próprio slot direto do processo, ainda registrado no instante em que o hotkey tradicional tentou ser registrado. **Sem commit, tag ou push.**
+
+## 68.1 Causa raiz (evidências da auditoria)
+
+- **Ordem transacional em `App.ApplySettings`**: o passo 3 aplicava o lado da captura (`CaptureHotkeyCoordinator.ApplyPlan` → `HotkeyTransaction.PlanCapture` → `RegisterCapture` → `HotkeyRecovery.Resolve` → `RegisterHotKey` real, id=1) **antes** do passo 4 (`DirectHotkeyApplier.Apply`) desregistrar os slots diretos do modo que saía. Na transição Direto → Tradicional com combinação compartilhada, `RegisterHotKey(id=1, Ctrl+Shift+X)` falhava com `ERROR_HOTKEY_ALREADY_REGISTERED` porque o id 2/3/4 **do próprio processo** ainda detinha a combinação — `GlobalHotkey.Register` documenta exatamente esse caso (“by another id of this process or by another application”).
+- **Cadeia de recuperação**: com `previous = null` (a captura estava suspensa no Direto) e o padrão = a própria combinação compartilhada, `HotkeyRecovery.Resolve` esgotava os três níveis e retornava `null` → `captureOk = false` → rollback → a mensagem genérica “Outro aplicativo pode já estar usando essa combinação” (o `else` da mensagem de falha de `ApplySettings`).
+- **Por que só agora**: o hotfix §67 permitiu a mesma combinação nas duas famílias (antes, a validação rejeitava a combinação compartilhada antes da transação, então a colisão intra-processo nunca ocorria). A permissão lógica foi corrigida, mas a **ordem** (registrar a captura antes de liberar o slot do regime anterior) nunca foi ajustada.
+- **Demais caminhos auditados e corretos**: com o Modo Direto ativo ou pendente, `PlanCapture` emite apenas `Unregister` (nenhuma tentativa de registro da preferência adormecida); a UI lê estado vivo (`ActiveHotkey`/`DirectSlotOperationalState`), então não há aviso obsoleto — a mensagem box era o resultado real (e falso) da última transação.
+
+## 68.2 Correção
+
+- **`Configuration/DirectHotkeyApplier.cs`**: novo método puro `Release(desired, before, unregister)` — a fase de liberação: desregistra, **antes de qualquer registro novo**, todo slot que o estado de destino não quer (modo desativado, ou slot limpo). Desregistrar não falha; o rollback (`Restore`) continua restaurando o estado inteiro.
+- **`App.xaml.cs`** (`ApplySettings`): nova ordem transacional — (2) snapshot → (3) `DirectHotkeyApplier.Release` (libera os slots diretos que o destino não quer) → (4) lado da captura (`ApplyPlan`) → (5) lado direto (`Apply`; os slots já liberados são no-op) → (6) commit/rollback. Assim, na transição Direto → Tradicional a combinação compartilhada está livre quando o id=1 registra, e na transição Tradicional → Direto a captura já está suspensa quando os slots diretos registram. Snapshots, `Restore` (direto e captura), validação de conflitos, cancelamento e as regras do §67 estão intactos.
+
+## 68.3 Regra final de ordenação
+
+| Transição | Ordem efetiva | Colisão intra-processo |
+|---|---|---|
+| Direto → Tradicional | liberar slots diretos → registrar captura → (re)aplicar slots (no-op) | a combinação do slot liberado está livre antes do `RegisterHotKey` do id=1 |
+| Tradicional → Direto | liberar (no-op) → suspender captura → registrar slots diretos | a captura cede a combinação antes do `RegisterHotKey` dos ids 2–4 |
+| Mesmo modo | liberar o que o destino limpa → aplicar | sem mudança de família, sem colisão |
+
+Falhas reais de `RegisterHotKey` (combinação de outro aplicativo) continuam reportadas como falha operacional, com rollback intacto; a preferência tradicional pode ser editada e salva no Modo Direto sem ocupar combinação global alguma.
+
+## 68.4 Testes de regressão (9 novos)
+
+- `DirectHotkeyApplierTests` (3, puros/fakes): `Release_ModeDisabled_UnregistersEveryRegisteredSlot`, `Release_ModeEnabled_UnregistersOnlyTheClearedSlots`, `Release_NothingToRelease_MakesNoCalls`.
+- `CaptureHotkeyCoordinatorTests` (6, transacionais com o novo fake `SharedCombinationRegistry` — modela o espaço de combinações **intra-processo**: uma combinação só pode ser detida por um registro vivo de cada vez, qualquer id, + donos externos): `DirectToTraditional_SharedCombination_ReleasedFirst_TheCaptureRegisters` (ordem corrigida commita, só a captura fica ativa), `DirectToTraditional_SharedCombination_RegisteringBeforeReleasing_Fails` (controle que reproduz deterministicamente a falha antiga, evidência da causa raiz), `TraditionalToDirect_SharedCombination_TheCaptureIsSuspendedBeforeTheDirectSlotRegisters`, `DirectModeActive_ChangingTheTraditionalPreference_NeverAttemptsARegistration` (só o suspend no-op, zero tentativas de registro), `DirectSlotHoldingTheSharedCombination_DoesNotBlockTheTraditionalPreference`, `DirectToTraditional_TheCaptureCombinationIsExternallyOwned_TheRollbackRestoresThePreviousState` (falha real continua falha, rollback intacto).
+- Cobertura preexistente não tocada: exclusividade entre slots diretos (`HotkeyTransactionTests`/`HotkeyConflictValidatorTests`), cancelamento (`SettingsWindowCancelTests`), aviso de UI nunca obsoleto (`DirectModeStatusTests`), mensagem `WM_HOTKEY` real (`GlobalHotkeyStaleMessageTests`, Windows real).
+
+## 68.5 Evidências
+
+- `dotnet build CapParse.sln -c Debug`: 0 erros; 1 aviso (o preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs`).
+- `dotnet test CapParse.sln -c Debug`: 0 falhas, **542/542 aprovados** (533 anteriores + 9 novos).
+- `dotnet build CapParse.sln -c Release`: 0 erros; 1 aviso (o mesmo preexistente).
+- `dotnet test CapParse.sln -c Release`: 0 falhas, **542/542 aprovados**.
+- Filtro isolado dos 9 novos + 5 pré-existentes de combinação compartilhada: **14/14 aprovados**.
+- **Não validado automaticamente** (exige desktop real): o cenário exato do usuário (mesma combinação nos dois modos; desativar o Direto e salvar → captura tradicional volta sem a mensagem de falha; reativar → o slot direto volta com a mesma combinação).
+
+## 68.6 Arquivos
+
+- Alterados: `src/CapParse/Configuration/DirectHotkeyApplier.cs` (novo método `Release`), `src/CapParse/App.xaml.cs` (nova ordem transacional em `ApplySettings` + comentários), `tests/CapParse.Tests/DirectHotkeyApplierTests.cs`, `tests/CapParse.Tests/CaptureHotkeyCoordinatorTests.cs` (6 testes + fake `SharedCombinationRegistry` + overload `Snapshot`), `docs/development.md`.
+- Novos (arquivos): nenhum.
+- Não alterados: `HotkeyTransaction`/`HotkeyConflictValidator` (regras do §67 intactas), `CaptureHotkeyCoordinator`, `HotkeyRecovery`, `GlobalHotkey`, `SettingsWindow` (layout e código), pipeline de captura/OCR, `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY`; nenhum processo do usuário foi encerrado; `C:\Dev\CapParse` não foi tocado.
+
+## 68.7 Pendências
+
+- **Validação manual** no desktop: o cenário exato do defeito (mesma combinação nos dois modos, alternar nos dois sentidos, editar a preferência tradicional com o Direto ativo).
+- **Revisão do usuário** antes de qualquer commit; o trabalho acumulado (Etapas 1–5, hotfixes §64–§67 e esta §68) permanece no working tree.
+
+---
+
+# 69. Etapa corretiva — falha ao copiar texto após alternar para o Modo Tradicional (sessão atual, trabalho local)
+
+Investiga e mitiga o defeito reportado: após desativar o Modo Direto, capturar com `Ctrl + Shift + X` e clicar em **Copiar texto**, a janela exibiu “Não foi possível copiar o texto. A área de transferência pode estar em uso por outro aplicativo.” — com a captura e o resultado OCR visíveis. **Sem commit, tag ou push.**
+
+## 69.1 Diagnóstico (evidências da auditoria)
+
+- **Os dois caminhos de cópia de texto são idênticos e corretos quanto a thread**: o clássico (`MainWindow.CopyText_Click` → `OcrTextCopier.TryCopy` → `WpfTextClipboard.SetText` → WPF `Clipboard.SetText`) roda no handler WPF (thread de UI/STA); o direto (`App.HandleDirectActionAsync` → `DirectActionRunner.RunAsync` → `await _recognize` → continuação no dispatcher WPF → `_textCopier.TryCopyText`) também roda na thread de UI. **Não há problema de apartment state** em nenhum dos dois fluxos.
+- **A exceção original era descartada**: `OcrTextCopier.TryCopyText` e `CropImageCopier.TryCopy` usavam `catch` genérico e mostravam uma mensagem fixa — a mensagem da UI **não era um diagnóstico**, e a exceção exata do desktop era irrecuperável.
+- **Sem evidência de regressão de código**: `MainWindow.xaml.cs`, `OcrTextCopier.cs`, `CropImageCopier.cs`, `WpfTextClipboard`/`WpfImageClipboard` estão **commitados e intocados** neste working tree; os hotfixes §67/§68 tocaram apenas validação/ordenação de hotkeys, sem nenhum envolvimento com o clipboard ou o pipeline OCR.
+- **Explicação mais consistente**: lock transitório do clipboard do sistema por outro processo (gerenciadores de clipboard), durando mais que o retry interno próprio do WPF (~10×25 ms), exposto na primeira escrita de clipboard após a alternância. A exceção exata (ex.: `ExternalException` “The clipboard is in use by another application.”) só pode ser confirmada na máquina do usuário — de onde nasce o item (a) abaixo.
+
+## 69.2 Correção (mínima, condicionada à evidência)
+
+- **(a) Diagnóstico recuperável, sem expor detalhes ao usuário**: os `catch` dos dois copiers agora registram a **exceção original** (tipo, mensagem, HRESULT, stack) no canal opt-in existente `CAPPARSE_TRACE` (`FrozenOverlaySession.Trace`, arquivo apontado pela variável de ambiente; sem a variável, nada é escrito). A mensagem de interface é inalterada. Com `CAPPARSE_TRACE=<arquivo>`, a reprodução do usuário captura a exceção exata.
+- **(b) Retry limitado e específico** (novo `UI/ClipboardWritePolicy.cs`): a escrita no clipboard (`SetText`/`SetImage`) passa por `WriteWithRetry` — no máximo **3 tentativas** com **150 ms** entre elas (mesma forma do retry interno do próprio WPF; espera total limitada a ~300 ms, nunca indefinida). **Só** a falha reconhecida de lock de clipboard (`ExternalException`/`COMException` cuja mensagem nomeie o clipboard) é repetida; **qualquer outra exceção falha imediatamente na primeira tentativa** — o retry não mascara nem adia bug real. Falha persistente após as tentativas continua sendo reportada com a mensagem de sempre.
+- Aplicado nos dois pontos de escrita: `OcrTextCopier.TryCopyText` (texto — o botão “Copiar texto” e a ação direta CopyText) e `CropImageCopier.TryCopy` (imagem — o botão “Copiar imagem” e a ação direta CopyImage), que têm o mesmo mecanismo e a mesma causa transitória.
+- Não alterado: nenhum mecanismo de hotkey, o pipeline de captura/OCR, o layout, as regras de conflito/transação do §67/§68, `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY`.
+
+## 69.3 Testes de regressão (12 novos, todos com fakes — nenhum toca o clipboard real)
+
+- `ClipboardWritePolicyTests` (6, novos): sucesso na 1ª tentativa (1 chamada); falha transitória → sucesso no retry (3 chamadas); falha transitória persistente → rethrow após exatamente `MaxAttempts`; exceção não-clipboard → rethrow imediato (1 chamada); `IsTransientClipboardFailure` casa `ExternalException`/`COMException` de clipboard e rejeita tudo o mais (mensagem sem “clipboard”, exceções não-COM que mencione clipboard, `OutOfMemoryException`).
+- `OcrTextCopierTests` (3, novos): lock transitório → `TryCopy` succeeds (3 tentativas); lock persistente → falha com a mensagem de sempre após `MaxAttempts`; exceção não-clipboard → falha na 1ª tentativa (sem retry).
+- `CropImageCopierTests` (3, novos): os mesmos três cenários para a escrita de imagem.
+- O que depende de Windows real (não coberto automaticamente): o `WpfTextClipboard`/`WpfImageClipboard` de verdade (WPF `Clipboard`), o comportamento real do lock de clipboard de outro processo e o conteúdo do log `CAPPARSE_TRACE` na máquina do usuário.
+
+## 69.4 Evidências
+
+- `dotnet build CapParse.sln -c Debug`: 0 erros; 1 aviso (o preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs`).
+- `dotnet test CapParse.sln -c Debug`: 0 falhas, **554/554 aprovados** (542 anteriores + 12 novos).
+- `dotnet build CapParse.sln -c Release`: 0 erros; 1 aviso (o mesmo preexistente).
+- `dotnet test CapParse.sln -c Release`: 0 falhas, **554/554 aprovados**.
+- Filtro isolado dos 12 novos: **12/12 aprovados**.
+
+## 69.5 Arquivos
+
+- Novos: `src/CapParse/UI/ClipboardWritePolicy.cs`, `tests/CapParse.Tests/ClipboardWritePolicyTests.cs`.
+- Alterados: `src/CapParse/UI/OcrTextCopier.cs` (retry + trace da exceção original), `src/CapParse/UI/CropImageCopier.cs` (idem), `tests/CapParse.Tests/OcrTextCopierTests.cs`, `tests/CapParse.Tests/CropImageCopierTests.cs`, `docs/development.md`.
+- Não alterados: hotkeys (`HotkeyTransaction`, `CaptureHotkeyCoordinator`, `DirectHotkeyApplier`, `GlobalHotkey`), pipeline de captura/OCR, `SettingsWindow`, `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY`; nenhum processo do usuário foi encerrado; `C:\Dev\CapParse` não foi tocado.
+
+## 69.6 Pendências
+
+- **Validação manual no desktop**: (1) repetir o cenário exato (desativar o Direto → `Ctrl + Shift + X` → selecionar → Copiar texto) — com o retry, um lock transitório de outro aplicativo deve deixar de falhar; (2) se a falha persistir, reproduzir com `CAPPARSE_TRACE=<arquivo>` definido — o log passará a conter a exceção original exata (`OcrTextCopier: ...`), permitindo nomear a causa real com evidência.
+- **Revisão do usuário** antes de qualquer commit; o trabalho acumulado (Etapas 1–5, hotfixes §64–§68 e esta §69) permanece no working tree.
+
+---
+
+# 70. Refinamento — bandeja: "Capturar" desabilitado no Modo Direto (sessão atual, trabalho local)
+
+Implementa o refinamento solicitado: quando o Modo Direto está ativo, a opção **"Capturar"** do menu de contexto do ícone da bandeja fica visualmente desabilitada e não pode iniciar uma captura tradicional; no Modo Tradicional o comportamento permanece inalterado. O trabalho acumulado das Etapas 1–5 e dos estágios corretivos/hotfixes §64–§69 foi preservado integralmente. **Sem commit, tag ou push.**
+
+## 70.1 Diagnóstico (estado antes da mudança)
+
+- O menu da bandeja era montado em `App.CreateTrayIcon()` com um `WinForms.ContextMenuStrip` de três itens ("Capturar", "Configurações", "Sair"); o item "Capturar" chamava `StartCapture()` **diretamente, sem nenhum guard de modo** — ao contrário do callback do hotkey tradicional (`OnTraditionalCaptureHotkey`), que já validava `HotkeyTransaction.TraditionalCaptureAllowed(comitado, pendente)`.
+- A fonte de verdade do modo efetivamente ativo é a dupla já existente: `AppSettings.DirectModeEnabled` (comitado) + `_settingsPendingDirectMode` (pendente da `SettingsWindow` aberta), lidos pelo guard puro `HotkeyTransaction.TraditionalCaptureAllowed` — a mesma semântica que suspende/restaura o hotkey tradicional (`CaptureHotkeyCoordinator`).
+- Consequência do gap: em Modo Direto o item "Capturar" aparecia habilitado e um clique nele iniciava o fluxo tradicional (overlay + OCR + janela de resultado), contradizendo o modo de operação escolhido.
+
+## 70.2 Implementação
+
+- **`src/CapParse/UI/TrayMenu.cs` (novo)**: o menu de contexto da bandeja extraído em uma pequena classe (mesmo padrão dos wrappers testáveis do projeto — `SingleInstanceGuard`, `GlobalHotkey`): os três itens como `ToolStripMenuItem` com callbacks injetados e o estado do item "Capturar" exposto via `SetCaptureEnabled(bool)`. O `NotifyIcon` permanece no `App` (que anexa `TrayMenu.Menu` a ele): a classe não tem efeitos de shell próprios e é testável em thread STA sem o aplicativo.
+- **`src/CapParse/App.xaml.cs`**:
+  - `CreateTrayIcon()` monta o `TrayMenu` com o callback de captura apontando para o **mesmo ponto de entrada guardado** do hotkey tradicional e aplica o estado inicial do item conforme o modo em vigor no startup.
+  - `OnTraditionalCaptureHotkey` → renomeado para `TryStartTraditionalCapture`: agora é o ponto de entrada único da captura tradicional (hotkey global **e** item "Capturar" da bandeja), validando `HotkeyTransaction.TraditionalCaptureAllowed` antes de `StartCapture()` — um clique stale, um callback antigo ou qualquer outro caminho equivalente nunca inicia uma captura tradicional com o Modo Direto em vigor (o estado visual e a ação não podem divergir).
+  - `UpdateTrayCaptureItem()`: sincroniza o `Enabled` do item com o modo efetivamente ativo; chamado em todos os pontos em que o modo comitado ou pendente muda: `CreateTrayIcon` (startup), `CommitSettings` (salvar as configurações — inclui a escolha do modo na primeira execução), `SettingsWindowPendingDirectModeChanged` (toggle pendente) e `SettingsWindowClosed` (cancelar/fechar — o pendente volta ao comitado, sem mudança permanente).
+- **`docs/ui.md` §4**: o item "Capturar" passa a documentar o estado desabilitado no Modo Direto e o ponto de entrada guardado compartilhado com o hotkey.
+- Não alterado: os atalhos diretos e suas ações (copiar/OCR/salvar), o OCR, o clipboard, o salvamento, o Modo Tradicional, os demais itens da bandeja (Configurações/Sair), a semântica transacional das configurações; `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` preservados.
+
+## 70.3 Testes de regressão (5 novos, itens WinForms reais em thread STA)
+
+- `TrayMenuTests` (novos): o item "Capturar" habilitado por padrão; `SetCaptureEnabled(false)` desabilita (e `true` reabilita); o clique no item habilitado dispara o callback de captura; com o item desabilitado os itens Configurações/Sair continuam disparando seus callbacks (e o de captura não dispara); os três itens existem na ordem projetada.
+- O guard de modo em si (`TraditionalCaptureAllowed`: comitado × pendente) já estava coberto por `HotkeyTransactionTests` — o estado do item da bandeja é exatamente esse guard, sem segunda representação do modo.
+- **Não coberto automaticamente** (limitação da infraestrutura atual): a wiring no `App` (quais eventos de configuração disparam `UpdateTrayCaptureItem`) e o menu renderizado no tray real — o `App` não pode ser instancado no processo de testes (WPF permite uma única `Application` por processo, e o `OnStartup` tem efeitos de sistema: mutex de instância única, janelas, tray, hotkeys). O "clique em item desabilitado não dispara" é comportamento nativo do `ToolStripMenuItem` desabilitado no dropdown (a rejeição de seleção é feita pelo próprio WinForms), verificado manualmente.
+
+## 70.4 Evidências
+
+- Baseline pré-mudança (Debug): **554/554 aprovados** — o build e a suíte concluíram antes da criação de qualquer arquivo novo desta sessão (verificado por timestamps dos logs), logo medem o working tree das Etapas 1–5 + §64–§69 intacto.
+- `dotnet build` + `dotnet test` **Debug**: 0 erros, **559/559 aprovados** (554 anteriores + 5 novos); `dotnet build -c Release` + `dotnet test -c Release`: 0 erros, **559/559 aprovados**; apenas o aviso preexistente xUnit2020 em `OcrCollectionGeneratorTests.cs` — nenhum aviso novo.
+- `git status`/diff inspecionados: apenas os arquivos desta seção + as alterações locais preexistentes (intactas); nenhum comando Git destrutivo; `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` presentes no código; nenhum processo do usuário encerrado; `C:\Dev\CapParse` não foi tocado.
+- **Pendente no desktop real (usuário)**: (1) no Modo Direto ativo — o item "Capturar" acinzentado no menu da bandeja (clique nele não inicia captura) e Configurações/Sair funcionando; (2) abrir Configurações e ativar o Modo Direto pendente — o item desabilita em tempo real, sem salvar; (3) cancelar a janela — o item volta ao estado do modo comitado; (4) salvar a alternância (direto ↔ tradicional) — o item acompanha sem reinício; (5) no Modo Tradicional — "Capturar" habilitado e iniciando o fluxo convencional.
+
+## 70.5 Arquivos
+
+- Novos: `src/CapParse/UI/TrayMenu.cs`, `tests/CapParse.Tests/TrayMenuTests.cs`.
+- Alterados: `src/CapParse/App.xaml.cs` (menu da bandeja via `TrayMenu`, ponto de entrada guardado compartilhado, sincronização do item nos pontos de mudança de modo), `docs/ui.md` (§4), `docs/development.md` (esta seção + §50).
+- Não alterados: `HotkeyTransaction`, `CaptureHotkeyCoordinator`, `DirectHotkeyApplier`, `GlobalHotkey`, `SettingsWindow`, pipeline de captura/OCR, clipboard, salvamento; nenhuma dependência adicionada.
+
+## 70.6 Pendências e observação
+
+- **Validação manual no desktop** dos cinco cenários listados em §70.4 antes de qualquer commit.
+- **Observação (fora de escopo, não implementado)**: a retry após falha de captura (`StartCapture()` sem ação no `catch` do fluxo) executaria o fluxo tradicional se disparada durante uma captura direta em falha — caminho raro (falha de captura GDI em Modo Direto + usuário clica OK) e pré-existente a esta sessão; não foi modificado porque o refinamento cobre os gatilhos externos (item da bandeja e hotkey), não a continuação de uma captura que o próprio usuário acabou de iniciar. Candidato a estágio futuro, se o cenário for considerado relevante.
+
+---
+
+# 71. Validação manual da primeira execução — Fases 3A/3B (sessão do usuário, trabalho local)
+
+Registra a validação manual da experiência de primeira execução (escolha do modo na `FirstRunWindow`, §63) executada pelo usuário no binário Debug (`src/CapParse/bin/Debug/net8.0-windows/CapParse.exe`) sobre o working tree das Etapas 1–5 + §64–§70. O rearme da primeira execução entre os cenários usou o procedimento documentado (arquivo de configurações ausente), sempre com o aplicativo encerrado. **Sem commit, tag ou push**: todo o trabalho permanece no working tree.
+
+## 71.1 Cenários e resultados
+
+| Teste | Resultado | Evidência |
+|---|---|---|
+| A1 — tela completa, sem cortes | OK | Confirmação visual do usuário; nenhuma ressalva relatada. |
+| A2 — “Agora não” | OK | A apresentação fechou normalmente, sem crash; o app continuou utilizável e Capturar permaneceu habilitado na bandeja. Configuração: `FirstRunPresented: true`, `DirectModeEnabled: false`, slots diretos `null`. |
+| A3 — “Modo Direto” | OK com ressalva | A apresentação fechou, o modo persistiu após reiniciar e Capturar ficou desabilitado. Configuração: `DirectModeEnabled: true`; os três slots diretos permaneceram `null`, sem atalhos criados automaticamente. A notificação de bandeja não apareceu. |
+| A4.1 — Enter, opção Tradicional | OK | Tradicional estava selecionado por padrão; a apresentação fechou sem crash e o app permaneceu funcional. Configuração: `FirstRunPresented: true`, `DirectModeEnabled: false`, slots diretos `null`. |
+| A4.2 — fechamento por X/Esc | OK | Fechamento sem crash; app funcional; `Ctrl+Shift+X`, captura e bandeja testados com sucesso. Configuração: `FirstRunPresented: true`, `DirectModeEnabled: false`, slots diretos `null`. |
+
+A coluna de evidência combina o relato do usuário (comportamento de interface) com a inspeção somente leitura do `settings.json` em `%LOCALAPPDATA%\CapParse\`, feita sempre com o aplicativo encerrado (persistência).
+
+**Conclusão:** a validação manual da primeira execução está concluída; os cinco cenários tiveram resultado positivo, com a ressalva de notificação documentada em §71.3.
+
+## 71.2 Estado no encerramento da validação
+
+- **Estado de configuração após A2**: `settings.json` recriado pelo app em estado de instalação tradicional; primeira execução concluída; Modo Tradicional ativo; `CaptureHotkey: Ctrl + Shift + X`; slots diretos nulos.
+- **Estado do repositório**: HEAD `e225eb6`; working tree com 20 arquivos modificados (`M`) e 25 não rastreados (`??`), conforme o relatório consolidado. Nenhum código, teste, documentação, versão ou arquivo de build foi alterado durante as fases 3A/3B; nenhuma operação Git mutante, build ou teste foi executado nessas fases.
+
+## 71.3 Pendência — notificação de bandeja (investigação em aberto, causa não confirmada)
+
+No A3 (escolha de “Modo Direto” na primeira execução), a notificação de bandeja ("Modo Direto ativado. Configure os atalhos em Configurações para usá-lo.") **não apareceu**, embora o código chame `ShowTrayNotification` incondicionalmente após o `ApplySettings` na escolha `Direct` — com o `NotifyIcon` criado e visível no startup, antes da apresentação. O ícone da bandeja estava funcional (o usuário observou o item "Capturar" desabilitado) e o arquivo confirma o commit do modo (`DirectModeEnabled: true` persistido).
+
+**Hipóteses (não conclusões):** supressão do balão pelo lado do Windows (configurações de notificação do SO, balão inicial da sessão, prontidão do shell da bandeja logo após o início do processo — `ShowBalloonTip` é fire-and-forget e o app não confirma a entrega) ou exceção absorvida pelo `catch` silencioso do `ShowTrayNotification` (degradação documentada: nunca crashar).
+
+**Investigação futura (não executada nesta fase):** verificar as configurações de notificações do Windows para o app e adicionar instrumentação/trace no ponto da chamada (ex.: via `CAPPARSE_TRACE`) para distinguir supressão do SO de exceção absorvida.
+

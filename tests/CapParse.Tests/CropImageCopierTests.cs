@@ -166,6 +166,58 @@ public class CropImageCopierTests
         }
     }
 
+    [Fact]
+    public void TryCopy_TransientClipboardLock_IsRetriedAndSucceeds()
+    {
+        // The clipboard is locked by another application for a moment: the
+        // limited retry gives the lock time to clear and the copy
+        // succeeds, so a transient lock no longer surfaces as a failure.
+        using var crop = MakeCrop(2, 1, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 });
+        var clipboard = new FlakyImageClipboard(failuresBeforeSuccess: 2);
+        var copier = new CropImageCopier(clipboard);
+
+        var outcome = copier.TryCopy(crop, 96);
+
+        Assert.True(outcome.Succeeded);
+        Assert.NotNull(clipboard.LastImage);
+        Assert.Equal(3, clipboard.Attempts);
+    }
+
+    [Fact]
+    public void TryCopy_PersistentClipboardLock_StillFailsWithTheUsualMessage()
+    {
+        // A lock that outlasts the (few, bounded) retries is still
+        // reported as a failed copy, with the same user message as before
+        // the retry policy: the policy softens the transient case, it
+        // never hides a persistent one.
+        using var crop = MakeCrop(2, 1, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 });
+        var clipboard = new AlwaysLockedImageClipboard();
+        var copier = new CropImageCopier(clipboard);
+
+        var outcome = copier.TryCopy(crop, 96);
+
+        Assert.False(outcome.Succeeded);
+        Assert.Equal(
+            "Não foi possível copiar a imagem. A área de transferência pode estar em uso por outro aplicativo.",
+            outcome.Message);
+        Assert.Equal(ClipboardWritePolicy.MaxAttempts, clipboard.Attempts);
+    }
+
+    [Fact]
+    public void TryCopy_NonClipboardException_FailsOnTheFirstAttempt()
+    {
+        // A failure that is not the recognized clipboard lock (a real
+        // bug) is not retried: the policy must not mask it or delay it.
+        using var crop = MakeCrop(2, 1, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 });
+        var clipboard = new FaultyImageClipboard();
+        var copier = new CropImageCopier(clipboard);
+
+        var outcome = copier.TryCopy(crop, 96);
+
+        Assert.False(outcome.Succeeded);
+        Assert.Equal(1, clipboard.Attempts);
+    }
+
     private static Bitmap MakeCrop(int width, int height, byte[] bgra)
     {
         var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
@@ -208,6 +260,59 @@ public class CropImageCopierTests
 
             Written = true;
             LastImage = image;
+        }
+    }
+
+    /// <summary>
+    /// A clipboard that is locked by another application for the first
+    /// <c>failuresBeforeSuccess</c> writes and then frees up: the shape
+    /// of a transient lock.
+    /// </summary>
+    private sealed class FlakyImageClipboard : IImageClipboard
+    {
+        private readonly int _failuresBeforeSuccess;
+
+        public FlakyImageClipboard(int failuresBeforeSuccess)
+        {
+            _failuresBeforeSuccess = failuresBeforeSuccess;
+        }
+
+        public int Attempts { get; private set; }
+        public BitmapSource? LastImage { get; private set; }
+
+        public void SetImage(BitmapSource image)
+        {
+            Attempts++;
+            if (Attempts <= _failuresBeforeSuccess)
+            {
+                throw new ExternalException("The clipboard is in use by another application.");
+            }
+
+            LastImage = image;
+        }
+    }
+
+    /// <summary>A clipboard that stays locked for the whole copy attempt.</summary>
+    private sealed class AlwaysLockedImageClipboard : IImageClipboard
+    {
+        public int Attempts { get; private set; }
+
+        public void SetImage(BitmapSource image)
+        {
+            Attempts++;
+            throw new ExternalException("The clipboard is in use by another application.");
+        }
+    }
+
+    /// <summary>A clipboard whose write fails for a reason that is not a clipboard lock.</summary>
+    private sealed class FaultyImageClipboard : IImageClipboard
+    {
+        public int Attempts { get; private set; }
+
+        public void SetImage(BitmapSource image)
+        {
+            Attempts++;
+            throw new InvalidOperationException("simulated bug");
         }
     }
 }

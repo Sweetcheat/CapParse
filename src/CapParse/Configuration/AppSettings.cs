@@ -50,6 +50,52 @@ public sealed class AppSettings
     /// </summary>
     public ThemePreference ThemePreference { get; set; } = ThemePreference.System;
 
+    /// <summary>
+    /// Whether the direct mode (direct capture actions) is enabled, as
+    /// chosen in the settings. A missing or legacy file — one written
+    /// before the setting existed — reads as <c>false</c>, so an existing
+    /// installation never enters the direct mode after an update. The
+    /// flag only controls the registrations: the configured combinations
+    /// below are preserved while the mode is disabled.
+    /// </summary>
+    public bool DirectModeEnabled { get; set; }
+
+    /// <summary>
+    /// The direct-mode hotkey that copies the captured region as an image,
+    /// or null when the slot is unset (the default: nothing is registered
+    /// for it). An invalid persisted value reads as null (see
+    /// <see cref="ValidHotkey">); the slot is never left on a combination
+    /// the user did not configure.
+    /// </summary>
+    public HotkeySetting? DirectCopyImageHotkey { get; set; }
+
+    /// <summary>The direct-mode hotkey that runs OCR and copies the text, or null when unset.</summary>
+    public HotkeySetting? DirectCopyTextHotkey { get; set; }
+
+    /// <summary>The direct-mode hotkey that saves the captured image, or null when unset.</summary>
+    public HotkeySetting? DirectSaveImageHotkey { get; set; }
+
+    /// <summary>
+    /// How the direct "save image" action stores the image: ask for a
+    /// location on every action (<see cref="ImageSavePolicy.Manual"/>, the
+    /// default for missing and legacy files) or write to
+    /// <see cref="DirectSaveFolder"/> (<see cref="ImageSavePolicy.Automatic").
+    /// An invalid persisted value falls back to
+    /// <see cref="ImageSavePolicy.Manual"/> (see
+    /// <see cref="ParseSavePolicy">); it never invalidates the rest of the
+    /// file.
+    /// </summary>
+    public ImageSavePolicy DirectSavePolicy { get; set; } = ImageSavePolicy.Manual;
+
+    /// <summary>
+    /// The folder the automatic save policy writes to (empty when not
+    /// chosen). A user-chosen location, like the hotkey combinations: no
+    /// personal data and no captured content. The application validates
+    /// the folder before accepting the automatic policy (see the settings
+    /// application in the application layer).
+    /// </summary>
+    public string DirectSaveFolder { get; set; } = string.Empty;
+
     /// <summary>The settings file location: <c>%LOCALAPPDATA%\CapParse\settings.json</c>.</summary>
     public static string DefaultSettingsPath
         => Path.Combine(
@@ -88,7 +134,17 @@ public sealed class AppSettings
                 // Absent in a legacy file: the JSON default (false) is the
                 // correct first-run reading.
                 FirstRunPresented = file.FirstRunPresented,
-                ThemePreference = ParseThemePreference(file.ThemePreference)
+                ThemePreference = ParseThemePreference(file.ThemePreference),
+                // Each direct-mode field is parsed leniently on its own, like the
+                // theme preference: a corrupted field degrades to its safe
+                // default (mode off, slot unset, manual policy) without
+                // invalidating the rest of the file.
+                DirectModeEnabled = file.DirectModeEnabled,
+                DirectCopyImageHotkey = ValidHotkey(file.DirectCopyImageHotkey),
+                DirectCopyTextHotkey = ValidHotkey(file.DirectCopyTextHotkey),
+                DirectSaveImageHotkey = ValidHotkey(file.DirectSaveImageHotkey),
+                DirectSavePolicy = ParseSavePolicy(file.DirectSavePolicy),
+                DirectSaveFolder = file.DirectSaveFolder ?? string.Empty
             };
         }
         catch
@@ -123,7 +179,13 @@ public sealed class AppSettings
                 Version = SupportedVersion,
                 CaptureHotkey = CaptureHotkey,
                 FirstRunPresented = FirstRunPresented,
-                ThemePreference = ThemePreference.ToString().ToLowerInvariant()
+                ThemePreference = ThemePreference.ToString().ToLowerInvariant(),
+                DirectModeEnabled = DirectModeEnabled,
+                DirectCopyImageHotkey = DirectCopyImageHotkey,
+                DirectCopyTextHotkey = DirectCopyTextHotkey,
+                DirectSaveImageHotkey = DirectSaveImageHotkey,
+                DirectSavePolicy = DirectSavePolicy.ToString().ToLowerInvariant(),
+                DirectSaveFolder = DirectSaveFolder
             };
 
             var temporary = path + ".tmp";
@@ -163,6 +225,96 @@ public sealed class AppSettings
         };
     }
 
+    /// <summary>
+    /// Parses the persisted save policy leniently: absent (a legacy file)
+    /// means <see cref="ImageSavePolicy.Manual"/>, the only policy that
+    /// needs no folder; "manual" and "automatic" (case-insensitive,
+    /// surrounding whitespace ignored) map to the matching policy; any
+    /// other value is corrupted and falls back to
+    /// <see cref="ImageSavePolicy.Manual"/> on its own, so the hotkeys and
+    /// the rest of the file survive a bad policy value.
+    /// </summary>
+    internal static ImageSavePolicy ParseSavePolicy(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return ImageSavePolicy.Manual;
+        }
+
+        return raw.Trim().ToLowerInvariant() switch
+        {
+            "automatic" => ImageSavePolicy.Automatic,
+            _ => ImageSavePolicy.Manual
+        };
+    }
+
+    /// <summary>
+    /// A persisted direct-mode hotkey is kept only when it is valid: a
+    /// missing (unset slot) or corrupted value reads as "not configured",
+    /// so a legacy or corrupted file can never register a hotkey the user
+    /// did not set.
+    /// </summary>
+    private static HotkeySetting? ValidHotkey(HotkeySetting? setting)
+        => setting is { } hotkey && hotkey.IsValid ? hotkey : null;
+
+    /// <summary>
+    /// A full copy of the current values: the settings window edits a
+    /// clone (the pending change) and commits it to the application only
+    /// when the user saves, so canceling can never modify the active
+    /// configuration.
+    /// </summary>
+    public AppSettings Clone() => new()
+    {
+        CaptureHotkey = CaptureHotkey,
+        FirstRunPresented = FirstRunPresented,
+        ThemePreference = ThemePreference,
+        DirectModeEnabled = DirectModeEnabled,
+        DirectCopyImageHotkey = DirectCopyImageHotkey,
+        DirectCopyTextHotkey = DirectCopyTextHotkey,
+        DirectSaveImageHotkey = DirectSaveImageHotkey,
+        DirectSavePolicy = DirectSavePolicy,
+        DirectSaveFolder = DirectSaveFolder
+    };
+
+    /// <summary>
+    /// The configured direct-mode hotkey of <paramref name="slot"/> (null
+    /// when the slot is unset).
+    /// </summary>
+    public HotkeySetting? DirectSlot(int slot) => slot switch
+    {
+        HotkeySlots.DirectCopyImage => DirectCopyImageHotkey,
+        HotkeySlots.DirectCopyText => DirectCopyTextHotkey,
+        HotkeySlots.DirectSaveImage => DirectSaveImageHotkey,
+        _ => null
+    };
+
+    /// <summary>
+    /// Sets the configured direct-mode hotkey of <paramref name="slot"/>
+    /// (null clears the slot). Clearing a slot never touches the other
+    /// settings: disabling the direct mode keeps every configured
+    /// combination.
+    /// </summary>
+    public void SetDirectSlot(int slot, HotkeySetting? value)
+    {
+        switch (slot)
+        {
+            case HotkeySlots.DirectCopyImage:
+                DirectCopyImageHotkey = value;
+                break;
+
+            case HotkeySlots.DirectCopyText:
+                DirectCopyTextHotkey = value;
+                break;
+
+            case HotkeySlots.DirectSaveImage:
+                DirectSaveImageHotkey = value;
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(slot));
+        }
+    }
+
     /// <summary>The on-disk representation of the settings file.</summary>
     private sealed class SettingsFile
     {
@@ -173,5 +325,17 @@ public sealed class AppSettings
         public bool FirstRunPresented { get; set; }
 
         public string? ThemePreference { get; set; }
+
+        public bool DirectModeEnabled { get; set; }
+
+        public HotkeySetting? DirectCopyImageHotkey { get; set; }
+
+        public HotkeySetting? DirectCopyTextHotkey { get; set; }
+
+        public HotkeySetting? DirectSaveImageHotkey { get; set; }
+
+        public string? DirectSavePolicy { get; set; }
+
+        public string? DirectSaveFolder { get; set; }
     }
 }

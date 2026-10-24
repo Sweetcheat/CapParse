@@ -248,6 +248,138 @@ public class CropImageSaverTests
         Assert.Equal(expected, CropImageSaver.NormalizePngPath(input));
     }
 
+    // --------------------------------------------------------------------
+    // Automatic save policy (direct mode): TrySaveToFolder
+    // --------------------------------------------------------------------
+
+    [Fact]
+    public void TrySaveToFolder_WritesAPngIntoTheFolder()
+    {
+        using var dir = new TempDirectory();
+        using var crop = MakeCrop(2, 1, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 });
+        var saver = new CropImageSaver(new FakeSaveDialog());
+
+        var outcome = saver.TrySaveToFolder(crop, 96, dir.Path);
+
+        Assert.Equal(SaveImageStatus.Saved, outcome.Status);
+
+        var file = Assert.Single(Directory.GetFiles(dir.Path));
+        Assert.StartsWith("CapParse-", Path.GetFileName(file));
+        Assert.EndsWith(".png", file);
+
+        var frame = DecodePng(file);
+        Assert.Equal(2, frame.PixelWidth);
+        Assert.Equal(1, frame.PixelHeight);
+    }
+
+    [Fact]
+    public void TrySaveToFolder_DoesNotConsultTheDialog()
+    {
+        // The automatic policy writes to the folder directly: the save
+        // dialog (the manual policy) must not be shown.
+        using var dir = new TempDirectory();
+        using var crop = MakeCrop(2, 1, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 });
+        var dialog = new FakeSaveDialog();
+        var saver = new CropImageSaver(dialog);
+
+        var outcome = saver.TrySaveToFolder(crop, 96, dir.Path);
+
+        Assert.Equal(SaveImageStatus.Saved, outcome.Status);
+        Assert.Equal(0, dialog.ShowCount);
+    }
+
+    [Fact]
+    public void TrySaveToFolder_NeverOverwritesAnExistingFile()
+    {
+        // Two saves with the same generated name (the same second) must
+        // produce two distinct files: the second gets a numbered name and
+        // the first file is left byte-for-byte identical.
+        using var dir = new TempDirectory();
+        using var crop = MakeCrop(2, 1, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 });
+        var saver = new CropImageSaver(new FakeSaveDialog());
+        var now = new DateTime(2026, 10, 12, 13, 45, 30);
+
+        Assert.Equal(SaveImageStatus.Saved, saver.TrySaveToFolder(crop, 96, dir.Path, now).Status);
+
+        var baseName = CropImageSaver.SuggestedFileName(now);
+        var firstPath = Path.Combine(dir.Path, baseName);
+        Assert.True(File.Exists(firstPath));
+        var firstBytes = File.ReadAllBytes(firstPath);
+
+        Assert.Equal(SaveImageStatus.Saved, saver.TrySaveToFolder(crop, 96, dir.Path, now).Status);
+
+        Assert.Equal(firstBytes, File.ReadAllBytes(firstPath));
+        var files = Directory.GetFiles(dir.Path);
+        Assert.Equal(2, files.Length);
+        Assert.Contains(files, f => Path.GetFileName(f) == baseName.Replace(".png", " (2).png"));
+    }
+
+    [Fact]
+    public void TrySaveToFolder_MissingFolder_FailsWithoutThrowing()
+    {
+        using var dir = new TempDirectory();
+        using var crop = MakeCrop(2, 1, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 });
+        var saver = new CropImageSaver(new FakeSaveDialog());
+
+        var outcome = saver.TrySaveToFolder(crop, 96, Path.Combine(dir.Path, "no-such-folder"));
+
+        Assert.Equal(SaveImageStatus.Failed, outcome.Status);
+        Assert.NotEmpty(outcome.Message);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void TrySaveToFolder_EmptyFolder_Fails(string folder)
+    {
+        using var crop = MakeCrop(2, 1, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 });
+        var saver = new CropImageSaver(new FakeSaveDialog());
+
+        var outcome = saver.TrySaveToFolder(crop, 96, folder);
+
+        Assert.Equal(SaveImageStatus.Failed, outcome.Status);
+        Assert.NotEmpty(outcome.Message);
+    }
+
+    [Fact]
+    public void TrySaveToFolder_NullCrop_Fails()
+    {
+        using var dir = new TempDirectory();
+        var saver = new CropImageSaver(new FakeSaveDialog());
+
+        var outcome = saver.TrySaveToFolder(null, 96, dir.Path);
+
+        Assert.Equal(SaveImageStatus.Failed, outcome.Status);
+        Assert.Empty(Directory.GetFiles(dir.Path));
+    }
+
+    [Fact]
+    public void UniqueFileName_KeepsTheNameWhenTheFileDoesNotExist()
+    {
+        using var dir = new TempDirectory();
+
+        Assert.Equal(Path.Combine(dir.Path, "a.png"), CropImageSaver.UniqueFileName(dir.Path, "a.png"));
+    }
+
+    [Fact]
+    public void UniqueFileName_NumbersAnExistingFile()
+    {
+        using var dir = new TempDirectory();
+        File.WriteAllText(Path.Combine(dir.Path, "a.png"), "existing");
+
+        Assert.EndsWith("a (2).png", CropImageSaver.UniqueFileName(dir.Path, "a.png"));
+    }
+
+    [Fact]
+    public void UniqueFileName_NumbersSequentiallyPastExistingSuffixedFiles()
+    {
+        using var dir = new TempDirectory();
+        File.WriteAllText(Path.Combine(dir.Path, "a.png"), "1");
+        File.WriteAllText(Path.Combine(dir.Path, "a (2).png"), "2");
+
+        Assert.EndsWith("a (3).png", CropImageSaver.UniqueFileName(dir.Path, "a.png"));
+    }
+
     private static BitmapFrame DecodePng(string path)
     {
         using var stream = File.OpenRead(path);

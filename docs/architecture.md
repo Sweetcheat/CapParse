@@ -51,7 +51,7 @@ O objetivo é criar uma base sólida para o V0.1 sem dificultar sua evolução p
 
 ## Persistência
 
-A única persistência do V0.1 é a de configurações: o atalho de captura é gravado em `%LOCALAPPDATA%\CapParse\settings.json` (implementado no M13, ver §29). Não há persistência de resultados, histórico ou imagens capturadas.
+A única persistência do V0.1 é a de configurações: as configurações da aplicação (atalho de captura, modo e preferências) são gravadas em `%LOCALAPPDATA%\CapParse\settings.json` (implementado no M13, estendido no V0.3 — ver §29). Não há persistência de resultados, histórico ou imagens capturadas.
 
 ---
 
@@ -102,9 +102,13 @@ Criar somente os arquivos necessários para o milestone atual.
 O fluxo do V0.1 é:
 
 ```text
-Global Hotkey  ────┐
-                   ├──► StartCapture()
-Tray Menu (Capturar) ─┘
+Modo Tradicional:
+  Global Hotkey  ─────────┐
+                          ├──► StartCapture()  (ponto de entrada guardado pelo modo, §22)
+  Tray Menu (Capturar)  ──┘
+
+Modo Direto (V0.3):
+  Hotkeys diretos (3 combinações configuradas, §22) ──► StartCapture(action)
       │
       ▼
 Freeze Desktop
@@ -123,36 +127,55 @@ User Selects Region
       ▼
 Crop Selected Region
       │
-      ▼
-Processing / Loading
-      │
-      ▼
-OCR Engine
-      │
-      ▼
-OcrResult
-      │
-      ▼
-Result view (main window)
-      │
-      ├── Generate Text (recognized text + Copiar texto)
+      ├── Modo Tradicional:
       │       ▼
-      │   Text on clipboard
-      │
-      ├── Copy Image
+      │   Processing / Loading
       │       ▼
-      │   Clipboard (in-memory DIB, DPI-tagged)
+      │   OCR Engine
+      │       ▼
+      │   OcrResult
+      │       ▼
+      │   Result view (main window)
+      │       │
+      │       ├── Generate Text (recognized text + Copiar texto)
+      │       │       ▼
+      │       │   Text on clipboard
+      │       │
+      │       ├── Copy Image
+      │       │       ▼
+      │       │   Clipboard (in-memory DIB, DPI-tagged)
+      │       │
+      │       └── Save Image
+      │               ▼
+      │           Save Dialog
+      │               ▼
+      │           PNG file (DPI-tagged)
       │
-      └── Save Image
-              ▼
-          Save Dialog
-              ▼
-          PNG file (DPI-tagged)
+      └── Modo Direto (V0.3): a ação do slot dispara imediatamente,
+              sem interação com a janela de resultado:
+
+              CopyImage  → clipboard (in-memory DIB, DPI-tagged)
+              CopyText   → OCR local (mesmo núcleo do fluxo tradicional)
+                           → texto no clipboard
+              SaveImage  → política de salvamento das configurações:
+                           Manual (diálogo) ou Automático (pasta,
+                           nome único, nunca sobrescreve)
+
+              feedback: notificação discreta na bandeja
 ```
 
 O fluxo deve ser explícito.
 
 Evitar eventos encadeados e lógica espalhada entre diversas janelas.
+
+As duas famílias de gatilhos compartilcam o mesmo núcleo: a captura é uma
+única implementação (`StartCapture`), o OCR direto usa o mesmo núcleo de
+reconhecimento do fluxo tradicional (estado de execução e histórico
+compartilhados — não existe segundo pipeline de OCR), e os serviços de
+cópia/salvamento são os mesmos que os botões da janela de resultado usam.
+No Modo Direto os gatilhos tradicionais (hotkey e item da bandeja) ficam
+inativos: o registro do hotkey tradicional é desfeito e o ponto de
+entrada guardado (§22) recusa a captura, em qualquer origem do gatilho.
 
 ---
 
@@ -445,6 +468,16 @@ Copy Image      (implementado: M11)
 Save Image      (implementado: M12)
 ```
 
+Modo Direto (V0.3): as três ações também podem executar imediatamente
+após a seleção, sem interação com a janela de resultado, através dos
+hotkeys diretos configuráveis (§22). O `DirectActionRunner` (`UI/`) reusa
+os serviços existentes da aplicação — `CropImageCopier`, `OcrTextCopier`,
+`CropImageSaver` e o núcleo de reconhecimento compartilhado — e reporta o
+resultado por notificação discreta na bandeja (sem janela). Na ação
+"salvar imagem", a política de salvamento das configurações (diálogo
+manual ou pasta automática) é consultada no momento da ação, então uma
+troca de configuração vale para a próxima ação sem reinício.
+
 Cada ação deve receber somente os dados necessários para executá-la.
 
 Não criar um framework genérico de plugins de ações no V0.1.
@@ -491,7 +524,8 @@ Regras mantidas:
 - cancelamento do diálogo é um resultado normal (nenhum arquivo é gravado e nenhuma mensagem é exibida);
 - o crop continua pertencendo ao `App` (nunca é descartado pelo saver);
 - falhas de gravação (caminho inválido, acesso negado, arquivo em uso) são relatadas como resultado com mensagem amigável, nunca lançadas;
-- feedback visual de sucesso na janela principal ("Imagem salva!").
+- feedback visual de sucesso na janela principal ("Imagem salva!");
+- Modo Direto, política automática (V0.3): `CropImageSaver.TrySaveToFolder` grava na pasta configurada, sem diálogo, com o nome gerado pela mesma convenção tornado único (sufixos ` (2)`, ` (3)`…), de modo que nenhum arquivo existente é sobrescrito; pasta ausente/inválida falha com mensagem amigável.
 
 ---
 
@@ -520,25 +554,38 @@ Não criar um sistema genérico de integração com todos os formatos possíveis
 
 # 22. Global Hotkey
 
-O hotkey global deve funcionar mesmo quando o CapParse não estiver em primeiro plano.
+Os hotkeys globais devem funcionar mesmo quando o CapParse não estiver em primeiro plano.
 
-O hotkey padrão será:
+O hotkey padrão do Modo Tradicional é:
 
 ```text
 Ctrl + Shift + X
 ```
 
-O sistema deve permitir alterar o atalho nas configurações (implementado no M13: a janela `SettingsWindow` grava uma nova combinação, valida, registra globalmente com recuperação em caso de conflito e persiste o valor — ver §29).
+O sistema deve permitir alterar o atalho nas configurações (implementado no M13; a janela `SettingsWindow` é transacional — ver §29).
 
-A implementação pode utilizar Win32 interop.
+A implementação utiliza Win32 interop (`Platform/GlobalHotkey`, uma janela oculta que recebe os `WM_HOTKEY`).
+
+Implementação (V0.3, Modo Direto): o sistema registra **múltiplos** hotkeys globais, um por id de slot (`Configuration/HotkeySlots`):
+
+```text
+1  Capture          — captura tradicional (Ctrl + Shift + X por padrão)
+2  DirectCopyImage  — direto: copiar imagem
+3  DirectCopyText   — direto: OCR + copiar texto
+4  DirectSaveImage  — direto: salvar imagem
+```
+
+Regras:
+
+- **Modos mutuamente exclusivos**: no Modo Tradicional só o hotkey de captura é registrado; no Modo Direto só os slots diretos configurados (um slot não configurado não registra nada, e um lançamento já configurado para o Modo Direto nunca registra o hotkey tradicional).
+- A combinação tradicional é uma **preferência**: desregistrá-la (Modo Direto) nunca a remove das configurações — ela fica livre para ser atribuída a um slot direto, e voltar ao Modo Tradicional a registra novamente.
+- O hotkey tradicional e o item "Capturar" da bandeja compartilham o único ponto de entrada da captura tradicional, guardado pela função pura `HotkeyTransaction.TraditionalCaptureAllowed` (modo comitado × modo pendente da janela de configurações aberta): enquanto o Modo Direto está em vigor (comitado ou pendente), nenhuma origem de gatilho — `WM_HOTKEY` antigo enfileirado, registro que não deveria existir, clique no menu — inicia uma captura tradicional. A desregistração suspende a combinação imediatamente enquanto a janela de configurações segura um modo direto pendente (duração do mapeamento), e a restaura ao fechar (`CaptureHotkeyCoordinator`).
+- Uma falha de `RegisterHotKey` (combinação em uso por outro aplicativo — ou por outro id do próprio processo) nunca deixa o id em estado meio-aplicado: o id mantém a combinação anterior (ou fica desregistrado). A combinação configurada é preservada nas configurações e a falha é reportada com mensagem amigável.
+- O hotkey tradicional usa a cadeia de recuperação (solicitada → anterior ativo → padrão — `HotkeyRecovery`); as decisões de registro/desregistro de cada transação são funções puras em `Configuration/HotkeyTransaction` e `Configuration/DirectHotkeyApplier`, testáveis sem Windows.
 
 A lógica de hotkey não deve conhecer a lógica de captura.
 
-Ela apenas deve disparar:
-
-```text
-StartCapture()
-```
+Ela apenas deve disparar o ponto de entrada da captura correspondente ao slot (tradicional guardado, ou a ação direta do slot).
 
 ---
 
@@ -566,11 +613,7 @@ Exibe o menu.
 
 ### Capturar
 
-Inicia:
-
-```text
-StartCapture()
-```
+Inicia a captura tradicional através do **mesmo ponto de entrada guardado** do hotkey global (§22): no Modo Tradicional o item está habilitado e funciona como antes; enquanto o Modo Direto está em vigor (comitado, ou pendente na janela de configurações aberta) o item fica visualmente **desabilitado** e seu ponto de entrada recusa a captura — o estado visual e a ação nunca divergem. O estado do item é sincronizado em todos os pontos em que o modo muda (startup, salvamento das configurações, toggle pendente na janela aberta e fechamento dela), sem reinício.
 
 ### Configurações
 
@@ -615,7 +658,8 @@ Ela não deve conter toda a implementação detalhada de cada etapa.
 O V0.1 impede estados inválidos simples. Implementação atual:
 
 - **Captura:** a flag `_captureInFlight` no `App` bloqueia novos gatilhos enquanto uma tentativa está em andamento (incluindo a construção da sessão, que é assíncrona: `FrozenOverlaySession.CreateAsync` cede a UI thread entre as etapas em passes assíncronos do Dispatcher — `PumpDispatcherAsync`/`WaitForFirstRenderAsync`, sem nenhum bombeamento síncrono; um shutdown do Dispatcher aborta a construção, que fecha as janelas já criadas e executa o callback de fechamento). Falhas nunca deixam a aplicação bloqueada.
-- **OCR:** `OcrRunState` é o estado explícito das execuções — `Idle`, `Processing`, `Succeeded`, `NoText`, `Failed` — com ids de execução: apenas a execução mais recente pode completar, falhar ou cancelar o estado, então um reconhecimento obsoleto jamais sobrescreve um mais novo nem deixa a interface presa em `Processing`.
+- **OCR:** `OcrRunState` é o estado explícito das execuções — `Idle`, `Processing`, `Succeeded`, `NoText`, `Failed` — com ids de execução: apenas a execução mais recente pode completar, falhar ou cancelar o estado, então um reconhecimento obsoleto jamais sobrescreve um mais novo nem deixa a interface presa em `Processing`. O OCR das ações diretas (V0.3) percorre o mesmo núcleo: uma execução direta atualiza estado e histórico exatamente como qualquer captura, e uma execução superseded/cancelada permanece silenciosa em ambos os modos.
+- **Ações diretas (V0.3):** a guarda `_captureInFlight` é compartilhada pelo fluxo tradicional e pelas ações diretas — nenhuma segunda captura (de qualquer espécie) inicia enquanto uma está em andamento; o feedback das ações diretas usa o canal discreto da bandeja (nunca uma janela), e uma notificação que não pode ser exibida (ex.: encerramento) é descartada, nunca falha.
 - **Histórico:** `OcrHistory` guarda, em memória e por sessão, os resultados reconhecidos (mais recente primeiro, com limite de entradas); apenas execuções que completam validamente gravam entrada.
 
 Não criar uma máquina de estados complexa.
@@ -709,13 +753,36 @@ A configuração deve:
 
 Não criar dezenas de opções de configuração.
 
-**Implementação (M13, estendida no M14):** a pasta `Configuration/` do projeto principal contém:
+**Implementação (M13, estendida no M14 e no V0.3 — Modo Direto):** a pasta `Configuration/` do projeto principal contém:
 
 - `HotkeySetting` — o valor persistido (flags de modificador do Win32 + código de tecla virtual), com validação (pelo menos um de Ctrl/Alt/Windows + letra, dígito ou F1–F24; os códigos de tecla virtual das F-keys, 0x70–0x87, não colidem com nenhuma outra tecla) e exibição (`"Ctrl + Shift + X"`);
 - `HotkeyRecovery` — a cadeia de recuperação pura (solicitada → anterior ativo → padrão → nenhum atalho), usada pelo startup e pela janela de Settings; a aplicação fornece a função que executa os `RegisterHotKey`;
-- `AppSettings` — leitura/gravação de `%LOCALAPPDATA%\CapParse\settings.json` (JSON mínimo, escrita atômica via arquivo temporário). A leitura nunca lança: arquivo ausente, ilegível, com parse inválido ou valores inválidos produzem os padrões, sem modificar o arquivo. A gravação falha sem lançar (retorna `false`), o que a janela de Settings reporta como mensagem amigável. O arquivo guarda também a flag `FirstRunPresented` (M14: a apresentação de primeira execução só aparece uma vez; arquivo ausente/legado = primeira execução).
+- `HotkeySlots` — os ids estáveis de hotkey, um por slot (captura = 1; os três slots diretos = 2–4, §22);
+- `HotkeyConflictValidator` — validação pura de conflitos entre os slots que estarão ativos no modo de destino (no Tradicional: só a captura; no Direto: os slots diretos entre si — as famílias nunca conflitam, sendo os modos mutuamente exclusivos);
+- `HotkeyTransaction` — as decisões puras conscientes do modo (registro no startup, transições entre modos, o guard `TraditionalCaptureAllowed`);
+- `CaptureHotkeyCoordinator` — o dono operacional do registro do hotkey de captura tradicional (startup por modo, suspensão pelo modo pendente da janela, plano de salvamento e rollback);
+- `DirectHotkeyApplier` — a aplicação/liberação/rollback pura dos registros dos slots diretos;
+- `DirectModeStatus` — o modelo de estado pequeno do Modo Direto na janela de configurações (mensagem de status e aviso por slot — funções puras);
+- `ImageSavePolicy` — a política de salvamento da ação direta "salvar imagem" (manual = diálogo a cada ação; automático = pasta configurada);
+- `AppSettings` — leitura/gravação de `%LOCALAPPDATA%\CapParse\settings.json` (JSON mínimo, escrita atômica via arquivo temporário). A leitura nunca lança: arquivo ausente, ilegível, com parse inválido ou valores inválidos produzem os padrões, sem modificar o arquivo; **cada campo novo tem fallback próprio** (arquivo legado → modo direto desativado, slots não configurados, política manual, pasta vazia; um campo corrompido degrada apenas a si mesmo), de modo que uma instalação existente nunca entra no Modo Direto após uma atualização. A gravação falha sem lançar (retorna `false`), o que a janela de Settings reporta como mensagem amigável.
 
-O arquivo contém somente a combinação de teclas e a flag de primeira execução — nenhum dado pessoal nem conteúdo capturado.
+Os campos do arquivo:
+
+```text
+CaptureHotkey          — a combinação tradicional (preferência preservada entre os modos)
+FirstRunPresented      — a apresentação de primeira execução só aparece uma vez
+ThemePreference        — Sistema / Claro / Escuro
+DirectModeEnabled      — o Modo Direto (padrão false: uma atualização não o ativa sozinha)
+DirectCopyImageHotkey  — slot direto: copiar imagem (null = não configurado)
+DirectCopyTextHotkey   — slot direto: OCR + copiar texto (null = não configurado)
+DirectSaveImageHotkey  — slot direto: salvar imagem (null = não configurado)
+DirectSavePolicy       — Manual (diálogo) / Automático (pasta)
+DirectSaveFolder       — a pasta da política automática (validada antes da aplicação)
+```
+
+O arquivo contém somente combinações de teclas, flags e preferências — nenhum dado pessoal nem conteúdo capturado.
+
+A janela de configurações é **transacional** (V0.3): os controles editam apenas uma cópia pendente (clone); **Salvar** valida (conflitos de hotkey entre os slots ativos no modo de destino; a política automática exige uma pasta existente), aplica (hotkey de captura pela cadeia de recuperação, slots diretos, tema) e só então persiste; **Cancelar**/fechar descarta a pendência. Qualquer falha restaura o estado operacional anterior e não persiste nada (ver §22).
 
 ---
 

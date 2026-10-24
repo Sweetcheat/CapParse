@@ -16,8 +16,14 @@ namespace CapParse.Tests;
 // one static Application and one static ThemeService, shared by all the
 // tests. Tests inside a class run sequentially, and every test applies its
 // own preference before asserting, so no test depends on the state left by
-// a previous one. No other test class creates an Application, so xunit's
-// cross-class parallelism cannot interfere.
+// a previous one. The Application instance is adopted through
+// TestApplication, which also serves the other test class that needs one:
+// whoever creates it first wins, the rest adopt it, and no parallel
+// creation race can occur. The class shares the WpfApp collection with
+// that other class: both mutate the shared Application's theme
+// dictionaries, which are not thread-safe, so the classes run
+// sequentially.
+[Collection("WpfApp")]
 public class ThemeServiceTests
 {
     static ThemeServiceTests()
@@ -37,9 +43,10 @@ public class ThemeServiceTests
         }
     }
 
-    // Created once for the whole test process (the class is the only
-    // consumer of Application.Current in this assembly's tests).
-    private static readonly Application App = new();
+    // Created once for the whole test process; adopted through
+    // TestApplication so a parallel test class cannot race to create the
+    // process's single Application instance first.
+    private static readonly Application App = TestApplication.Ensure();
 
     // One service for the whole test process, like the application has
     // exactly one: it tracks the dictionary it applied last, so a new

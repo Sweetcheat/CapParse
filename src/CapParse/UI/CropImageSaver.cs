@@ -47,6 +47,8 @@ public sealed class CropImageSaver
     private const string NoImageMessage = "Não há imagem capturada para salvar.";
     private const string SaveFailureMessage =
         "Não foi possível salvar a imagem. Verifique o local e o nome do arquivo e tente novamente.";
+    private const string FolderMissingMessage =
+        "Não foi possível salvar a imagem. A pasta de destino não existe ou não é acessível.";
 
     private const string PngExtension = ".png";
 
@@ -129,6 +131,87 @@ public sealed class CropImageSaver
 
         using var stream = File.Create(path);
         encoder.Save(stream);
+    }
+
+    /// <summary>
+    /// Saves the crop directly to <paramref name="folder"/> (the automatic
+    /// save policy of the direct mode), without any dialog: the file name
+    /// is generated with the same convention as the suggested dialog name
+    /// and made unique in the folder, so an existing file is never
+    /// overwritten. A missing, empty or invalid folder fails with a
+    /// friendly message, never throws. The crop bitmap is never disposed by
+    /// this class, like <see cref="TrySave"/>.
+    /// </summary>
+    public SaveImageOutcome TrySaveToFolder(Bitmap? crop, int dpi, string folder)
+        => TrySaveToFolder(crop, dpi, folder, DateTime.Now);
+
+    /// <summary>
+    /// The testable form of <see cref="TrySaveToFolder(Bitmap?, int, string)"/>
+    /// with an explicit clock, so the generated name (and the uniqueness
+    /// check against it) is deterministic.
+    /// </summary>
+    internal SaveImageOutcome TrySaveToFolder(Bitmap? crop, int dpi, string folder, DateTime now)
+    {
+        if (crop is null)
+        {
+            return new SaveImageOutcome(SaveImageStatus.Failed, NoImageMessage);
+        }
+
+        BitmapSource image;
+        try
+        {
+            image = CropImageCopier.ToBitmapSource(crop, dpi);
+        }
+        catch
+        {
+            // Same guard as TrySave: the crop may have been replaced by a
+            // newer capture before this action ran.
+            return new SaveImageOutcome(SaveImageStatus.Failed, NoImageMessage);
+        }
+
+        if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
+        {
+            return new SaveImageOutcome(SaveImageStatus.Failed, FolderMissingMessage);
+        }
+
+        try
+        {
+            WritePng(image, UniqueFileName(folder, SuggestedFileName(now)));
+        }
+        catch
+        {
+            return new SaveImageOutcome(SaveImageStatus.Failed, SaveFailureMessage);
+        }
+
+        return new SaveImageOutcome(SaveImageStatus.Saved, string.Empty);
+    }
+
+    /// <summary>
+    /// A path inside <paramref name="folder"/> for <paramref name="fileName"/>
+    /// that does not exist yet: when the file already exists, a " (2)",
+    /// " (3)"… suffix is appended to the name (before the extension), so a
+    /// save can never silently overwrite an existing file. Two saves in the
+    /// same second (the name carries second precision) therefore produce
+    /// two distinct files.
+    /// </summary>
+    internal static string UniqueFileName(string folder, string fileName)
+    {
+        var candidate = Path.Combine(folder, fileName);
+        if (!File.Exists(candidate))
+        {
+            return candidate;
+        }
+
+        var stem = Path.GetFileNameWithoutExtension(fileName);
+        var extension = Path.GetExtension(fileName);
+        for (var number = 2; ; number++)
+        {
+            candidate = Path.Combine(folder, $"{stem} ({number}){extension}");
+            if (!File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
     }
 
     /// <summary>

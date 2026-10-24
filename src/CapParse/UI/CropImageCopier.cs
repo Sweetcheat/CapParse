@@ -11,9 +11,12 @@ namespace CapParse.UI;
 /// Copies a captured crop to the clipboard as an in-memory image. Copying
 /// is always an explicit user action. The crop bitmap is never disposed by
 /// this class: ownership stays with the application, which keeps the crop
-/// alive until the next capture. Clipboard failures (for example the
-/// clipboard locked by another application) are reported as a failed
-/// outcome, not thrown.
+/// alive until the next capture. A clipboard locked by another application
+/// is transient, so the write is retried a few times with a short bounded
+/// delay (see <see cref="ClipboardWritePolicy"/>) before the copy is
+/// reported as a failed outcome; other clipboard failures are reported as
+/// a failed outcome, not thrown. The original exception of a failed copy
+/// is recorded in the opt-in CAPPARSE_TRACE log, never shown to the user.
 /// </summary>
 public sealed class CropImageCopier
 {
@@ -61,11 +64,20 @@ public sealed class CropImageCopier
 
         try
         {
-            _clipboard.SetImage(image);
+            // A clipboard lock by another application is transient: the
+            // limited retry gives the lock time to clear before the copy
+            // is reported as failed. Any other exception escapes and is
+            // reported below.
+            ClipboardWritePolicy.WriteWithRetry(() => _clipboard.SetImage(image));
             return new CopyOutcome(true, string.Empty);
         }
-        catch
+        catch (Exception exception)
         {
+            // The user-facing message stays generic; the original
+            // exception is recorded in the opt-in CAPPARSE_TRACE log so a
+            // real failure can be diagnosed without exposing technical
+            // details in the interface.
+            FrozenOverlaySession.Trace($"CropImageCopier: {exception}");
             return new CopyOutcome(false, ClipboardFailureMessage);
         }
     }
