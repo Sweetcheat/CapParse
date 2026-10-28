@@ -5,13 +5,13 @@
 <h1 align="center">CapParse</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.1.0--beta.3-2e6be6" alt="Versão: v0.1.0-beta.3" />
+  <img src="https://img.shields.io/badge/version-v0.1.0--beta.4-2e6be6" alt="Versão: v0.1.0-beta.4" />
   <img src="https://img.shields.io/badge/plataforma-Windows%20x64-555555" alt="Plataforma: Windows x64" />
 </p>
 
 Utilitário desktop para Windows, **local-first**: capture uma região da tela e transforme o conteúdo visual em texto utilizável. O OCR roda 100% localmente, sem conta e sem nuvem.
 
-> **Estado atual:** o projeto está em desenvolvimento ativo. O pacote publicado é o **beta** [`v0.1.0-beta.3`](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.3) — temas claro/escuro, Configurações acessíveis pela janela principal e pela bandeja, reconstrução de espaços no OCR e menor consumo de memória. Os pacotes anteriores (`v0.1.0-beta.1`, `v0.1.0-beta.2`) não incluem essas novidades — veja as [limitações conhecidas](#limitações-conhecidas). A branch `main` do repositório já inclui novidades que ainda **não estão em nenhum pacote publicado** (saem na próxima release): o **Modo Direto** (atalhos por ação e escolha do modo na primeira execução), a **confirmação visual própria** (toast) do resultado das capturas e o **tooltip do ícone da bandeja** com o último resultado — veja [Modo Direto](#modo-direto).
+> **Estado atual:** o projeto está em desenvolvimento ativo. O último pacote **publicado** é o **beta** [`v0.1.0-beta.3`](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.3). A **`v0.1.0-beta.4`** está **preparada, mas ainda não foi publicada** no GitHub — quando a release existir, ela traz o **Modo Direto** (atalhos por ação e escolha do modo na primeira execução), a **confirmação visual própria** (toast) do resultado das capturas, o **tooltip do ícone da bandeja** com o último resultado e a correção da demora/falha na cópia de texto para a área de transferência. Os pacotes `v0.1.0-beta.1` a `v0.1.0-beta.3` não incluem essas novidades — veja as [limitações conhecidas](#limitações-conhecidas) e [Modo Direto](#modo-direto).
 
 [Português](#português) | [English](#english)
 
@@ -42,11 +42,11 @@ O CapParse segue o conceito **Capture → Understand → Act**:
 - Histórico da sessão em memória (resultados de capturas anteriores, na janela principal);
 - Temas claro e escuro (segue a preferência do Windows ou a escolha em Configurações), aplicados a todas as janelas;
 - Tela de configurações (pela **engrenagem na janela principal** ou pelo **menu da bandeja** — a mesma janela, uma instância por vez): alterar o atalho de captura, com persistência entre reinícios;
-- Ícone na bandeja do sistema: **Capturar**, **Configurações**, **Sair**; duplo clique restaura a janela principal; o tooltip do ícone mostra o último resultado confirmado (ou um lembrete para configurar os atalhos quando o Modo Direto está ativo sem atalhos — branch `main`);
+- Ícone na bandeja do sistema: **Capturar**, **Configurações**, **Sair**; duplo clique restaura a janela principal; o tooltip do ícone mostra o último resultado confirmado (ou um lembrete para configurar os atalhos quando o Modo Direto está ativo sem atalhos);
 - Atalho global configurável (`Ctrl + Shift + X` por padrão); se o atalho salvo já estiver em uso por outro aplicativo, o CapParse ativa o padrão e avisa;
-- **Modo Direto** (branch `main`, a partir da próxima release): atalhos globais por ação — **copiar imagem**, **OCR + copiar texto** e **salvar imagem** — que executam a ação imediatamente após a seleção, sem janela de resultados;
+- **Modo Direto**: atalhos globais por ação — **copiar imagem**, **OCR + copiar texto** e **salvar imagem** — que executam a ação imediatamente após a seleção, sem janela de resultados;
 - Tela de primeira execução curta (exibida uma única vez), com a escolha do modo de uso (Tradicional, Direto ou adiar);
-- Confirmação visual própria do aplicativo (toast no canto inferior direito, sem roubar o foco) do resultado das capturas e ações, nos dois modos; o tooltip do ícone da bandeja guarda o último resultado (branch `main`, a partir da próxima release);
+- Confirmação visual própria do aplicativo (toast no canto inferior direito, sem roubar o foco) do resultado das capturas e ações, nos dois modos; o tooltip do ícone da bandeja guarda o último resultado;
 - Indicador de processamento e diálogo de erro de captura com "tentar novamente";
 - Instância única: um segundo lançamento não abre outra instância;
 - Interface em português brasileiro.
@@ -63,16 +63,18 @@ O CapParse segue o conceito **Capture → Understand → Act**:
 
 > A compatibilidade foi verificada no computador de desenvolvimento. O beta está sendo distribuído justamente para validar outros computadores — se algo não funcionar no seu, isso é um **bug a reportar**, não necessariamente incompatibilidade.
 
-### Como executar a beta 3
+### Como executar a beta 4
 
-1. Baixe o arquivo `.zip` da [release `v0.1.0-beta.3`](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.3) ([link direto para o ZIP](https://github.com/Sweetcheat/CapParse/releases/download/v0.1.0-beta.3/CapParse-v0.1.0-beta.3-win-x64.zip)) e extraia em uma pasta (por exemplo, `CapParse`);
+> A `v0.1.0-beta.4` está **preparada, mas a release ainda não foi publicada no GitHub** — os links abaixo só passam a funcionar após a publicação. Até lá, use o [pacote publicado da `v0.1.0-beta.3`](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.3).
+
+1. Baixe o arquivo `.zip` da [release `v0.1.0-beta.4`](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.4) ([link direto para o ZIP](https://github.com/Sweetcheat/CapParse/releases/download/v0.1.0-beta.4/CapParse-v0.1.0-beta.4-win-x64.zip)) e extraia em uma pasta (por exemplo, `CapParse`);
 2. Se o Windows avisar (SmartScreen), clique em **Mais informações** → **Executar assim mesmo** — o pacote não é assinado digitalmente;
 3. Execute `CapParse.exe`;
 4. O aplicativo fica minimizado na bandeja do sistema. Pressione `Ctrl + Shift + X` para capturar, arraste para selecionar a região e solte o botão do mouse;
 5. O texto reconhecido aparece na janela principal — use **Copiar texto**, **Copiar imagem** ou **Salvar imagem** (as capturas anteriores ficam no histórico da janela);
 6. Para sair, use **Sair** no menu da bandeja (fechar a janela apenas a esconde).
 
-SHA-256 do pacote: `7123857bf0610e1fdadca8611e0d664d19baf3a36dd207f06d7582f9c7b083de`
+SHA-256 do pacote `CapParse-v0.1.0-beta.4-win-x64.zip`: `727028263df57648c246362d7a55ecdb9426843e2640cb99c18a1db7f2d771d1`
 
 A pasta `models/` ao lado do executável contém os modelos de OCR (pasta `v6` + o classificador de orientação `v5`) — **não a remova**; sem ela o reconhecimento não funciona.
 
@@ -82,7 +84,7 @@ Abra **Configurações** pela engrenagem no canto superior direito da janela pri
 
 ### Modo Direto
 
-O Modo Direto (branch `main`; ainda não está em nenhum pacote publicado) troca a janela de resultados por atalhos que executam a ação imediatamente após a seleção da região:
+O Modo Direto (disponível a partir da `v0.1.0-beta.4`) troca a janela de resultados por atalhos que executam a ação imediatamente após a seleção da região:
 
 - **copiar imagem** — a região é copiada para a área de transferência;
 - **OCR + copiar texto** — o texto reconhecido é copiado para a área de transferência;
@@ -136,7 +138,7 @@ O script executa restore, build, testes (incluindo os smoke tests de OCR com o m
 ### Limitações conhecidas
 
 - Windows x64 apenas (o pacote beta não inclui outras plataformas);
-- As novidades da branch `main` (Modo Direto, confirmação própria, tooltip da bandeja) **não estão em nenhum pacote publicado** — saem na próxima release;
+- Os pacotes `v0.1.0-beta.1` a `v0.1.0-beta.3` não incluem as funções da `v0.1.0-beta.4` (Modo Direto, confirmação própria em toast, tooltip da bandeja com o último resultado, canal de texto Win32) — elas estão na `v0.1.0-beta.4`;
 - O histórico de resultados existe apenas em memória (é perdido ao sair do aplicativo) e mantém somente o texto reconhecido, não a imagem (melhoria no backlog);
 - Os pacotes `v0.1.0-beta.1` e `v0.1.0-beta.2` não incluem as funções adicionadas depois (temas, engrenagem de Configurações na janela principal, reconstrução de espaços no OCR) — elas estão na `v0.1.0-beta.3`;
 - O caminho de erro de captura (diálogo com "tentar novamente") foi inspecionado por código, mas sem gatilho reproduzível confirmado: não foi exercitado em teste automatizado nem em validação manual (risco residual documentado na M16-4);
@@ -185,11 +187,11 @@ CapParse is a local-first Windows desktop utility built around **Capture → Und
 - In-memory session history (previous capture results, shown in the main window);
 - Light and dark themes (follows your Windows preference or your choice in Settings), applied to all windows;
 - A settings screen (from the **gear button on the main window** or from the **tray menu** — the same window, one instance at a time): change the capture hotkey, persisted across restarts;
-- System tray icon: **Capturar**, **Configurações**, **Sair** (menu labels are in Portuguese); double-click restores the main window; the icon's tooltip shows the last confirmed result (or a reminder to configure shortcuts while the Direct Mode is on with none set — on the `main` branch);
+- System tray icon: **Capturar**, **Configurações**, **Sair** (menu labels are in Portuguese); double-click restores the main window; the icon's tooltip shows the last confirmed result (or a reminder to configure shortcuts while the Direct Mode is on with none set);
 - Configurable global hotkey (`Ctrl + Shift + X` by default); when the saved shortcut is already in use by another app, CapParse activates the default and tells you;
-- **Direct Mode** (on the `main` branch, from the next release): per-action global shortcuts — **copy image**, **OCR + copy text** and **save image** — that run the action right after the selection, with no results window;
+- **Direct Mode**: per-action global shortcuts — **copy image**, **OCR + copy text** and **save image** — that run the action right after the selection, with no results window;
 - A short first-run presentation (shown once), with the choice of how the app is used (Traditional, Direct, or defer);
-- The app's own transient confirmation (a toast in the bottom-right corner, never stealing focus) for capture and action results, in both modes; the tray icon's tooltip keeps the last result (on the `main` branch, from the next release);
+- The app's own transient confirmation (a toast in the bottom-right corner, never stealing focus) for capture and action results, in both modes; the tray icon's tooltip keeps the last result;
 - A processing indicator and a capture-error dialog with a retry action;
 - Single instance: launching a second copy does not start another instance;
 - Brazilian Portuguese interface.
@@ -206,16 +208,18 @@ CapParse is a local-first Windows desktop utility built around **Capture → Und
 
 > Compatibility was verified on the development machine. The beta is being distributed precisely to validate other computers — if something does not work on yours, that is a **bug to report**, not necessarily an incompatibility.
 
-### Running beta 3
+### Running beta 4
 
-1. Download the `.zip` from the [`v0.1.0-beta.3` release](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.3) ([direct ZIP link](https://github.com/Sweetcheat/CapParse/releases/download/v0.1.0-beta.3/CapParse-v0.1.0-beta.3-win-x64.zip)) and extract it to a folder (e.g. `CapParse`);
+> The `v0.1.0-beta.4` is **prepared, but the release has not been published on GitHub yet** — the links below only start working after publication. Until then, use the [published `v0.1.0-beta.3` package](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.3).
+
+1. Download the `.zip` from the [`v0.1.0-beta.4` release](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.4) ([direct ZIP link](https://github.com/Sweetcheat/CapParse/releases/download/v0.1.0-beta.4/CapParse-v0.1.0-beta.4-win-x64.zip)) and extract it to a folder (e.g. `CapParse`);
 2. If Windows warns you (SmartScreen), click **More info** → **Run anyway** — the package is not digitally signed;
 3. Run `CapParse.exe`;
 4. The app lives in the system tray. Press `Ctrl + Shift + X` to capture, drag to select the region and release the mouse button;
 5. The recognized text appears in the main window — use **Copiar texto** (copy text), **Copiar imagem** (copy image) or **Salvar imagem** (save image); previous captures are kept in the window's history;
 6. To quit, use **Sair** (Exit) in the tray menu (closing the window only hides it).
 
-Package SHA-256: `7123857bf0610e1fdadca8611e0d664d19baf3a36dd207f06d7582f9c7b083de`
+SHA-256 of the `CapParse-v0.1.0-beta.4-win-x64.zip` package: `727028263df57648c246362d7a55ecdb9426843e2640cb99c18a1db7f2d771d1`
 
 The `models/` folder next to the executable contains the OCR models (the `v6` folder plus the `v5` orientation classifier) — **do not delete it**; without it, recognition will not work.
 
@@ -225,7 +229,7 @@ Open **Configurações** (Settings) from the gear button at the top-right of the
 
 ### Direct Mode
 
-The Direct Mode (on the `main` branch; not in any published package yet) replaces the results window with shortcuts that run the action right after the region selection:
+The Direct Mode (available from `v0.1.0-beta.4`) replaces the results window with shortcuts that run the action right after the region selection:
 
 - **copy image** — the region is copied to the clipboard;
 - **OCR + copy text** — the recognized text is copied to the clipboard;
@@ -279,7 +283,7 @@ The script performs restore, build, tests (including the OCR smoke tests with th
 ### Known limitations
 
 - Windows x64 only (the beta package does not include other platforms);
-- The `main` branch's new features (Direct Mode, the own confirmation toast, the tray tooltip) are **not in any published package** — they will ship in the next release;
+- The `v0.1.0-beta.1` through `v0.1.0-beta.3` packages do not include the `v0.1.0-beta.4` features (Direct Mode, the own confirmation toast, the tray tooltip with the last result, the Win32 text channel) — they are in `v0.1.0-beta.4`;
 - The results history is in-memory only (lost when the app exits) and keeps only the recognized text, not the image (a backlog improvement);
 - The `v0.1.0-beta.1` and `v0.1.0-beta.2` packages do not include the features added later (themes, the settings gear button on the main window, OCR space reconstruction) — they are in `v0.1.0-beta.3`;
 - The capture-error path (the dialog offering a retry) was inspected in code, but there is no confirmed reproducible trigger: it has not been exercised by an automated test or manual validation (residual risk documented in M16-4);
