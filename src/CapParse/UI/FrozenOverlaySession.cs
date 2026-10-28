@@ -388,9 +388,33 @@ public sealed class FrozenOverlaySession : IDisposable
         {
             File.AppendAllText(path, $"{DateTime.Now:HH:mm:ss.fff} {message}{Environment.NewLine}");
         }
+        catch (Exception exception)
+        {
+            // The configured path is unusable (for example a literal
+            // %TEMP% that PowerShell does not expand, a missing directory
+            // or a denied write). The failure cannot be reported in the
+            // same defective file, so it goes to a fixed fallback in the
+            // user's TEMP: without this the diagnostic channel would fail
+            // silently and hide the very problem it exists to expose.
+            // Diagnostics must never break the flow.
+            ReportTraceFailure(path, exception);
+        }
+    }
+
+    private static void ReportTraceFailure(string configuredPath, Exception exception)
+    {
+        try
+        {
+            var fallback = Path.Combine(Path.GetTempPath(), "capparse-trace-fallback.log");
+            File.AppendAllText(fallback,
+                $"{DateTime.Now:HH:mm:ss.fff} CAPPARSE_TRACE write to '{configuredPath}' failed: " +
+                $"{exception.GetType().Name}: {exception.Message}{Environment.NewLine}");
+        }
         catch
         {
-            // Diagnostics must never break the capture flow.
+            // Last resort: if even the fixed fallback cannot be written
+            // there is nowhere left to report the failure; the channel
+            // degrades to silence, as before.
         }
     }
 

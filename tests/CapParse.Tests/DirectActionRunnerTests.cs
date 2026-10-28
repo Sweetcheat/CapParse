@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows.Media.Imaging;
 using CapParse.Capture;
 using CapParse.OCR;
@@ -230,6 +231,65 @@ public class DirectActionRunnerTests
     }
 
     [Fact]
+    public async Task CopyText_WriterRecoversFromATransientLock_ReportsSuccessNotError()
+    {
+        // The scenario end to end: the clipboard is locked when the write
+        // starts, the writer's own bounded open-retry survives it and the
+        // text is written. The copy really happened, so the runner's
+        // feedback must be the success confirmation — never the clipboard
+        // error (the message the user kept seeing in the trace-75 defect,
+        // where the stacked retries stalled for ~3.6 s and both channels
+        // failed).
+        var engine = new FakeOcrEngine((_, _) => Task.FromResult(Result("texto")));
+        var writer = new RecurringFailureWriter();
+        var feedback = new List<DirectFeedback>();
+        var runner = new DirectActionRunner(
+            new CropImageCopier(new FakeImageClipboard()),
+            new OcrTextCopier(writer),
+            (_, _) => new SaveImageOutcome(SaveImageStatus.Canceled, string.Empty),
+            RecognizeWith(engine),
+            feedback.Add);
+        using var crop = MakeCrop();
+
+        await runner.RunAsync(DirectAction.CopyText, crop, 96);
+
+        // The writer is invoked once (its internal open-retry owns the
+        // transient-lock tolerance), and it writes the text.
+        Assert.Equal(1, writer.WriteCount);
+        Assert.Equal("texto", writer.LastText);
+        var feedbackItem = Assert.Single(feedback);
+        Assert.Equal(DirectFeedbackKind.Success, feedbackItem.Kind);
+        Assert.Equal("Texto copiado.", feedbackItem.Message);
+    }
+
+    [Fact]
+    public async Task CopyText_WriterFails_ReportsTheRealFailure()
+    {
+        // The writer's whole bounded open budget is spent and the text is
+        // not on the clipboard: the runner's feedback is the failure, with
+        // the usual message — the feedback keeps mirroring the real
+        // outcome (no false success).
+        var engine = new FakeOcrEngine((_, _) => Task.FromResult(Result("texto")));
+        var writer = new FailingWriter();
+        var feedback = new List<DirectFeedback>();
+        var runner = new DirectActionRunner(
+            new CropImageCopier(new FakeImageClipboard()),
+            new OcrTextCopier(writer),
+            (_, _) => new SaveImageOutcome(SaveImageStatus.Canceled, string.Empty),
+            RecognizeWith(engine),
+            feedback.Add);
+        using var crop = MakeCrop();
+
+        await runner.RunAsync(DirectAction.CopyText, crop, 96);
+
+        var feedbackItem = Assert.Single(feedback);
+        Assert.Equal(DirectFeedbackKind.Error, feedbackItem.Kind);
+        Assert.Equal(
+            "Não foi possível copiar o texto. A área de transferência pode estar em uso por outro aplicativo.",
+            feedbackItem.Message);
+    }
+
+    [Fact]
     public async Task SaveImage_ConfirmedPath_SavesAndReportsSuccess()
     {
         var fixture = RunnerFixture.Create(_ => Task.FromResult(new OcrRunOutcome(null, false)));
@@ -299,23 +359,50 @@ public class DirectActionRunnerTests
         }
     }
 
-    // Records the texts written to the clipboard.
-    private sealed class FakeTextClipboard : ITextClipboard
+    // Records the texts written to the clipboard through the application's
+    // single text-clipboard channel.
+    private sealed class FakeTextClipboard : IRawTextClipboardWriter
     {
         public List<string> Texts { get; } = new();
 
         public bool FailNext { get; set; }
 
-        public void SetText(string text)
+        public void WriteUtf16Text(string text)
         {
             if (FailNext)
             {
                 FailNext = false;
-                throw new InvalidOperationException("clipboard locked");
+                throw new System.Runtime.InteropServices.ExternalException(
+                    "OpenClipboard failed (win32 error 5).");
             }
 
             Texts.Add(text);
         }
+    }
+
+    // A text-clipboard channel that is locked when the write starts: its
+    // own bounded open-retry fails a few opens and then writes (the shape
+    // of a transient lock, as it happens inside a single WriteUtf16Text
+    // call).
+    private sealed class RecurringFailureWriter : IRawTextClipboardWriter
+    {
+        public int WriteCount { get; private set; }
+        public string? LastText { get; private set; }
+
+        public void WriteUtf16Text(string text)
+        {
+            WriteCount++;
+            LastText = text;
+        }
+    }
+
+    // A text-clipboard channel whose whole bounded open budget is spent
+    // (the clipboard stayed locked the whole time).
+    private sealed class FailingWriter : IRawTextClipboardWriter
+    {
+        public void WriteUtf16Text(string text)
+            => throw new System.Runtime.InteropServices.ExternalException(
+                "OpenClipboard failed (win32 error 5).");
     }
 
     // A save dialog with a fixed outcome: the path the user confirms, or

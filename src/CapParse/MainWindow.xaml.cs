@@ -27,20 +27,22 @@ public partial class MainWindow : Window
     private readonly CropImageSaver _imageSaver;
 
     public MainWindow()
-        : this(new WpfTextClipboard(), new WpfImageClipboard(), new WpfCropImageSaveDialog())
+        : this(new Win32TextClipboard(), new WpfImageClipboard(), new WpfCropImageSaveDialog())
     {
     }
 
     /// <summary>
     /// Creates the window with explicit clipboards and save dialog, so
-    /// tests can substitute fakes.
+    /// tests can substitute fakes. <paramref name="textClipboard"/> is
+    /// the application's single text-clipboard channel (the raw Win32
+    /// writer in production, a fake in tests).
     /// </summary>
     public MainWindow(
-        ITextClipboard clipboard,
+        IRawTextClipboardWriter textClipboard,
         IImageClipboard imageClipboard,
         ICropImageSaveDialog saveDialog)
     {
-        _copier = new OcrTextCopier(clipboard);
+        _copier = new OcrTextCopier(textClipboard);
         _imageCopier = new CropImageCopier(imageClipboard);
         _imageSaver = new CropImageSaver(saveDialog);
         InitializeComponent();

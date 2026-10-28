@@ -34,6 +34,12 @@ public partial class App : Application
     // Explicit state of the OCR runs; the main window is a view of it.
     private readonly OcrRunState _ocrState = new();
     private WinForms.NotifyIcon? _trayIcon;
+    // TEMPORARY diagnostics (opt-in CAPPARSE_TRACE): hidden message window
+    // that logs the shell broadcasts which make WinForms' NotifyIcon
+    // remove and re-add the tray icon. Created in OnStartup only when the
+    // trace channel is active; it never affects behavior (see
+    // TrayBroadcastTraceWindow).
+    private WinForms.NativeWindow? _traceBroadcastWindow;
     // The tray icon's context menu (its items and their callbacks). The
     // "Capturar" item's enabled state is kept in sync with the mode that
     // is effectively in force (see UpdateTrayCaptureItem), so the direct
@@ -59,6 +65,22 @@ public partial class App : Application
     // guard runs in the hotkey callback, outside the window.
     private bool _settingsPendingDirectMode;
     private FrozenOverlaySession? _overlaySession;
+    // The application's own transient confirmation (the toast): one
+    // instance, created lazily on the first confirmed result and reused
+    // for every later one (a new confirmation replaces the current one in
+    // place). It is the single presentation of a capture operation's
+    // result: the legacy tray balloon no longer mirrors a capture result
+    // (presenting the same operation twice on screen was the duplication
+    // fixed in §73) — it is kept only for the first-run mode notice.
+    // Closed in ExitApplication so it can never outlive the process.
+    private CaptureToastWindow? _toastWindow;
+    // The last result that was confirmed (shown in the toast and
+    // recorded for the tray tooltip's later query), or null while no
+    // operation has produced a result. Only real results are recorded
+    // here: a cancelled operation records nothing, and a later result
+    // always replaces the earlier line, so the tooltip can never keep a
+    // stale success standing after a failure.
+    private CaptureConfirmation? _lastConfirmation;
     // True from the first trigger of a capture until the attempt ends
     // (session closed, or the attempt failed). Unlike _overlaySession,
     // which is only assigned after the constructor returns, this guard
@@ -184,6 +206,18 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Diagnostics (opt-in CAPPARSE_TRACE): record the channel's state
+        // at the earliest point. The log file's very existence at startup
+        // confirms the process inherited the variable (a missing file after
+        // launch means it did not reach the process — variable set in
+        // another shell, GUI launch, user/machine scope), and the echoed
+        // path exposes typos such as a literal %TEMP%.
+        var tracePath = Environment.GetEnvironmentVariable("CAPPARSE_TRACE");
+        if (tracePath is not null)
+        {
+            FrozenOverlaySession.Trace($"App: CAPPARSE_TRACE active, path '{tracePath}'");
+        }
+
         // Single instance per user/session: acquire the guard on this (UI)
         // thread before any exclusive resource (window, tray, hotkey) is
         // created. A second instance shows a message and shuts down without
@@ -211,7 +245,16 @@ public partial class App : Application
 
         _directRunner = new DirectActionRunner(
             new CropImageCopier(new WpfImageClipboard()),
-            new OcrTextCopier(new WpfTextClipboard()),
+            // The raw Win32 writer is the application's single
+            // text-clipboard channel (shared with the traditional mode,
+            // through MainWindow's own OcrTextCopier): it puts the same
+            // CF_UNICODETEXT data the WPF (OLE) path would, without that
+            // path's internal 10 × 100 ms retry loop on the UI thread —
+            // the loop that, stacked with the outer policy, turned an
+            // unopenable clipboard into the multi-second stall of the
+            // direct-mode "copy text" defect (see docs/development.md
+            // §76).
+            new OcrTextCopier(new Win32TextClipboard()),
             // The save policy is consulted when the action runs, not when
             // the runner is created: a settings change (manual/automatic,
             // the folder) applies to the next action without a restart.
@@ -226,6 +269,19 @@ public partial class App : Application
         _mainWindow.Show();
 
         CreateTrayIcon();
+
+        // TEMPORARY diagnostics (opt-in CAPPARSE_TRACE): watch the shell
+        // broadcasts that make WinForms re-add the tray icon (a re-add
+        // closes a displayed balloon), so a trace can attribute an early
+        // close to that path instead of to the shell closing the balloon
+        // on its own. Created only when the trace channel is active.
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CAPPARSE_TRACE")))
+        {
+            _traceBroadcastWindow = new TrayBroadcastTraceWindow();
+            // No parent, no WS_VISIBLE: a hidden top-level window, enough
+            // to receive the shell's session-wide broadcasts.
+            _traceBroadcastWindow.CreateHandle(new WinForms.CreateParams());
+        }
 
         // The mode decides which hotkey family the startup registers: in
         // direct mode the traditional capture hotkey stays unregistered —
@@ -415,17 +471,30 @@ public partial class App : Application
                     if (action == DirectAction.None)
                     {
                         RecognizeCropAsync(crop);
+
+                        // The traditional flow confirms the capture itself
+                        // (see CaptureConfirmationPolicy): the crop exists
+                        // and the result window owns the image from this
+                        // moment. The message claims exactly that — not
+                        // the OCR, which is still running, and not a
+                        // file, which this mode never writes.
+                        ShowConfirmation(CaptureConfirmationPolicy.ForTraditionalCapture(true));
                     }
                     else
                     {
+                        // The direct flow confirms through its own
+                        // feedback (OnDirectFeedback), which reports only
+                        // what the action really produced.
                         HandleDirectActionAsync(action, selection, crop);
                     }
                 }
                 else
                 {
-                    // No crop (cancelled or empty selection): the OCR state
-                    // is untouched, so publish it explicitly to let the
-                    // views drop the now-invalidated image.
+                    // No crop (cancelled or empty selection): nothing was
+                    // produced, so nothing is confirmed — a cancelled
+                    // operation never shows a success message. The OCR
+                    // state is untouched, so publish it explicitly to let
+                    // the views drop the now-invalidated image.
                     PublishOcrState();
                 }
             });
@@ -445,6 +514,12 @@ public partial class App : Application
             // details are intentionally not shown.
             _overlaySession = null;
             _captureInFlight = false;
+
+            // The attempt failed: record it as the last result (the tray
+            // tooltip is the later query) without a second visual — the
+            // dialog below is the user-facing feedback for this failure,
+            // and a toast under a modal dialog would only be noise.
+            NoteConfirmation(CaptureConfirmationPolicy.ForFailedCapture());
 
             // A failure that raced the app's own shutdown (the tray "Sair"
             // can be processed while a session step is in flight) must not
@@ -534,8 +609,20 @@ public partial class App : Application
 
         try
         {
+            // Diagnostics (opt-in CAPPARSE_TRACE): the recognition duration
+            // of the shared core, so a trace can compare the OCR stage of
+            // the direct and the traditional flows. No image data is
+            // recorded, only the size of the crop.
+            var ocrStartedAt = Environment.TickCount64;
+            FrozenOverlaySession.Trace(
+                $"RunRecognitionAsync: started (crop {crop.Width}x{crop.Height}, run {runId})");
+
             var result = await _ocrCoordinator.RecognizeAsync(
                 new ImageData(crop), cancellation.Token);
+            FrozenOverlaySession.Trace(
+                $"RunRecognitionAsync: engine finished after " +
+                $"{Environment.TickCount64 - ocrStartedAt} ms " +
+                $"(text chars: {result.Text.Length}, cancelled: {cancellation.IsCancellationRequested})");
 
             if (cancellation.IsCancellationRequested)
             {
@@ -625,9 +712,20 @@ public partial class App : Application
             ? MonitorDiscovery.GetEffectiveDpiForSelection(s)
             : 96;
 
+        // Diagnostics (opt-in CAPPARSE_TRACE): the whole direct-action
+        // span (action start to the last stage) — the clipboard stages
+        // inside it are timed by the copier and the runner themselves.
+        var startedAt = Environment.TickCount64;
+        FrozenOverlaySession.Trace(
+            $"HandleDirectActionAsync: action {action} started " +
+            $"(selection {selection?.ToString() ?? "none"}, dpi {dpi})");
+
         try
         {
             await runner.RunAsync(action, crop, dpi);
+            FrozenOverlaySession.Trace(
+                $"HandleDirectActionAsync: action {action} finished after " +
+                $"{Environment.TickCount64 - startedAt} ms");
         }
         catch
         {
@@ -642,11 +740,17 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Presents a direct action's feedback as a tray balloon — the discreet
-    /// channel the direct mode uses, since no window is involved. A notice
-    /// that cannot be shown (for example during shutdown) is dropped
-    /// silently: the action itself already happened, and the application
-    /// must never fail because of its own feedback.
+    /// Presents a direct action's feedback through the application's own
+    /// transient confirmation (the toast) — the single presentation of
+    /// the action's result: the legacy tray balloon is fire-and-forget
+    /// (observed to be missed and to close early, see
+    /// docs/development.md §71.3), and presenting the same operation
+    /// through a second channel shows it twice on screen (the duplication
+    /// fixed in §73). The balloon is kept for the first-run mode notice,
+    /// which is an independent event, not a capture result. A notice that
+    /// cannot be shown (for example during shutdown) is dropped silently:
+    /// the action itself already happened, and the application must never
+    /// fail because of its own feedback.
     /// </summary>
     private void OnDirectFeedback(DirectFeedback feedback)
     {
@@ -655,11 +759,68 @@ public partial class App : Application
             return;
         }
 
-        var icon = feedback.Kind == DirectFeedbackKind.Error
-            ? WinForms.ToolTipIcon.Warning
-            : WinForms.ToolTipIcon.Info;
+        ShowConfirmation(CaptureConfirmation.FromDirectFeedback(feedback));
+    }
 
-        ShowTrayNotification("CapParse", feedback.Message, icon);
+    /// <summary>
+    /// Confirms a real result of a capture operation: it is recorded as
+    /// the last result (the tray tooltip is the later query — the toast
+    /// disappears, the tooltip stays) and shown as the application's own
+    /// transient confirmation. A new confirmation replaces any previous
+    /// one in the same window, so an older message can never survive a
+    /// newer operation's result. A null confirmation (nothing to
+    /// communicate) is dropped, as is a result that cannot be shown (for
+    /// example during shutdown): the operation itself already happened,
+    /// and the application must never fail because of its own feedback.
+    /// Call on the UI thread.
+    /// </summary>
+    private void ShowConfirmation(CaptureConfirmation? confirmation)
+    {
+        if (confirmation is null || Dispatcher.HasShutdownStarted)
+        {
+            return;
+        }
+
+        _lastConfirmation = confirmation;
+        UpdateTrayTooltip();
+
+        try
+        {
+            _toastWindow ??= new CaptureToastWindow();
+            _toastWindow.Present(confirmation);
+            FrozenOverlaySession.Trace(
+                $"Confirmation: toast shown (kind {confirmation.Kind}, message '{confirmation.Message}')");
+        }
+        catch (Exception exception)
+        {
+            // The confirmation is best-effort feedback: the result is
+            // already recorded in the tray tooltip, and the application
+            // must not crash because of its own feedback (the same
+            // degradation the tray balloon applies). The original
+            // exception goes to the opt-in CAPPARSE_TRACE log.
+            FrozenOverlaySession.Trace(
+                $"Confirmation: toast failed to show (kind {confirmation.Kind}): {exception}");
+        }
+    }
+
+    /// <summary>
+    /// Records a result for the tray tooltip without the transient toast:
+    /// for results that are already communicated by a modal message (the
+    /// capture failure's dialog), so the later query is truthful without
+    /// piling a second, redundant visual on top of it. A null
+    /// confirmation records nothing. Call on the UI thread.
+    /// </summary>
+    private void NoteConfirmation(CaptureConfirmation? confirmation)
+    {
+        if (confirmation is null || Dispatcher.HasShutdownStarted)
+        {
+            return;
+        }
+
+        _lastConfirmation = confirmation;
+        UpdateTrayTooltip();
+        FrozenOverlaySession.Trace(
+            $"Confirmation: recorded for the tray tooltip (kind {confirmation.Kind}, message '{confirmation.Message}')");
     }
 
     private void ShowTrayNotification(
@@ -667,20 +828,47 @@ public partial class App : Application
         string message,
         WinForms.ToolTipIcon icon)
     {
-        if (_trayIcon is not { Visible: true })
+        // Diagnostic guards (opt-in CAPPARSE_TRACE): without these lines a
+        // dropped notice leaves no trace, and the failure shapes (absent
+        // icon, hidden icon, swallowed exception) are indistinguishable in
+        // the log from a balloon the shell suppressed on its own.
+        if (_trayIcon is null)
         {
+            FrozenOverlaySession.Trace(
+                $"ShowTrayNotification: tray icon absent, notice '{title}' dropped");
+            return;
+        }
+
+        if (!_trayIcon.Visible)
+        {
+            FrozenOverlaySession.Trace(
+                $"ShowTrayNotification: tray icon not visible, notice '{title}' dropped");
             return;
         }
 
         try
         {
+            FrozenOverlaySession.Trace(
+                $"ShowTrayNotification: calling ShowBalloonTip (title '{title}', icon {icon}, duration 3000 ms)");
             _trayIcon.ShowBalloonTip(3000, title, message, icon);
+            // The call returning is NOT proof the user saw the balloon:
+            // ShowBalloonTip is fire-and-forget and the shell may still
+            // suppress the display. The BalloonTipShown event (subscribed
+            // in CreateTrayIcon) is the only display evidence.
+            FrozenOverlaySession.Trace(
+                $"ShowTrayNotification: ShowBalloonTip returned (title '{title}')");
         }
-        catch
+        catch (Exception exception)
         {
             // ShowBalloonTip can fail when the tray is unavailable (for
             // example while the application is shutting down): dropping the
-            // notice is the right degradation, never a crash.
+            // notice is the right degradation, never a crash. The original
+            // exception is recorded in the opt-in CAPPARSE_TRACE log so a
+            // failed balloon can be diagnosed without exposing technical
+            // details in the interface.
+            FrozenOverlaySession.Trace(
+                $"ShowTrayNotification: ShowBalloonTip threw (title '{title}'), " +
+                $"HRESULT {exception.HResult:X8}: {exception}");
         }
     }
 
@@ -989,8 +1177,11 @@ public partial class App : Application
         _settings.DirectSaveFolder = pending.DirectSaveFolder;
 
         // The committed mode just changed: the tray menu's "Capturar" item
-        // follows it right away (no restart needed).
+        // and the tooltip follow it right away (no restart needed) —
+        // saving is the only way the committed mode or the direct slots
+        // change at runtime.
         UpdateTrayCaptureItem();
+        UpdateTrayTooltip();
 
         if (themeChanged)
         {
@@ -1056,10 +1247,29 @@ public partial class App : Application
         // (the capture workflow stays on the global hotkey and the menu).
         _trayIcon.DoubleClick += (_, _) => RestoreMainWindow();
 
+        FrozenOverlaySession.Trace("TrayIcon: created (visible)");
+
+        // Diagnostics (opt-in CAPPARSE_TRACE): ShowBalloonTip is
+        // fire-and-forget, so these events are the only evidence of
+        // whether the shell actually displayed a balloon (or suppressed
+        // it). Subscribed once here, where the icon is created.
+        _trayIcon.BalloonTipShown += (_, _) =>
+            FrozenOverlaySession.Trace(
+                "TrayIcon: BalloonTipShown (shell displayed the balloon)");
+        _trayIcon.BalloonTipClosed += (_, _) =>
+            FrozenOverlaySession.Trace("TrayIcon: BalloonTipClosed");
+        // Without this line a user click on the balloon is invisible in
+        // the trace (a click closes the balloon and is the only benign
+        // explanation for an early close).
+        _trayIcon.BalloonTipClicked += (_, _) =>
+            FrozenOverlaySession.Trace("TrayIcon: BalloonTipClicked (user clicked the balloon)");
+
         // The "Capturar" item starts reflecting the mode that is
         // effectively in force at startup (enabled in the traditional
-        // mode, disabled in the direct mode).
+        // mode, disabled in the direct mode), and the tooltip starts
+        // reflecting it too.
         UpdateTrayCaptureItem();
+        UpdateTrayTooltip();
     }
 
     /// <summary>
@@ -1079,6 +1289,36 @@ public partial class App : Application
             menu.SetCaptureEnabled(HotkeyTransaction.TraditionalCaptureAllowed(
                 _settings.DirectModeEnabled, _settingsPendingDirectMode));
         }
+    }
+
+    /// <summary>
+    /// Keeps the tray icon's tooltip in sync with the committed state and
+    /// the last confirmed result: while the direct mode is in force with
+    /// no direct shortcut configured, the tooltip points at configuring
+    /// the shortcuts (the nudge wins over a stale result line); otherwise
+    /// the last confirmed result is named — the passive, always-available
+    /// companion of the transient toast, which disappears after a few
+    /// seconds; with no result yet, the plain application name is shown.
+    /// It reflects the committed settings and the recorded result only: a
+    /// pending mode in the open settings window is not in force until
+    /// saved, so it never changes the tooltip. Call on the UI thread,
+    /// whenever the committed mode, the direct slot configuration or the
+    /// last confirmed result changes.
+    /// </summary>
+    private void UpdateTrayTooltip()
+    {
+        if (_trayIcon is not { } icon)
+        {
+            return;
+        }
+
+        var anySlotConfigured = HotkeySlots.Direct
+            .Any(slot => _settings.DirectSlot(slot) is not null);
+
+        icon.Text = DirectModeStatus.TrayTooltip(
+            _settings.DirectModeEnabled,
+            anySlotConfigured,
+            _lastConfirmation?.Message);
     }
 
     private static System.Drawing.Icon LoadTrayIcon()
@@ -1169,6 +1409,26 @@ public partial class App : Application
             _trayIcon.Dispose();
             _trayIcon = null;
             icon?.Dispose();
+
+            // Diagnostic: the only path that hides/disposes the icon. If a
+            // trace shows a BalloonTipClosed right after this line, the
+            // close came from the exit, not from the shell.
+            FrozenOverlaySession.Trace("TrayIcon: hidden and disposed (application exit)");
+        }
+
+        if (_traceBroadcastWindow is not null)
+        {
+            _traceBroadcastWindow.ReleaseHandle();
+            _traceBroadcastWindow = null;
+        }
+
+        // The toast window is the application's own: it is closed here so
+        // it can never survive the process (a hidden toast left behind
+        // would be an orphan window with no owner left to dismiss it).
+        if (_toastWindow is not null)
+        {
+            _toastWindow.Close();
+            _toastWindow = null;
         }
 
         Shutdown();
@@ -1208,6 +1468,64 @@ public partial class App : Application
         _singleInstance?.Dispose();
         _singleInstance = null;
 
+        // Safety net for a shutdown that did not go through ExitApplication.
+        _traceBroadcastWindow?.ReleaseHandle();
+        _traceBroadcastWindow = null;
+
+        // The toast window, like the trace window, must not outlive the
+        // process: a shutdown path that skipped ExitApplication still
+        // leaves no orphan window behind.
+        _toastWindow?.Close();
+        _toastWindow = null;
+
         base.OnExit(e);
+    }
+
+    /// <summary>
+    /// TEMPORARY diagnostics (opt-in CAPPARSE_TRACE): a hidden top-level
+    /// (message) window that logs the shell broadcasts which make
+    /// WinForms' NotifyIcon remove and re-add the tray icon — a setting
+    /// change, a display change, or a taskbar restart. A re-add while a
+    /// balloon is displayed closes the balloon, so these lines let a
+    /// trace attribute an early close to that path instead of to the
+    /// shell closing the balloon on its own. Created only when
+    /// CAPPARSE_TRACE is set (see OnStartup); it logs and never affects
+    /// behavior. The message constants are the Win32 values used by the
+    /// shell's broadcast: WM_SETTINGCHANGE, WM_DISPLAYCHANGE and
+    /// WM_TASKBARCREATED (WM_USER + 7).
+    /// </summary>
+    private sealed class TrayBroadcastTraceWindow : WinForms.NativeWindow
+    {
+        private const int WmSettingChange = 0x001A;
+        private const int WmDisplayChange = 0x007E;
+        private const int WmTaskbarCreated = 0x0407;
+
+        protected override void WndProc(ref WinForms.Message message)
+        {
+            switch (message.Msg)
+            {
+                case WmSettingChange:
+                    // LParam names the setting that changed (ANSI string;
+                    // null on some broadcasts). The name identifies what
+                    // the shell reacted to right before a balloon closed.
+                    string? setting = message.LParam is { } param && param != IntPtr.Zero
+                        ? System.Runtime.InteropServices.Marshal.PtrToStringAnsi(param)
+                        : null;
+                    FrozenOverlaySession.Trace(
+                        $"TrayIcon: WM_SETTINGCHANGE broadcast (setting '{setting}')");
+                    break;
+
+                case WmDisplayChange:
+                    FrozenOverlaySession.Trace("TrayIcon: WM_DISPLAYCHANGE broadcast");
+                    break;
+
+                case WmTaskbarCreated:
+                    FrozenOverlaySession.Trace(
+                        "TrayIcon: WM_TASKBARCREATED broadcast (taskbar restarted; the icon is re-added, which closes a displayed balloon)");
+                    break;
+            }
+
+            base.WndProc(ref message);
+        }
     }
 }

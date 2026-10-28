@@ -88,12 +88,13 @@ public class FirstRunWindowTests
 
     [Theory]
     [InlineData("TraditionalButton", FirstRunModeChoice.Traditional)]
-    [InlineData("DirectButton", FirstRunModeChoice.Direct)]
     [InlineData("DeferButton", FirstRunModeChoice.Deferred)]
     public void ChoiceButton_SetsTheChoice_AndClosesTheWindow(
         string buttonName,
         FirstRunModeChoice expected)
     {
+        // The traditional mode and the deferred decision close the
+        // presentation on the spot and carry no activation confirmation.
         RunOnStaThread(() =>
         {
             var window = new FirstRunWindow("Inicie uma captura com Ctrl + Shift + X.");
@@ -105,6 +106,61 @@ public class FirstRunWindowTests
 
             Assert.True(closed, "the choice button must close the presentation");
             Assert.Equal(expected, window.Choice);
+        });
+    }
+
+    [Fact]
+    public void DirectButton_SetsTheChoice_ShowsTheConfirmation_WithoutClosing()
+    {
+        // Choosing the direct mode acknowledges the activation in the
+        // window itself before it closes: the choice card is replaced by
+        // the confirmation card, and the window stays open until the user
+        // dismisses it — no arbitrary delay, no new dialog. The tray
+        // balloon that reports the same fact is a redundant, best-effort
+        // signal and can never be the only one.
+        RunOnStaThread(() =>
+        {
+            var window = new FirstRunWindow("Inicie uma captura com Ctrl + Shift + X.");
+            var closed = false;
+            window.Closed += (_, _) => closed = true;
+
+            var direct = Assert.IsType<Button>(window.FindName("DirectButton"));
+            direct.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent, direct));
+
+            Assert.False(closed, "the confirmation must be seen before the window closes");
+            Assert.Equal(FirstRunModeChoice.Direct, window.Choice);
+
+            var choiceCard = Assert.IsType<Border>(window.FindName("ChoiceCard"));
+            var confirmation = Assert.IsType<Border>(window.FindName("DirectConfirmationCard"));
+            Assert.Equal(Visibility.Collapsed, choiceCard.Visibility);
+            Assert.Equal(Visibility.Visible, confirmation.Visibility);
+        });
+    }
+
+    [Fact]
+    public void DirectConfirmation_PointsAtConfiguringAShortcut_AndClosesTheWindow()
+    {
+        // The confirmation names the next step (the settings) and the
+        // close button ends the presentation; the choice made before it
+        // is what gets applied when the window closes.
+        RunOnStaThread(() =>
+        {
+            var window = new FirstRunWindow("Inicie uma captura com Ctrl + Shift + X.");
+            var closed = false;
+            window.Closed += (_, _) => closed = true;
+
+            var direct = Assert.IsType<Button>(window.FindName("DirectButton"));
+            direct.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent, direct));
+
+            var message = Assert.IsType<TextBlock>(window.FindName("DirectConfirmationMessage"));
+            Assert.Contains("Modo Direto ativado", message.Text);
+            Assert.Contains("Configurações", message.Text);
+
+            var close = Assert.IsType<Button>(window.FindName("CloseButton"));
+            close.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent, close));
+
+            Assert.True(closed, "the close button must close the presentation");
+            Assert.Equal(FirstRunModeChoice.Direct, window.Choice);
         });
     }
 

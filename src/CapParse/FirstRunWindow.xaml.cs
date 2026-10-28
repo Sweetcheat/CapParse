@@ -88,10 +88,30 @@ public partial class FirstRunWindow : Window
         => ChooseAndClose(FirstRunModeChoice.Traditional);
 
     private void DirectButton_Click(object sender, RoutedEventArgs e)
-        => ChooseAndClose(FirstRunModeChoice.Direct);
+        => ShowDirectConfirmation();
 
     private void DeferButton_Click(object sender, RoutedEventArgs e)
         => ChooseAndClose(FirstRunModeChoice.Deferred);
+
+    /// <summary>
+    /// Choosing the direct mode does not close the window on the spot:
+    /// the choice card is replaced by the confirmation card, so the user
+    /// sees the activation acknowledged before the window closes (the tray
+    /// balloon that reports the same fact is fire-and-forget and easy to
+    /// miss). The choice is recorded right away, so closing the window in
+    /// the confirmation state (the "Fechar" button or the close button)
+    /// applies exactly the mode that was chosen.
+    /// </summary>
+    private void ShowDirectConfirmation()
+    {
+        Choice = FirstRunModeChoice.Direct;
+        ChoiceCard.Visibility = Visibility.Collapsed;
+        DirectConfirmationCard.Visibility = Visibility.Visible;
+        CloseButton.Focus();
+    }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+        => Close();
 
     private void ChooseAndClose(FirstRunModeChoice choice)
     {

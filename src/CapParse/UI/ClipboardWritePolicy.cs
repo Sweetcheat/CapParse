@@ -40,12 +40,16 @@ internal static class ClipboardWritePolicy
     /// exception, is rethrown untouched so the caller reports it as a
     /// failed copy. The total wait is bounded (a few hundred
     /// milliseconds at most), so the UI thread can never be blocked
-    /// indefinitely.
+    /// indefinitely. <paramref name="onAttemptFailed"/> (optional,
+    /// diagnostics only) is invoked after every failed attempt with the
+    /// attempt number and the exception it threw, so a trace can time
+    /// each attempt separately.
     /// </summary>
     internal static void WriteWithRetry(
         Action write,
         Func<Exception, bool>? isTransient = null,
-        TimeSpan? delay = null)
+        TimeSpan? delay = null,
+        Action<int, Exception>? onAttemptFailed = null)
     {
         ArgumentNullException.ThrowIfNull(write);
 
@@ -61,6 +65,8 @@ internal static class ClipboardWritePolicy
             }
             catch (Exception exception)
             {
+                onAttemptFailed?.Invoke(attempt, exception);
+
                 // A transient clipboard lock that still has attempts left
                 // falls through to the bounded wait and retries; anything
                 // else — a non-clipboard failure, or a transient one that

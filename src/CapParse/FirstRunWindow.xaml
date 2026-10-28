@@ -145,8 +145,13 @@
              flips the mode's flag, and the shortcuts are configured in the
              settings. "Agora não" — like closing the window — keeps the
              traditional mode, so a dismissed presentation never changes a
-             setting and never blocks the normal use of the application. -->
-        <Border Grid.Row="2"
+             setting and never blocks the normal use of the application.
+             Choosing the direct mode does not close the window on the
+             spot: the choice card is replaced by the confirmation card
+             below (same grid cell), so the user sees the activation
+             before the window closes — the tray balloon that reports the
+             same fact is fire-and-forget and easy to miss. -->
+        <Border x:Name="ChoiceCard" Grid.Row="2"
                 Margin="0,12,0,0"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
@@ -224,6 +229,38 @@
                            Foreground="{DynamicResource TextMutedBrush}"
                            TextWrapping="Wrap"
                            Text="Agora não continua com o Modo Tradicional. Você pode mudar essa escolha em Configurações." />
+            </StackPanel>
+        </Border>
+
+        <!-- The direct-mode confirmation: shown in place of the choice
+             card after the user chooses the direct mode, so the
+             activation is acknowledged in the window itself before it
+             closes (the tray balloon is a redundant, best-effort signal).
+             "Fechar" — like the window's close button — closes the
+             presentation; the mode choice was already made. -->
+        <Border x:Name="DirectConfirmationCard" Grid.Row="2"
+                Margin="0,12,0,0"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Visibility="Collapsed">
+            <StackPanel Margin="16">
+                <TextBlock x:Name="DirectConfirmationMessage"
+                           Text="Modo Direto ativado. Configure pelo menos um atalho em Configurações para começar a usar."
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           TextWrapping="Wrap" />
+
+                <Button x:Name="CloseButton"
+                        Style="{StaticResource AccentButtonStyle}"
+                        Content="Fechar"
+                        MinWidth="130"
+                        IsDefault="True"
+                        Margin="0,16,0,0"
+                        HorizontalAlignment="Left"
+                        Click="CloseButton_Click" />
             </StackPanel>
         </Border>
         </Grid>

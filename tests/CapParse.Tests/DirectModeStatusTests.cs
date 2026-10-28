@@ -145,4 +145,79 @@ public class DirectModeStatusTests
         Assert.Equal("OCR + copiar texto", DirectModeStatus.SlotName(HotkeySlots.DirectCopyText));
         Assert.Equal("salvar imagem", DirectModeStatus.SlotName(HotkeySlots.DirectSaveImage));
     }
+
+    // ------------------------------------------------------------------
+    // The tray icon's tooltip
+    // ------------------------------------------------------------------
+
+    [Theory]
+    [InlineData(true, false, null)]   // direct mode in force, no shortcut: the nudge
+    [InlineData(true, true, null)]    // direct mode in force, shortcut(s) configured: no nudge
+    [InlineData(false, false, null)]  // traditional mode: plain name
+    [InlineData(false, true, null)]   // traditional mode (slots preserved): plain name
+    public void TrayTooltip_WithoutALastResult_ReflectsTheDirectMode(
+        bool modeEnabled,
+        bool anySlotConfigured,
+        string? lastConfirmation)
+    {
+        var expected = modeEnabled && !anySlotConfigured
+            ? "CapParse — Modo Direto ativo; configure os atalhos"
+            : "CapParse";
+
+        Assert.Equal(expected, DirectModeStatus.TrayTooltip(modeEnabled, anySlotConfigured, lastConfirmation));
+    }
+
+    [Fact]
+    public void TrayTooltip_NamesTheLastConfirmedResult()
+    {
+        // The toast disappears after a few seconds; the tooltip is the
+        // later query, so it names the last result that was confirmed.
+        Assert.Equal(
+            "CapParse — última: Imagem salva.",
+            DirectModeStatus.TrayTooltip(false, false, "Imagem salva."));
+    }
+
+    [Fact]
+    public void TrayTooltip_TheNudgeWinsOverALastResult()
+    {
+        // Configuring the direct shortcuts is the state the user must act
+        // on: a stale result line must never bury the nudge.
+        Assert.Equal(
+            "CapParse — Modo Direto ativo; configure os atalhos",
+            DirectModeStatus.TrayTooltip(true, false, "Imagem salva."));
+    }
+
+    [Fact]
+    public void TrayTooltip_HoldsExactlyTheLatestResult()
+    {
+        // The tooltip carries one line: the latest confirmation. After a
+        // failure, the previous success is gone — a stale success can
+        // never stand after a failure.
+        var afterSuccess = DirectModeStatus.TrayTooltip(false, false, "Imagem copiada.");
+        var afterFailure = DirectModeStatus.TrayTooltip(false, false, "Falha na captura");
+
+        Assert.Contains("Imagem copiada.", afterSuccess);
+        Assert.Contains("Falha na captura", afterFailure);
+        Assert.DoesNotContain("Imagem copiada.", afterFailure);
+    }
+
+    [Fact]
+    public void TrayTooltip_Nudge_StaysWithinTheShellLimit()
+    {
+        // The shell truncates tooltips at 127 characters: the nudge must
+        // never be cut off mid-sentence.
+        Assert.True(DirectModeStatus.TrayTooltip(true, false, null).Length <= 127);
+    }
+
+    [Theory]
+    [InlineData("Imagem copiada.")]
+    [InlineData("Nenhum texto foi reconhecido nesta região.")]
+    [InlineData("Falha na captura")]
+    [InlineData("Captura pronta")]
+    public void TrayTooltip_WithALastResult_StaysWithinTheShellLimit(string lastResult)
+    {
+        // The longest real message kept under the limit: the line is
+        // never truncated mid-sentence.
+        Assert.True(DirectModeStatus.TrayTooltip(false, false, lastResult).Length <= 127);
+    }
 }

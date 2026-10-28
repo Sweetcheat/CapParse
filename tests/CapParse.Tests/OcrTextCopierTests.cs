@@ -3,24 +3,27 @@ using CapParse.UI;
 
 namespace CapParse.Tests;
 
-// M8-B: the copy action is explicit, only ever copies the text the
-// interface shows, never copies an empty result, and reports clipboard
-// failures as outcomes instead of throwing. The clipboard is faked, so
-// none of these checks touch the real system clipboard.
+// The copy action is explicit, only ever copies the text the
+// interface shows, never copies an empty result, makes exactly one
+// write call through the application's single text-clipboard channel
+// (no outer retry stacked on top of the writer's own bounded policy),
+// and reports clipboard failures as outcomes instead of throwing. The
+// writer is faked, so none of these checks touch the real system
+// clipboard.
 public class OcrTextCopierTests
 {
     [Fact]
     public void Copy_SucceededState_WritesExactlyTheShownText()
     {
-        var clipboard = new FakeClipboard();
-        var copier = new OcrTextCopier(clipboard);
+        var writer = new FakeWriter();
+        var copier = new OcrTextCopier(writer);
         var state = new OcrRunState();
         state.CompleteRun(state.BeginRun(), new OcrResult("linha um\nlinha dois", Array.Empty<OcrBlock>(), TimeSpan.Zero));
 
         var outcome = copier.TryCopy(state);
 
         Assert.True(outcome.Succeeded);
-        Assert.Equal("linha um\nlinha dois", clipboard.LastText);
+        Assert.Equal("linha um\nlinha dois", writer.LastText);
     }
 
     [Theory]
@@ -30,8 +33,8 @@ public class OcrTextCopierTests
     [InlineData(OcrPhase.Failed)]
     public void Copy_WithoutText_DoesNotTouchTheClipboard(OcrPhase phase)
     {
-        var clipboard = new FakeClipboard();
-        var copier = new OcrTextCopier(clipboard);
+        var writer = new FakeWriter();
+        var copier = new OcrTextCopier(writer);
         var state = new OcrRunState();
 
         if (phase == OcrPhase.Idle)
@@ -56,14 +59,16 @@ public class OcrTextCopierTests
         var outcome = copier.TryCopy(state);
 
         Assert.False(outcome.Succeeded);
-        Assert.False(clipboard.Written);
+        Assert.Equal(0, writer.WriteCount);
     }
 
     [Fact]
     public void Copy_ClipboardFailure_IsReportedAsAFailedOutcome()
     {
-        var clipboard = new FakeClipboard(throwOnWrite: true);
-        var copier = new OcrTextCopier(clipboard);
+        var writer = new FailingWriter(
+            new System.Runtime.InteropServices.ExternalException(
+                "OpenClipboard failed (win32 error 5)."));
+        var copier = new OcrTextCopier(writer);
         var state = new OcrRunState();
         state.CompleteRun(state.BeginRun(), new OcrResult("texto", Array.Empty<OcrBlock>(), TimeSpan.Zero));
 
@@ -75,34 +80,37 @@ public class OcrTextCopierTests
     }
 
     [Fact]
-    public void Copy_TransientClipboardLock_IsRetriedAndSucceeds()
+    public void Copy_TransientLockClearedByTheWriter_ReportsSuccess()
     {
-        // The clipboard is locked by another application for a moment: the
-        // limited retry gives the lock time to clear and the copy
-        // succeeds, so a transient lock no longer surfaces as a failure
-        // (the reported desktop defect: "Copiar texto" failing right
-        // after a mode switch, when a clipboard manager held the lock).
-        var clipboard = new FlakyTextClipboard(failuresBeforeSuccess: 2);
-        var copier = new OcrTextCopier(clipboard);
+        // A transient lock that the writer's own bounded open-retry
+        // survives (it fails a few opens and then writes) is a success:
+        // the writer is the owner of that policy, and the copier makes
+        // exactly one call — it never stacks a second retry on top.
+        var writer = new RecurringFailureWriter(failuresBeforeSuccess: 2);
+        var copier = new OcrTextCopier(writer);
         var state = new OcrRunState();
         state.CompleteRun(state.BeginRun(), new OcrResult("texto", Array.Empty<OcrBlock>(), TimeSpan.Zero));
 
         var outcome = copier.TryCopy(state);
 
         Assert.True(outcome.Succeeded);
-        Assert.Equal("texto", clipboard.LastText);
-        Assert.Equal(3, clipboard.Attempts);
+        Assert.Equal("texto", writer.LastText);
+        Assert.Equal(1, writer.WriteCalls);
     }
 
     [Fact]
-    public void Copy_PersistentClipboardLock_StillFailsWithTheUsualMessage()
+    public void Copy_PersistentClipboardLock_FailsWithTheUsualMessage_InOneCall()
     {
-        // A lock that outlasts the (few, bounded) retries is still
-        // reported as a failed copy, with the same user message as before
-        // the retry policy: the policy softens the transient case, it
-        // never hides a persistent one.
-        var clipboard = new AlwaysLockedTextClipboard();
-        var copier = new OcrTextCopier(clipboard);
+        // A lock that outlasts the writer's (few, bounded) retries is
+        // reported as a failed copy, with the same user message as
+        // before: the policy softens the transient case, it never hides
+        // a persistent one — and the copier does not retry on top of
+        // the writer, so the whole failure path stays short (the
+        // trace-75 defect: seconds of stacked retries on the UI thread).
+        var writer = new FailingWriter(
+            new System.Runtime.InteropServices.ExternalException(
+                "OpenClipboard failed (win32 error 5)."));
+        var copier = new OcrTextCopier(writer);
         var state = new OcrRunState();
         state.CompleteRun(state.BeginRun(), new OcrResult("texto", Array.Empty<OcrBlock>(), TimeSpan.Zero));
 
@@ -112,103 +120,92 @@ public class OcrTextCopierTests
         Assert.Equal(
             "Não foi possível copiar o texto. A área de transferência pode estar em uso por outro aplicativo.",
             outcome.Message);
-        Assert.Equal(ClipboardWritePolicy.MaxAttempts, clipboard.Attempts);
+        Assert.Equal(1, writer.WriteCalls);
     }
 
     [Fact]
-    public void Copy_NonClipboardException_FailsOnTheFirstAttempt()
+    public void Copy_NonClipboardException_IsReportedNotThrown()
     {
-        // A failure that is not the recognized clipboard lock (a real
-        // bug) is not retried: the policy must not mask it or delay it.
-        var clipboard = new FaultyTextClipboard();
-        var copier = new OcrTextCopier(clipboard);
+        // A failure that is not a clipboard lock (a real bug) is
+        // reported as a failed outcome, never thrown to the caller, and
+        // never retried by the copier.
+        var writer = new FailingWriter(new InvalidOperationException("simulated bug"));
+        var copier = new OcrTextCopier(writer);
         var state = new OcrRunState();
         state.CompleteRun(state.BeginRun(), new OcrResult("texto", Array.Empty<OcrBlock>(), TimeSpan.Zero));
 
         var outcome = copier.TryCopy(state);
 
         Assert.False(outcome.Succeeded);
-        Assert.Equal(1, clipboard.Attempts);
+        Assert.Equal(1, writer.WriteCalls);
     }
 
-    private sealed class FakeClipboard : ITextClipboard
+    private sealed class FakeWriter : IRawTextClipboardWriter
     {
-        private readonly bool _throwOnWrite;
-
-        public FakeClipboard(bool throwOnWrite = false)
-        {
-            _throwOnWrite = throwOnWrite;
-        }
-
+        public int WriteCount { get; private set; }
         public string? LastText { get; private set; }
 
-        public bool Written { get; private set; }
-
-        public void SetText(string text)
+        public void WriteUtf16Text(string text)
         {
-            if (_throwOnWrite)
-            {
-                throw new System.Runtime.InteropServices.ExternalException(
-                    "The clipboard is in use by another application.");
-            }
-
-            Written = true;
+            WriteCount++;
             LastText = text;
         }
     }
 
     /// <summary>
-    /// A clipboard that is locked by another application for the first
-    /// <c>failuresBeforeSuccess</c> writes and then frees up: the shape
-    /// of a transient lock.
+    /// A writer whose open-retry policy sees a clipboard locked by
+    /// another application for the first
+    /// <c>failuresBeforeSuccess</c> opens and then writes: the shape of
+    /// a transient lock, as it happens inside a single
+    /// <c>WriteUtf16Text</c> call.
     /// </summary>
-    private sealed class FlakyTextClipboard : ITextClipboard
+    private sealed class RecurringFailureWriter : IRawTextClipboardWriter
     {
         private readonly int _failuresBeforeSuccess;
 
-        public FlakyTextClipboard(int failuresBeforeSuccess)
+        public RecurringFailureWriter(int failuresBeforeSuccess)
         {
             _failuresBeforeSuccess = failuresBeforeSuccess;
         }
 
-        public int Attempts { get; private set; }
+        /// <summary>How many times the copier invoked the writer.</summary>
+        public int WriteCalls { get; private set; }
+
         public string? LastText { get; private set; }
 
-        public void SetText(string text)
+        public void WriteUtf16Text(string text)
         {
-            Attempts++;
-            if (Attempts <= _failuresBeforeSuccess)
+            WriteCalls++;
+
+            // The writer's own bounded open loop: it fails a few opens
+            // and then succeeds within the single call.
+            for (var open = 1; ; open++)
             {
-                throw new System.Runtime.InteropServices.ExternalException(
-                    "The clipboard is in use by another application.");
+                if (open > _failuresBeforeSuccess)
+                {
+                    LastText = text;
+                    return;
+                }
             }
-
-            LastText = text;
         }
     }
 
-    /// <summary>A clipboard that stays locked for the whole copy attempt.</summary>
-    private sealed class AlwaysLockedTextClipboard : ITextClipboard
+    /// <summary>A writer whose write fails for the given reason (and never recovers).</summary>
+    private sealed class FailingWriter : IRawTextClipboardWriter
     {
-        public int Attempts { get; private set; }
+        private readonly Exception _failure;
 
-        public void SetText(string text)
+        public FailingWriter(Exception failure)
         {
-            Attempts++;
-            throw new System.Runtime.InteropServices.ExternalException(
-                "The clipboard is in use by another application.");
+            _failure = failure;
         }
-    }
 
-    /// <summary>A clipboard whose write fails for a reason that is not a clipboard lock.</summary>
-    private sealed class FaultyTextClipboard : ITextClipboard
-    {
-        public int Attempts { get; private set; }
+        public int WriteCalls { get; private set; }
 
-        public void SetText(string text)
+        public void WriteUtf16Text(string text)
         {
-            Attempts++;
-            throw new InvalidOperationException("simulated bug");
+            WriteCalls++;
+            throw _failure;
         }
     }
 }

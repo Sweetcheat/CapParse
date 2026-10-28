@@ -1,25 +1,26 @@
+using System.Runtime.InteropServices;
 using CapParse.OCR;
 using CapParse.UI;
 
 namespace CapParse.Tests;
 
-// M9: a history entry's text is copied again through the same clipboard
-// abstraction the current result uses. Copying stays explicit, only ever
-// copies the entry's own text (never an empty one), and reports clipboard
-// failures as outcomes instead of throwing. The clipboard is faked, so none
-// of these checks touch the real system clipboard.
+// M9: a history entry's text is copied again through the application's
+// single text-clipboard channel. Copying stays explicit, only ever
+// copies the entry's own text (never an empty one), and reports
+// clipboard failures as outcomes instead of throwing. The writer is
+// faked, so none of these checks touch the real system clipboard.
 public class OcrTextCopierHistoryTests
 {
     [Fact]
     public void CopyHistoryEntry_WritesExactlyTheEntryText()
     {
-        var clipboard = new FakeClipboard();
-        var copier = new OcrTextCopier(clipboard);
+        var writer = new FakeWriter();
+        var copier = new OcrTextCopier(writer);
 
         var outcome = copier.TryCopyText("texto do histórico");
 
         Assert.True(outcome.Succeeded);
-        Assert.Equal("texto do histórico", clipboard.LastText);
+        Assert.Equal("texto do histórico", writer.LastText);
     }
 
     [Fact]
@@ -27,14 +28,14 @@ public class OcrTextCopierHistoryTests
     {
         // Copying a history entry goes straight to the clipboard and never
         // reads or changes the run state that backs the current result.
-        var clipboard = new FakeClipboard();
-        var copier = new OcrTextCopier(clipboard);
+        var writer = new FakeWriter();
+        var copier = new OcrTextCopier(writer);
         var state = new OcrRunState();
 
         var outcome = copier.TryCopyText("texto antigo");
 
         Assert.True(outcome.Succeeded);
-        Assert.Equal("texto antigo", clipboard.LastText);
+        Assert.Equal("texto antigo", writer.LastText);
         Assert.Equal(OcrPhase.Idle, state.Phase);
         Assert.Empty(state.Text);
     }
@@ -44,20 +45,20 @@ public class OcrTextCopierHistoryTests
     [InlineData("   ")]
     public void CopyHistoryEntry_WithoutText_DoesNotTouchTheClipboard(string text)
     {
-        var clipboard = new FakeClipboard();
-        var copier = new OcrTextCopier(clipboard);
+        var writer = new FakeWriter();
+        var copier = new OcrTextCopier(writer);
 
         var outcome = copier.TryCopyText(text);
 
         Assert.False(outcome.Succeeded);
-        Assert.False(clipboard.Written);
+        Assert.Equal(0, writer.WriteCount);
     }
 
     [Fact]
     public void CopyHistoryEntry_ClipboardFailure_IsReportedAsAFailedOutcome()
     {
-        var clipboard = new FakeClipboard(throwOnWrite: true);
-        var copier = new OcrTextCopier(clipboard);
+        var writer = new FailingWriter();
+        var copier = new OcrTextCopier(writer);
 
         var outcome = copier.TryCopyText("texto");
 
@@ -65,29 +66,21 @@ public class OcrTextCopierHistoryTests
         Assert.NotEmpty(outcome.Message);
     }
 
-    private sealed class FakeClipboard : ITextClipboard
+    private sealed class FakeWriter : IRawTextClipboardWriter
     {
-        private readonly bool _throwOnWrite;
-
-        public FakeClipboard(bool throwOnWrite = false)
-        {
-            _throwOnWrite = throwOnWrite;
-        }
-
+        public int WriteCount { get; private set; }
         public string? LastText { get; private set; }
 
-        public bool Written { get; private set; }
-
-        public void SetText(string text)
+        public void WriteUtf16Text(string text)
         {
-            if (_throwOnWrite)
-            {
-                throw new System.Runtime.InteropServices.ExternalException(
-                    "The clipboard is in use by another application.");
-            }
-
-            Written = true;
+            WriteCount++;
             LastText = text;
         }
+    }
+
+    private sealed class FailingWriter : IRawTextClipboardWriter
+    {
+        public void WriteUtf16Text(string text)
+            => throw new ExternalException("OpenClipboard failed (win32 error 5).");
     }
 }

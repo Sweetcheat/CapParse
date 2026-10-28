@@ -21,6 +21,36 @@ public static class DirectModeStatus
     };
 
     /// <summary>
+    /// The tray icon's tooltip: it is the passive, always-available
+    /// companion of the transient confirmations (the toast disappears, the
+    /// tooltip stays). The priority is fixed so the state is readable at a
+    /// glance: while the direct mode is in force with no direct shortcut
+    /// configured, the nudge points the user at configuring the shortcuts
+    /// (it must never be buried under a stale result line, and it must
+    /// never suggest that shortcuts are missing once any slot is
+    /// configured); otherwise, when a capture result has been confirmed,
+    /// the last one is named — the latest confirmation always replaces
+    /// the previous line, so a failure can never leave an older success
+    /// standing; with no result yet, the plain application name is shown.
+    /// The longest combination is well under the shell's 127-character
+    /// tooltip limit, so it is never truncated.
+    /// </summary>
+    public static string TrayTooltip(
+        bool modeEnabled,
+        bool anyDirectSlotConfigured,
+        string? lastConfirmation)
+    {
+        if (modeEnabled && !anyDirectSlotConfigured)
+        {
+            return "CapParse — Modo Direto ativo; configure os atalhos";
+        }
+
+        return lastConfirmation is not null
+            ? $"CapParse — última: {lastConfirmation}"
+            : "CapParse";
+    }
+
+    /// <summary>
     /// The per-slot registration warning: visible only when the mode is
     /// enabled, the slot carries a combination in the settings the
     /// application is running with, and the OS does not have that slot

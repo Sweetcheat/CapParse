@@ -20,7 +20,8 @@ public enum DirectFeedbackKind
 
 /// <summary>
 /// One feedback item of a direct action: its kind and the user-facing
-/// message. The application decides how to present it (the tray in V0.2).
+/// message. The application decides how to present it (the transient
+/// toast — the single presentation of the action's result).
 /// </summary>
 public sealed record DirectFeedback(DirectFeedbackKind Kind, string Message);
 
@@ -40,11 +41,13 @@ public sealed record DirectFeedback(DirectFeedbackKind Kind, string Message);
 ///
 /// A cancelled or empty selection (a null crop) performs no action and
 /// reports nothing. Canceling a save dialog is a normal outcome and is
-/// likewise silent. Only failures and the "no text" notice produce
-/// feedback, through the caller's callback, which the application points
-/// at its tray notifications. This class has no window, no tray and no
-/// clipboard of its own: everything goes through the injected services,
-/// which is what makes it testable without a desktop.
+/// likewise silent. Only real results (successes, the "no text" notice
+/// and failures) produce feedback, through the caller's callback, which
+/// the application points at its own transient confirmation — the single
+/// presentation channel of the action's result. This class has
+/// no window, no tray and no clipboard of its own: everything goes
+/// through the injected services, which is what makes it testable without
+/// a desktop.
 /// </summary>
 public sealed class DirectActionRunner
 {
@@ -99,7 +102,20 @@ public sealed class DirectActionRunner
 
             case DirectAction.CopyText:
             {
+                // Diagnostics (opt-in CAPPARSE_TRACE): the stage split of
+                // the action — how long the recognition took and how long
+                // the whole action ran — so a "slow copy text" report can
+                // be attributed to the OCR or to the clipboard write.
+                var actionStartedAt = Environment.TickCount64;
+                var ocrStartedAt = Environment.TickCount64;
+                FrozenOverlaySession.Trace(
+                    $"DirectActionRunner: CopyText started (crop {crop.Width}x{crop.Height}, dpi {dpi})");
                 var run = await _recognize(crop);
+                var ocrMs = Environment.TickCount64 - ocrStartedAt;
+                FrozenOverlaySession.Trace(
+                    $"DirectActionRunner: recognition finished after {ocrMs} ms " +
+                    $"(failed: {run.Failed}, has result: {run.Result is not null}, " +
+                    $"text chars: {run.Result?.Text.Length ?? 0})");
 
                 if (run.Failed)
                 {
@@ -125,6 +141,10 @@ public sealed class DirectActionRunner
                 }
 
                 var outcome = _textCopier.TryCopyText(run.Result.Text);
+                FrozenOverlaySession.Trace(
+                    $"DirectActionRunner: CopyText finished after " +
+                    $"{Environment.TickCount64 - actionStartedAt} ms " +
+                    $"(ocr {ocrMs} ms, copy succeeded: {outcome.Succeeded})");
                 ReportCopy(outcome, TextCopiedMessage);
                 break;
             }
