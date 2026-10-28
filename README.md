@@ -11,7 +11,7 @@
 
 Utilitário desktop para Windows, **local-first**: capture uma região da tela e transforme o conteúdo visual em texto utilizável. O OCR roda 100% localmente, sem conta e sem nuvem.
 
-> **Estado atual:** o projeto está em desenvolvimento ativo. O último pacote **publicado** é o **beta** [`v0.1.0-beta.3`](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.3). A **`v0.1.0-beta.4`** está **preparada, mas ainda não foi publicada** no GitHub — quando a release existir, ela traz o **Modo Direto** (atalhos por ação e escolha do modo na primeira execução), a **confirmação visual própria** (toast) do resultado das capturas, o **tooltip do ícone da bandeja** com o último resultado e a correção da demora/falha na cópia de texto para a área de transferência. Os pacotes `v0.1.0-beta.1` a `v0.1.0-beta.3` não incluem essas novidades — veja as [limitações conhecidas](#limitações-conhecidas) e [Modo Direto](#modo-direto).
+> **Estado atual:** o projeto está em desenvolvimento ativo. O pacote publicado é o **beta** [`v0.1.0-beta.4`](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.4) — **Modo Direto** (atalhos por ação e escolha do modo na primeira execução), **confirmação visual própria** (toast) do resultado das capturas, **tooltip do ícone da bandeja** com o último resultado e correção da demora/falha na cópia de texto para a área de transferência. Os pacotes anteriores (`v0.1.0-beta.1` a `v0.1.0-beta.3`) não incluem essas novidades — veja as [limitações conhecidas](#limitações-conhecidas) e [Modo Direto](#modo-direto).
 
 [Português](#português) | [English](#english)
 
@@ -64,8 +64,6 @@ O CapParse segue o conceito **Capture → Understand → Act**:
 > A compatibilidade foi verificada no computador de desenvolvimento. O beta está sendo distribuído justamente para validar outros computadores — se algo não funcionar no seu, isso é um **bug a reportar**, não necessariamente incompatibilidade.
 
 ### Como executar a beta 4
-
-> A `v0.1.0-beta.4` está **preparada, mas a release ainda não foi publicada no GitHub** — os links abaixo só passam a funcionar após a publicação. Até lá, use o [pacote publicado da `v0.1.0-beta.3`](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.3).
 
 1. Baixe o arquivo `.zip` da [release `v0.1.0-beta.4`](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.4) ([link direto para o ZIP](https://github.com/Sweetcheat/CapParse/releases/download/v0.1.0-beta.4/CapParse-v0.1.0-beta.4-win-x64.zip)) e extraia em uma pasta (por exemplo, `CapParse`);
 2. Se o Windows avisar (SmartScreen), clique em **Mais informações** → **Executar assim mesmo** — o pacote não é assinado digitalmente;
@@ -209,8 +207,6 @@ CapParse is a local-first Windows desktop utility built around **Capture → Und
 > Compatibility was verified on the development machine. The beta is being distributed precisely to validate other computers — if something does not work on yours, that is a **bug to report**, not necessarily an incompatibility.
 
 ### Running beta 4
-
-> The `v0.1.0-beta.4` is **prepared, but the release has not been published on GitHub yet** — the links below only start working after publication. Until then, use the [published `v0.1.0-beta.3` package](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.3).
 
 1. Download the `.zip` from the [`v0.1.0-beta.4` release](https://github.com/Sweetcheat/CapParse/releases/tag/v0.1.0-beta.4) ([direct ZIP link](https://github.com/Sweetcheat/CapParse/releases/download/v0.1.0-beta.4/CapParse-v0.1.0-beta.4-win-x64.zip)) and extract it to a folder (e.g. `CapParse`);
 2. If Windows warns you (SmartScreen), click **More info** → **Run anyway** — the package is not digitally signed;
