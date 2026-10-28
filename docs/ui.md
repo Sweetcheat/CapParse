@@ -140,11 +140,21 @@ Starts the same capture workflow as the global hotkey. While the **direct mode**
 
 ### Configurações
 
-Opens the Settings window (implemented in M13): a small window with the capture hotkey as its single setting — see section 14. The main window's title row offers the same access through a discreet gear button; both routes call the same entry point and share the one-instance behavior (an open window is activated, never duplicated).
+Opens the Settings window (implemented in M13): a small window with the capture hotkey and, since the direct mode (V0.3), the direct-mode toggle, the three direct shortcut slots and the save policy — see section 14. The main window's title row offers the same access through a discreet gear button; both routes call the same entry point and share the one-instance behavior (an open window is activated, never duplicated).
 
 ### Sair
 
 Terminates the application cleanly.
+
+### Tooltip
+
+The tray icon's tooltip is the passive, always-available companion of the transient confirmations (the toast disappears, the tooltip stays). Its content has a fixed priority (implemented, V0.3):
+
+- while the direct mode is in force with no direct shortcut configured, it nudges the user to configure the shortcuts ("CapParse — Modo Direto ativo; configure os atalhos") — the nudge is never buried under a stale result line, and it is gone as soon as any slot is configured;
+- after a confirmed capture result, it names the latest one ("CapParse — última: {resultado}") — the latest confirmation always replaces the previous line, so a failure can never leave an older success standing;
+- with no result yet, it is the plain application name ("CapParse").
+
+The longest real combination stays under the shell's 127-character tooltip limit, so it is never truncated.
 
 ---
 
@@ -447,6 +457,8 @@ Feedback should be subtle and should not interrupt the workflow unnecessarily.
 
 A small toast or inline status indicator is preferred over modal dialogs for successful operations.
 
+Implemented (V0.3): the application's own transient toast — a small themed card in the bottom-right corner of the primary monitor's work area (next to the tray icon, clear of the region the user just captured), never stealing focus, never in the taskbar, never receiving input, fading in/out and hiding itself after a short interval (~3 s). It is the **single presentation** of a capture operation's result in both modes: a newer result replaces the current one in place (one window, reused — an older message can never survive a newer result); a cancelled operation shows nothing; a capture failure is already communicated by its dialog, which records the result for the tooltip without a second visual. The tray tooltip is the later query (section 4); the legacy tray balloon is kept only for the first-run mode notice (an independent event, not a capture result).
+
 ---
 
 # 18. Loading and Responsiveness
@@ -531,7 +543,7 @@ Every UI element should have a functional reason to exist.
 
 # 22. Post-Selection Shortcuts (direct mode — implemented, V0.3 stage 4)
 
-After the user completes a region selection, the traditional flow runs OCR automatically (`Ctrl + Shift + X` captures a region and executes OCR) and presents the result view. On top of it, the **direct mode** provides configurable global shortcuts that act on the just-selected region immediately, with no result window interaction — the action runs right after the selection and reports the outcome through a discreet tray notice:
+After the user completes a region selection, the traditional flow runs OCR automatically (`Ctrl + Shift + X` captures a region and executes OCR) and presents the result view. On top of it, the **direct mode** provides configurable global shortcuts that act on the just-selected region immediately, with no result window interaction — the action runs right after the selection and reports the outcome through the application's own transient toast (the single presentation channel; the tray tooltip keeps the last result as a later query):
 
 - a configurable shortcut to **copy the image** to the clipboard;
 - a configurable shortcut to **run OCR and copy the text**;
@@ -549,7 +561,7 @@ The combinations are **not predefined**: the slots start unset, and the user rec
 - **Modo Direto** — select a region and the configured action runs right away, with no result window interaction. The shortcuts (copy image, OCR + copy text, save image) are defined by the user in the settings; the presentation never creates a combination on the user's behalf.
 - **Agora não** — defer the decision and continue with the traditional mode; the choice can be made later in the settings.
 
-The presentation is skippable: closing the window without choosing (the close button) keeps the traditional mode, so a dismissed presentation never changes a setting, never creates a hotkey and never blocks the normal use of the application.
+The presentation is skippable: closing the window without choosing (the close button) keeps the traditional mode, so a dismissed presentation never changes a setting, never creates a hotkey and never blocks the normal use of the application. Choosing the direct mode does not close the window on the spot: the choice card is replaced in place by a short confirmation card (the activation is acknowledged in the window itself before it closes), and the choice is recorded immediately — so closing the presentation in that state applies exactly the mode that was chosen.
 
 The mode is applied through the existing settings transaction: choosing the direct mode flips the persisted `DirectModeEnabled` flag (with no direct hotkey configured, it registers nothing), and the user is then pointed at the settings to configure the direct shortcuts. The "first run" state is persisted in the settings file (`FirstRunPresented`); a missing or legacy file reads as first run, so the presentation is shown exactly once per installation and never again — an existing installation that already has settings never sees it repeatedly.
 

@@ -1222,7 +1222,7 @@ Se uma mudança torna o projeto significativamente mais complexo sem entregar va
 
 # 50. Estado atual do projeto (continuidade entre sessões)
 
-Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidação documental pós-M11 (2026-10), substitui a versão da auditoria de 2026-10-12 (que descrevia o estado de um clone obsoleto); atualizada na sessão M14 (registro do M13 publicado e do trabalho M14 local) e na sessão M15 (preparação da candidata v0.1.0-beta.2: documentação, metadados de versão, procedimento de publicação reproduzível e pacote de validação), na sessão M16 (M16-1 consistência documental pós-publicação da beta.2; M16-2 validação automatizada do OCR em inglês; M16-3 validação manual do erro de OCR pelo usuário; M16-4 registro do erro de captura como risco residual), nas sessões da V0.2 (fase 1: fundação de tema, §51; fase 2: MainWindow, §52; fase 3: SettingsWindow + seletor de tema, §53; fase 4: FirstRunWindow, §55; fase 5: modernização visual do overlay de captura, §56) e na sessão M16-6 (consolidação documental pós-publicação do trabalho M16, das fases 1–5 da V0.2 e do ciclo OCR/memória: publicação em `main`/`origin/main` até `051493d`, working tree limpo), e na sessão de refinamentos da Settings/`MainWindow` (botão de engrenagem na linha de título, altura da `SettingsWindow` por medição, teste de tokens da `MainWindow` — §60; publicado em `9256ec7` após validação manual do usuário) e na sessão de preparação da v0.1.0-beta.3 (bump de versão, pacote de distribuição e tag — §61) e na sessão da Etapa 4 (Settings, persistência e ativação do Modo Direto — §62; trabalho local, sem commit) e na sessão da Etapa 5 (escolha do modo na primeira execução — §63; trabalho local, sem commit), nas sessões dos estágios corretivos e hotfixes (hotkey tradicional no Modo Direto §65, isolamento absoluto entre os modos §66, conflitos de hotkey entre modos mutuamente exclusivos §67, falha residual de registro na transição Direto → Tradicional §68, falha de cópia de texto com clipboard travado §69; todos trabalho local, sem commit) e na sessão do refinamento da bandeja ("Capturar" desabilitado no Modo Direto — §70; trabalho local, sem commit) e na sessão de validação manual da primeira execução (Fases 3A/3B: testes A1–A4.2 no executável Debug — §71; trabalho local, sem commit). O que está marcado como "executado" tem evidência de comando na sessão indicada; o restante vem do histórico Git e da documentação verificada contra o código.
+Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidação documental pós-M11 (2026-10), substitui a versão da auditoria de 2026-10-12 (que descrevia o estado de um clone obsoleto); atualizada na sessão M14 (registro do M13 publicado e do trabalho M14 local) e na sessão M15 (preparação da candidata v0.1.0-beta.2: documentação, metadados de versão, procedimento de publicação reproduzível e pacote de validação), na sessão M16 (M16-1 consistência documental pós-publicação da beta.2; M16-2 validação automatizada do OCR em inglês; M16-3 validação manual do erro de OCR pelo usuário; M16-4 registro do erro de captura como risco residual), nas sessões da V0.2 (fase 1: fundação de tema, §51; fase 2: MainWindow, §52; fase 3: SettingsWindow + seletor de tema, §53; fase 4: FirstRunWindow, §55; fase 5: modernização visual do overlay de captura, §56) e na sessão M16-6 (consolidação documental pós-publicação do trabalho M16, das fases 1–5 da V0.2 e do ciclo OCR/memória: publicação em `main`/`origin/main` até `051493d`, working tree limpo), e na sessão de refinamentos da Settings/`MainWindow` (botão de engrenagem na linha de título, altura da `SettingsWindow` por medição, teste de tokens da `MainWindow` — §60; publicado em `9256ec7` após validação manual do usuário) e na sessão de preparação da v0.1.0-beta.3 (bump de versão, pacote de distribuição e tag — §61) e na sessão da Etapa 4 (Settings, persistência e ativação do Modo Direto — §62; trabalho local, sem commit) e na sessão da Etapa 5 (escolha do modo na primeira execução — §63; trabalho local, sem commit), nas sessões dos estágios corretivos e hotfixes (hotkey tradicional no Modo Direto §65, isolamento absoluto entre os modos §66, conflitos de hotkey entre modos mutuamente exclusivos §67, falha residual de registro na transição Direto → Tradicional §68, falha de cópia de texto com clipboard travado §69; todos trabalho local, sem commit) e na sessão do refinamento da bandeja ("Capturar" desabilitado no Modo Direto — §70; trabalho local, sem commit) e na sessão de validação manual da primeira execução (Fases 3A/3B: testes A1–A4.2 no executável Debug — §71; trabalho local, sem commit) e na sessão de diagnóstico da notificação de bandeja (recolha do trace `capparse-trace-a3.log`, exclusões por código/trace e instrumentação adicional opt-in — §71.3; trabalho local, sem commit) e na sessão da confirmação visual própria pós-captura (toast do CapParse: `CaptureConfirmation`/`CaptureToastPresenter`/`CaptureToastWindow` + tooltip da bandeja com o último resultado — §72; trabalho local, sem commit) e na sessão da correção dos canais de confirmação (duplicidade no Modo Direto e "ausência" no Modo Tradicional: o toast próprio é o único canal de confirmação nos dois modos; o balão legado fica apenas no aviso de primeira execução — §73; trabalho local, sem commit) e na sessão da correção da cópia de texto do Modo Direto (falha `CLIPBRD_E_CANT_OPEN` do caminho OLE do clipboard do WPF após a destruição das janelas de overlay; fallback Win32 `CF_UNICODETEXT` em `OcrTextCopier` — §74; trabalho local, sem commit) e nas sessões da tolerância a lock do canal Win32 e do canal único de texto (`OpenClipboard` com janela da thread + instrumentação por estágio — §75; canal único Win32 + fim do stall multi-segundo — §76; todos trabalho local, sem commit à época). Na consolidação das Etapas 1/2, esse trabalho local acumulado foi commitado em `07fa7ea` (fundação do Modo Direto + primeira execução) e `632c671` (toast de confirmação, tooltip da bandeja, canal único Win32 de texto e instrumentação, com testes — §77), sem push: os marcadores "trabalho local, sem commit" referem-se ao estado de cada sessão na época. O que está marcado como "executado" tem evidência de comando na sessão indicada; o restante vem do histórico Git e da documentação verificada contra o código.
 
 ## 50.1 Repositório de referência
 
@@ -1231,8 +1231,8 @@ Esta seção é o ponto de entrada de uma nova sessão. Reescrita na consolidaç
 
 ## 50.2 Estado do repositório (consolidação M16-6)
 
-- Branch: `main`; HEAD = `origin/main` = `e225eb6` (docs: refresh README for the v0.1.0-beta.3 release) — sincronizada com o GitHub.
-- Working tree: **alterações locais não commitadas** — Etapas 1–5 (Etapa 1: layout da `FirstRunWindow`; Etapa 2: `GlobalHotkey` multi-id + `HotkeySlots`; Etapa 3: `DirectAction`/`OcrRunOutcome`/`DirectActionRunner` + integração no `App`; Etapa 4: Settings transacional + persistência do Modo Direto + política de salvamento — §62; Etapa 5: escolha do modo na primeira execução — §63), os estágios corretivos/hotfixes §64–§69, o refinamento da bandeja §70 ("Capturar" desabilitado no Modo Direto) e o registro da validação manual da primeira execução §71 (Fases 3A/3B). Nenhum commit, tag ou push foi feito; o estado anterior foi integralmente preservado e estendido em cada sessão.
+- Branch: `main`; HEAD local = `632c671` + o commit de documentação das Etapas 1/2 — **3 commits à frente de `origin/main`** (`e225eb6`, docs: refresh README for the v0.1.0-beta.3 release); **sem push**.
+- Working tree: **consolidado em commits locais (Etapas 1/2)** — o trabalho acumulado (Etapas 1–5, os estágios corretivos/hotfixes §64–§69, o refinamento da bandeja §70, a validação manual da primeira execução §71, a instrumentação de diagnóstico da notificação de bandeja §71.3, a confirmação visual própria §72, a correção dos canais de confirmação §73 e as correções da cópia de texto §74–§76) foi commitado em `07fa7ea` (fundação do Modo Direto + escolha na primeira execução) e `632c671` (toast de confirmação, tooltip da bandeja com o último resultado, canal único Win32 de texto `Win32TextClipboard` e instrumentação `CAPPARSE_TRACE`, com os testes correspondentes — 607/607 aprovados em Debug e Release; validação final do clipboard pelo usuário em §77.1). O commit de documentação das Etapas 1/2 (este) registra a consolidação documental e deixa o working tree **limpo**. Nenhum push, tag ou release foi feito; a nova release (a primeira a incluir o trabalho da `main` em um pacote distribuído) é pendente e fora do escopo das Etapas 1–2.
 - Tag `v0.1.0-beta.1` → `86e3d17`: a release beta publicada **não inclui** o M11, o M12, o M13 nem o M14. A tag não foi movida nem alterada.
 - Tag `v0.1.0-beta.2` → `178c940`: release publicada no GitHub em 2026-10-13 ("Latest", 3 assets), com o pacote `build/dist/CapParse-v0.1.0-beta.2-win-x64.zip` (dados em §50.5). `build/dist/CapParse-v0.1.0-beta.1-win-x64.zip` é **desatualizado** (anterior a M11–M14) e não deve ser reutilizado como artefato final.
 - Tag `v0.1.0-beta.3` → commit de preparação desta sessão (§61, descendente de `9256ec7`): pacote `build/dist/CapParse-v0.1.0-beta.3-win-x64.zip`; a GitHub Release e o upload do asset são feitos manualmente pelo usuário.
@@ -2503,7 +2503,496 @@ A coluna de evidência combina o relato do usuário (comportamento de interface)
 
 No A3 (escolha de “Modo Direto” na primeira execução), a notificação de bandeja ("Modo Direto ativado. Configure os atalhos em Configurações para usá-lo.") **não apareceu**, embora o código chame `ShowTrayNotification` incondicionalmente após o `ApplySettings` na escolha `Direct` — com o `NotifyIcon` criado e visível no startup, antes da apresentação. O ícone da bandeja estava funcional (o usuário observou o item "Capturar" desabilitado) e o arquivo confirma o commit do modo (`DirectModeEnabled: true` persistido).
 
-**Hipóteses (não conclusões):** supressão do balão pelo lado do Windows (configurações de notificação do SO, balão inicial da sessão, prontidão do shell da bandeja logo após o início do processo — `ShowBalloonTip` é fire-and-forget e o app não confirma a entrega) ou exceção absorvida pelo `catch` silencioso do `ShowTrayNotification` (degradação documentada: nunca crashar).
+### 71.3.1 Sessão de diagnóstico (trace `capparse-trace-a3.log` — evidência recolhida)
 
-**Investigação futura (não executada nesta fase):** verificar as configurações de notificações do Windows para o app e adicionar instrumentação/trace no ponto da chamada (ex.: via `CAPPARSE_TRACE`) para distinguir supressão do SO de exceção absorvida.
+O trace do cenário A3 existia em `%TEMP%\capparse-trace-a3.log` e trouxe a linha do tempo exata (timestamps de ms já gravados pelo canal `CAPPARSE_TRACE`):
 
+```text
+16:33:01.409  App: CAPPARSE_TRACE active
+16:33:03.512  ShowTrayNotification: calling ShowBalloonTip (title 'CapParse', icon Info, duration 3000 ms)
+16:33:03.513  ShowTrayNotification: ShowBalloonTip returned (title 'CapParse')
+16:33:03.513  TrayIcon: BalloonTipShown (shell displayed the balloon)
+16:33:03.733  TrayIcon: BalloonTipClosed
+16:33:03.733  TrayIcon: BalloonTipClosed
+```
+
+**Confirmado por código + trace:**
+- Uma única chamada de `ShowBalloonTip` no processo (a chamada é a única de `ShowTrayNotification`, e o log mostra uma só).
+- O shell reportou a exibição (`BalloonTipShown`) no mesmo milissegundo em que `ShowBalloonTip` retornou.
+- Dois eventos `BalloonTipClosed`, **no mesmo milissegundo**, 220 ms após a exibição — muito abaixo do timeout de 3000 ms: o fechamento **não** foi o timeout natural.
+- O ícone existia e era visível (nenhuma linha de "dropped" por ícone ausente/oculto) e nenhuma exceção foi absorvida (nenhuma linha "threw").
+- O fechamento **não** foi substituição por um segundo balão (apenas uma chamada de exibição no log) nem ação do app: o único caminho que oculta/descreta o ícone é `ExitApplication` (menu "Sair"), e a aplicação seguiu em execução após o balão (o modo foi persistido e a sessão continuou).
+- A atualização do tooltip (`UpdateTrayTooltip` → `NIM_MODIFY`) ocorre **antes** da exibição do balão (`ApplySettings` → `CommitSettings`), portanto não pode fechá-lo.
+
+**Gap de evidência no trace a3:** `BalloonTipClicked` **não estava inscrito** — um clique do usuário no balão seria invisível no log. Um clique é a única explicação inofensiva para um fechamento precoce, mas (a) 220 ms é um intervalo muito curto para o usuário localizar e clicar o balão e (b) um clique produziria um único fechamento, não dois no mesmo milissegundo. O log a3 não confirma nem excluiria o clique.
+
+**Hipóteses remanescentes (não conclusões):**
+- H1 — o shell do Windows (máquina: Windows 11 24H2, build 26200) fechou o balão legado (`NIF_INFO`, `uVersion=0`) precocemente, desrespeitando o timeout de 3000 ms, e emitiu duas notificações de fechamento para um único balão (particularidade conhecida de relatórios em Windows 10/11; não confirmada por código/trace neste repositório — a busca web não estava disponível nesta sessão).
+- H2 — o usuário clicou no balão (invisível no log a3 por falta da inscrição `BalloonTipClicked`; improvável pelos intervalos, não excludível).
+- H3 — um broadcast do shell (`WM_SETTINGCHANGE`/`WM_DISPLAYCHANGE`/`WM_TASKBARCREATED`) fez o WinForms remover e re-adicionar o ícone da bandeja (comportamento da implementação do `NotifyIcon` para sobreviver a reinícios da taskbar), e a re-adicionar fechou o balão em exibição.
+
+### 71.3.2 Instrumentação adicional adicionada nesta sessão (somente diagnóstico, opt-in via `CAPPARSE_TRACE`)
+
+- Inscrição de `BalloonTipClicked` em `CreateTrayIcon` (distingue H2: fecha por clique).
+- Linhas de ciclo de vida do ícone: `TrayIcon: created (visible)` na criação e `TrayIcon: hidden and disposed (application exit)` em `ExitApplication` (confirma/exclude recriação ou descarte do lado do app).
+- Janela de mensagem oculta (`TrayBroadcastTraceWindow`, criada **apenas** quando `CAPPARSE_TRACE` está definido) que registra os broadcasts `WM_SETTINGCHANGE` (com o nome da configuração), `WM_DISPLAYCHANGE` e `WM_TASKBARCREATED` (distingue H3: re-adicionar do ícone pelo WinForms).
+- Sem alteração de comportamento, sem nova dependência; o canal continua inativo sem a variável de ambiente.
+
+**Validação executada nesta sessão:** `dotnet build` — 0 erros (1 aviso preexistente xUnit2020); `dotnet test` (Debug) — **565/565 aprovados**. Execução curta de ~15 s do executável Debug com `CAPPARSE_TRACE` ativo: o canal registrou `App: CAPPARSE_TRACE active` e `TrayIcon: created (visible)`; nenhum broadcast chegou na janela de observação (desktop ocioso) e **nenhum balão foi exibido** — com as configurações atuais (`FirstRunPresented: true`, `DirectModeEnabled: true`, nenhum slot direto) não existe caminho para um balão, e o cenário a3 (janela de primeira execução) não pode ser re-executado sem alterar `settings.json` (proibido nesta tarefa). `settings.json` intacto (SHA-256 idêntico antes/depois: `700EE5EF…90`).
+
+### 71.3.3 O que o próximo trace discrimina (e o que falta)
+
+Com a instrumentação de 71.3.2, a próxima ocorrência natural de um balão (ex.: feedback de ação direta, ou nova primeira execução) com `CAPPARSE_TRACE` ativo resolve a trindade:
+- linha `BalloonTipClicked` antes do fechamento → H2 (clique do usuário);
+- linha de broadcast logo antes do fechamento → H3 (re-adicionar do ícone);
+- linha `hidden and disposed (application exit)` antes do fechamento → fechamento pelo encerramento do app;
+- **nenhuma** dessas linhas, com fechamento precoce (≪ 3000 ms) e/ou duplo → H1 (fechamento precoce do balão legado pelo shell do Windows 10/11) — a causa remanescente, coerente com os 220 ms observados e o duplo fechamento no mesmo milissegundo do trace a3.
+
+**Falta para encerrar a investigação:** um trace com a nova instrumentação cobrindo a exibição de um balão (não reproduzível nesta sessão pelas restrições acima). A correção só deve ser proposta após essa evidência (ex.: se H1 for confirmada, candidatas seriam usar o `ShowBalloonTip` com timeout maior, reexibir o balão, ou migrar o feedback para um canal não dependente do balão — decisão de produto, fora do escopo desta investigação diagnóstica).
+
+
+---
+
+# 72. Confirmação visual própria após captura — toast do CapParse (sessão atual, trabalho local)
+
+Implementa a confirmação visual **própria** do CapParse para comunicar o resultado real de uma operação de captura, **sem depender do balão da bandeja** (`NotifyIcon.ShowBalloonTip`) — fire-and-forget e observado fechando precocemente nesta máquina (§71.3). O balão é mantido como **feedback secundário** (implementação legada não removida), nunca como confirmação principal. O trabalho acumulado (Etapas 1–5, §64–§71, incluindo a instrumentação de diagnóstico) foi preservado integralmente. **Sem commit, tag ou push.**
+
+## 72.1 Diagnóstico do fluxo antes da implementação
+
+- **Modo Direto**: o `DirectActionRunner` já decidia, para cada ação, o feedback real (sucesso/inf/falha + mensagem — `DirectFeedback`), e o `App.OnDirectFeedback` o apresentava **apenas como balão de bandeja** (`ShowTrayNotification` → `ShowBalloonTip(3000, ...)`). Como o balão pode ser perdido (§71.3), a confirmação da ação (ex.: "Imagem salva.") era efetivamente inexistente para o usuário.
+- **Modo Tradicional**: o callback de fechamento da sessão de captura (`StartCapture`) chamava `RecognizeCropAsync(crop)` (com crop) ou apenas `PublishOcrState()` (cancelada) — **nenhuma confirmação** era emitida: com a janela principal oculta (o app vive na bandeja), nada informava que a captura terminou.
+- **Falha de captura**: o `catch` do `StartCapture` já mostrava um `MessageBox` (feedback suficiente; um toast sobre o diálogo seria ruído).
+- **Consulta posterior**: não existia — o tooltip da bandeja era estático ("CapParse", ou o nudge do Modo Direto sem atalhos do trabalho local anterior).
+- O app já tinha os ingredientes para uma apresentação própria: tema por tokens em `Application.Resources` (`ThemeService`), fonte de ícones do sistema (a `MainWindow` usa `Segoe Fluent Icons, Segoe MDL2 Assets` no botão de engrenagem) e `SystemParameters.WorkArea` (já usado pela `FirstRunWindow`).
+
+## 72.2 Decisão de mensagem (pura, testável) — `CaptureConfirmation` + `CaptureConfirmationPolicy`
+
+Novo modelo em `src/CapParse/UI/CaptureConfirmation.cs`:
+- `CaptureConfirmation(kind, message)` — o resultado confirmado: `Success` | `Info` | `Failure` + mensagem curta. Só existe para resultado **real**: cancelamento não gera confirmação; mensagens só são produzidas depois que a operação terminou (cópia escrita, arquivo salvo, captura falhou).
+- `CaptureConfirmationPolicy`:
+  - fluxo tradicional: com crop → `Success, "Captura pronta"` (a imagem está na janela de resultado; a mensagem não alega OCR — que ainda roda — nem arquivo — que esse modo nunca escreve); sem crop (cancelada/vazia) → `null` (silêncio); falha da captura → `Failure, "Falha na captura"`.
+  - fluxo direto: `CaptureConfirmation.FromDirectFeedback` converte o `DirectFeedback` do runner 1:1 (sucesso→sucesso, info→info, erro→falha), preservando a mensagem exata — "Imagem salva." nunca vira "Imagem copiada.".
+- A decisão ficou separada da apresentação: o mesmo `CaptureConfirmation` alimenta o toast (canal primário), o tooltip da bandeja (consulta posterior) e, onde existir, o balão secundário — os canais não podem divergir sobre o resultado.
+
+## 72.3 Apresentação — `CaptureToastWindow` + `CaptureToastPresenter`
+
+- **`CaptureToastWindow`** (`src/CapParse/UI/CaptureToastWindow.cs`): janela WPF pequena com tema por tokens (`SurfaceBrush`/`BorderBrush`; glifo por kind — check/info/erro — colorido com `SuccessBrush`/`TextSecondaryBrush`/`ErrorBrush`; sombra suave para se separar do conteúdo atrás), `WindowStyle=None` + `AllowsTransparency` (sem flash preto), `ShowInTaskbar=false`, `ShowActivated=false` + `Focusable=false` (**não rouba foco**), `IsHitTestVisible=false` (**não captura mouse/teclado**), `Topmost`, `WindowStartupLocation=Manual` ancorada no canto inferior direito da **work area do monitor primário** (onde vive a bandeja; `SystemParameters.WorkArea` é reportado em DIP do monitor primário — o mesmo espaço de coordenadas dos `Left`/`Top` da janela —, sem conversão de DPI, correto em qualquer escala; a região capturada fica livre). Entrada/saída são fades de opacidade (120/150 ms); auto-hide após 3 s por `DispatcherTimer` na thread da UI (a interface é sempre atualizada na thread certa). Uma única instância, criada sob demanda pelo `App` e reutilizada: uma nova confirmação **substitui** a atual no mesmo lugar (troca de conteúdo + restart do timer; um fade-out em curso é cancelado pela substituição), então uma mensagem antiga nunca sobrevive a um resultado mais novo e nunca há segunda janela. O `App` a fecha no `ExitApplication` (e rede de segurança em `OnExit`) — nunca sobrevive ao processo.
+- **`CaptureToastPresenter`** (`src/CapParse/UI/CaptureToastPresenter.cs`): a máquina de estados do toast (mensagem em tela, visível, substituição, auto-hide) **sem janela, sem dispatcher, sem relógio** — é o que os testes exercem; a janela é apenas a sua apresentação (chrome, fade, timer real). A separação foi motivada por um problema real desta sessão: mostrar uma janela WPF em teste unitário na suíte paralela a liga ao `Application` do processo (criado por outras classes de teste em outra thread), cujo shutdown (`OnLastWindowClose` ao fechar a última janela) invalida a janela a partir de outra thread — os testes de overlay sobrevivem porque afirmam via Win32 (`IsWindowVisible`), não `IsVisible` do WPF. A extração torna o comportamento testável sem esse acoplamento e sem timers reais.
+- **Instrumentação**: novas linhas `CAPPARSE_TRACE` — `Confirmation: toast shown (...)` e `Confirmation: recorded for the tray tooltip (...)`; o canal e o `CAPPARSE_NO_OVERLAY` foram preservados.
+
+## 72.4 Integração no `App` (pontos exatos)
+
+- `OnDirectFeedback` (Modo Direto): agora chama `ShowConfirmation(FromDirectFeedback(feedback))` **e** mantém o `ShowTrayNotification` (balão secundário). O runner e a política de salvamento (manual/automática) não mudaram — o toast só apresenta o que a ação realmente produziu: cancelamento do diálogo de salvamento segue em silêncio; falha de salvamento automático vira `Failure` com a mensagem real (nunca "sucesso total").
+- Callback de fechamento da sessão (Modo Tradicional): com crop → `ShowConfirmation(ForTraditionalCapture(true))` ("Captura pronta"); sem crop (cancelada) → **nada** (nenhuma mensagem de sucesso para operação cancelada).
+- `catch` do `StartCapture` (falha da captura): `NoteConfirmation(ForFailedCapture())` — registra no tooltip (consulta posterior verdadeira) **sem** toast, porque o `MessageBox` existente já é o feedback visual dessa falha.
+- **Tooltip da bandeja (consulta posterior)**: `DirectModeStatus.TrayTooltip(mode, slots, lastConfirmation)` — prioridade fixa: (1) nudge do Modo Direto sem atalhos (nunca enterrado por um resultado antigo); (2) `CapParse — última: {mensagem}` do último resultado confirmado (sempre substitui a linha anterior — uma falha nunca deixa um sucesso antigo de pé); (3) `CapParse`. `App.UpdateTrayTooltip` passa a incluir `_lastConfirmation?.Message` e é chamado a cada confirmação. O limite de 127 caracteres do shell é respeitado (testado com as mensagens reais mais longas).
+- `settings.json`, atalhos, modos, overlays: **inalterados**.
+
+## 72.5 Testes de regressão (26 novos)
+
+- `CaptureConfirmationTests` (9): tradicional com crop → sucesso "Captura pronta"; cancelada → `null` (sem mensagem); falha → sempre `Failure`, nunca sucesso; a mensagem "pronta" não alega arquivo salvo; conversão `DirectFeedback`→`CaptureConfirmation` preserva a mensagem e mapeia os kinds (3 casos); mensagens distintas de salvar/copiar não se confundem; ação falha → `Failure`; `null` → throws.
+- `CaptureToastPresenterTests` (7): estado inicial oculto sem mensagem; `Present` mostra; segundo `Present` substitui no lugar (mensagem antiga fora); falha substitui sucesso; auto-hide oculta mantendo a última mensagem; `Present` após auto-hide reexibe (reuso, nunca recriação); `null` → throws.
+- `CaptureToastWindowTests` (2, thread STA, janela construída — nunca mostrada): não rouba foco (`ShowActivated=false`, `Focusable=false`), não aparece na taskbar, não recebe input (`IsHitTestVisible=false`), `Topmost`, posicionamento manual, transparente sem chrome; janela nova inicia oculta sem mensagem.
+- `DirectModeStatusTests` (tooltip, 3-arg — 8): nudge × slots × último resultado; nomeia o último resultado; nudge tem prioridade sobre o último resultado; o tooltip carrega exatamente o último (a falha remove o sucesso anterior); limite de 127 caracteres do nudge e com as 4 mensagens reais.
+- Os 8 critérios do enunciado: (1) sucesso → mensagem correta ✔ (policy + presenter + runner); (2) falha → sem mensagem de sucesso ✔; (3) cancelamento → sem mensagem ✔; (4) salvamento × clipboard não se confundem ✔ (mensagens preservadas); (5) Direct Mode respeita a política de salvamento ✔ (runner inalterado, coberto por `DirectActionRunnerTests`); (6) sucessivos não deixam mensagem antiga ✔ (substituição no mesmo lugar + tooltip com um único resultado); (7) tooltip representa o resultado correto ✔; (8) lógica testável sem timers reais/interação com o Windows ✔ (presenter puro; janela só por propriedades).
+- **Não coberto automaticamente** (limitação da infraestrutura): o comportamento na tela real (fade in/out, canto da work area, auto-hide de 3 s, não roubar o foco do app ativo em uso real) e a wiring no `App` (o `App` não pode ser instancado no processo de testes — WPF permite uma única `Application` por processo, e o `OnStartup` tem efeitos de sistema) — ambos ficam na validação manual (§72.7).
+
+## 72.6 Evidências
+
+- Baseline pré-mudança: working tree com as alterações locais de §71.3 (instrumentação de diagnóstico) intactas; as 26 adições desta sessão levaram a suíte de 565 para **591** testes.
+- `dotnet build` + `dotnet test` **Debug**: 0 erros, **591/591 aprovados**; repetido 2× sem falhas (as falhas intermediárias desta sessão foram dos testes próprios — mostrar janela WPF na suíte paralela acopla ao `Application` de outras classes; resolvido pela extração do presenter, §72.3).
+- `dotnet build -c Release` + `dotnet test -c Release`: 0 erros, **591/591 aprovados**; 1 aviso preexistente (xUnit2020 em `OcrCollectionGeneratorTests.cs`) — nenhum aviso novo.
+- Smoke do executável Debug com `CAPPARSE_TRACE` (caminho Windows válido): `App: CAPPARSE_TRACE active` + `TrayIcon: created (visible)`; ~15 s sem crash e sem janelas órfãs; o processo de teste foi encerrado; nenhum processo do usuário foi encerrado.
+- `settings.json` intacto (SHA-256 idêntico antes/depois: `79C581D9…26`); nenhum commit, tag ou push; `C:\Dev\CapParse` não foi tocado.
+
+## 72.7 Validação manual pendente (usuário, desktop real)
+
+**Desfecho:** a validação subsequente do usuário (registrada em §77.1) confirmou os cenários centrais — toasts nos dois modos, substituição em capturas consecutivas, nenhum erro ou notificação duplicada; os itens específicos que não foram reexeridos continuam listados abaixo.
+
+1. **Modo Tradicional**: `Ctrl+Shift+X` → selecionar → o toast "Captura pronta" aparece no canto inferior direito **sem roubar o foco** do app ativo e some sozinho (~3 s); com a janela principal visível, o resultado continua aparecendo nela (o toast não a substitui).
+2. **Operação cancelada** (Esc na seleção): nenhum toast.
+3. **Modo Direto** (ativar em Configurações + configurar um slot): a ação mostra o toast com a mensagem real ("Imagem copiada." / "Texto copiado." / "Imagem salva."); falha de salvamento (pasta inválida na política automática) → toast de falha, nunca sucesso; cancelamento do diálogo (política manual) → silêncio.
+4. **Capturas consecutivas**: o toast de uma operação substitui o da anterior (nunca dois toasts, nunca mensagem antiga).
+5. **Tooltip da bandeja**: após uma operação, o tooltip do ícone mostra "CapParse — última: {resultado}" e é atualizado a cada nova operação; no Modo Direto sem atalhos, o nudge continua tendo prioridade.
+6. **Multi-monitor/DPI**: o toast aparece no canto inferior direito do monitor **primário** (onde está a bandeja), em qualquer escala; sem flash preto nem janela fantasma ao aparecer/desaparecer.
+7. **Encerramento**: "Sair" da bandeja não deixa janela de toast órfã.
+8. O balão secundário, quando o shell o exibe, pode aparecer junto (paridade com o comportamento anterior) — a confirmação principal é o toast.
+
+## 72.8 Arquivos
+
+- Novos: `src/CapParse/UI/CaptureConfirmation.cs` (modelo + policy), `src/CapParse/UI/CaptureToastPresenter.cs` (máquina de estados), `src/CapParse/UI/CaptureToastWindow.cs` (apresentação), `tests/CapParse.Tests/CaptureConfirmationTests.cs`, `tests/CapParse.Tests/CaptureToastPresenterTests.cs`, `tests/CapParse.Tests/CaptureToastWindowTests.cs`.
+- Alterados: `src/CapParse/App.xaml.cs` (toast como canal primário; `ShowConfirmation`/`NoteConfirmation`; tooltip com o último resultado; fechamento do toast no encerramento), `src/CapParse/Configuration/DirectModeStatus.cs` (`TrayTooltip` com o último resultado), `src/CapParse/UI/DirectActionRunner.cs` (comentários do canal de apresentação), `tests/CapParse.Tests/DirectModeStatusTests.cs`, `docs/development.md` (esta seção + §50).
+- Não alterados: pipeline de captura/OCR, `FrozenOverlaySession`/overlays, hotkeys (`HotkeyTransaction`, `CaptureHotkeyCoordinator`, `DirectHotkeyApplier`, `GlobalHotkey`), `SettingsWindow`, `FirstRunWindow`, `settings.json`; a implementação legada de `ShowBalloonTip()` foi mantida (feedback secundário); nenhuma dependência adicionada.
+
+## 72.9 Status da investigação do `ShowBalloonTip` (inalterado)
+
+A investigação de §71.3 permanece **aberta**: a causa do fechamento precoce/duplo do balão (H1/H2/H3) não foi comprovada; a instrumentação opt-in (`CAPPARSE_TRACE`: `BalloonTipShown/Closed/Clicked`, broadcasts `WM_*`, ciclo de vida do ícone) continua no código para o próximo trace natural. Esta sessão **não reabriu** essa investigação e **não** implementou notificações modernas do Windows; ela tornou o balão irrelevante para a confirmação crítica — o resultado agora é comunicado pelo canal próprio —, mas o balão segue como feedback secundário e a análise da causa segue pendente de evidência. (A partir da sessão §73, o balão deixou de espelhar o resultado das operações de captura — ele ficou apenas no aviso de primeira execução; o restante desta seção descreve o estado da sessão §72.)
+
+---
+
+# 73. Correção dos canais de confirmação — overlay único nos dois modos (sessão atual, trabalho local)
+
+Corrige a inconsistência reportada na validação manual da confirmação visual própria (§72): **dois overlays** no Modo Direto (um pequeno e um grande, com a mesma mensagem, o grande sobre o pequeno) e, no Modo Tradicional, **apenas o overlay pequeno** — com a percepção de que o "grande" (supostamente a confirmação própria) não aparecia. O trabalho anterior (§§64–§72, incluindo a instrumentação de §71.3) foi preservado integralmente. **Sem commit, tag ou push.**
+
+## 73.1 Relatório do usuário
+
+| Teste | Resultado reportado |
+|---|---|
+| T1 — Captura concluída no Modo Tradicional | Pendente devido à inconsistência visual |
+| T2–T5 (foco, auto-hide, cancelamento, capturas consecutivas) | Aprovados |
+| Modo Direto | Funciona, mas exibe dois overlays sobrepostos com a mesma mensagem |
+
+Observações: o overlay pequeno aparece nos dois modos; no Modo Direto o grande aparece sobre o pequeno; no Modo Tradicional o grande não aparece; as mensagens dos dois overlays no Modo Direto são iguais.
+
+## 73.2 Causa raiz (provada por código, sem presumir origem pelo tamanho)
+
+O código tem exatamente dois mecanismos visuais de confirmação pós-operação:
+
+1. **O toast próprio do CapParse** (`CaptureToastWindow`): cartão pequeno, arredondado, com o tema do app (glifo + mensagem), ancorado no canto inferior direito da work area do monitor primário (24 px da borda). É a "confirmação visual própria" do §72 — ou seja, **o overlay pequeno é a confirmação própria**, não o grande.
+2. **O balão legado do Windows** (`NotifyIcon.ShowBalloonTip` via `ShowTrayNotification`): cartão de notificação do shell, maior, ancorado junto ao ícone da bandeja (canto inferior direito) — desenhado pelo shell, portanto sobre as janelas do app.
+
+O grafo de apresentação por operação, no estado corrigido:
+
+| Operação | Canais que apresentavam o resultado |
+|---|---|
+| Direto (sucesso/info/falha da ação) | **toast próprio E balão legado** (`OnDirectFeedback` chamava `ShowConfirmation(FromDirectFeedback(...))` **e** `ShowTrayNotification("CapParse", feedback.Message, icon)`) — a **mesma mensagem** nos dois canais, no mesmo canto → a duplicidade observada |
+| Tradicional (com crop) | **apenas o toast próprio** (`ShowConfirmation(ForTraditionalCapture(true))`); o balão **nunca** é chamado nesse fluxo |
+| Tradicional (cancelada) | nada (silêncio) |
+| Falha da captura | `MessageBox` + registro no tooltip (`NoteConfirmation`); sem toast, sem balão |
+| Primeira execução (modo escolhido) | balão legado (evento independente, não é resultado de captura) |
+
+**Causa raiz 1 (duplicidade no Modo Direto):** `App.OnDirectFeedback` apresentava o resultado da **mesma operação** por dois canais — o toast próprio e o balão legado, com a mesma mensagem. Confirmação direta no código (duas chamadas, uma por canal); não há participação do Windows, da thread da UI ou do ciclo de vida WPF.
+
+**Causa raiz 2 ("ausência" no Modo Tradicional): não há defeito no caminho da confirmação própria.** O fluxo tradicional já apresenta o toast próprio — o "overlay pequeno" que o usuário via **é** a confirmação própria, funcionando. O "overlay grande" que ele esperava é o balão legado, que por desenho não faz parte do fluxo tradicional (§72.4): não há chamada ausente, callback impedido ou estado bloqueando a apresentação. A expectativa de que o grande fosse a confirmação própria vem da **atribuição invertida** induzida pelo Modo Direto, onde os dois canais apareciam juntos.
+
+## 73.3 Correção aplicada
+
+- `App.OnDirectFeedback`: **removida** a chamada `ShowTrayNotification` (e o cálculo do ícone). O resultado de uma ação direta agora é apresentado **uma única vez**, pelo toast próprio. O feedback do runner, as mensagens (sucesso/info/falha) e a política de salvamento não mudaram.
+- `ShowTrayNotification`/`ShowBalloonTip` **mantidos**: o único chamariz restante é o aviso da primeira execução ("Modo Direto ativado…") — evento independente, não resultado de captura (uso legítimo preservado, conforme o enunciado).
+- Caminho do Modo Tradicional: **inalterado** (o toast já era o único e correto canal — "Captura pronta" alega apenas o crop, não o OCR nem arquivo).
+- Comentários de documentação ajustados onde descreviam o balão como "sinal secundário" do resultado de operação (`App.xaml.cs` — campo `_toastWindow` e `OnDirectFeedback`; `CaptureConfirmation.cs`; `CaptureToastWindow.cs`; `DirectActionRunner.cs`). O comportamento do §72.4 ("mantém o `ShowTrayNotification` (balão secundário)") e o item 8 do §72.7 ficam **supervindos** por esta seção.
+- Pipeline de captura/OCR, overlays, hotkeys, políticas de salvamento, `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY`, `settings.json`: inalterados.
+
+## 73.4 Testes
+
+- **Novo** `tests/CapParse.Tests/ConfirmationChannelWiringTests.cs` (3 testes, nível de wiring, determinísticos — sem desktop, sem timers, sem posições de janela): o `App` não pode ser instanciado no processo de testes (§72.5), então a guarda lê a fonte da wiring e fixa o canal de cada caminho: (1) o resultado de uma ação direta passa pelo toast próprio e por **nenhum** segundo canal (`OnDirectFeedback` contém `ShowConfirmation(FromDirectFeedback(feedback))` e não contém `ShowTrayNotification`/`ShowBalloonTip`); (2) a captura tradicional concluída é confirmada pelo toast próprio (`ShowConfirmation(ForTraditionalCapture(true))` presente); (3) o balão segue presente no app (aviso de primeira execução) e ausente do caminho de resultado de operação.
+- Cobertura existente mantida (decisões puras): `CaptureConfirmationTests` (policy tradicional/direta, cancelamento → silêncio, falha nunca é sucesso), `CaptureToastPresenterTests` (substituição no mesmo lugar, auto-hide, reuso da janela única), `CaptureToastWindowTests` (não rouba foco, não entra na taskbar, não recebe input), `DirectModeStatusTests` (tooltip = último resultado real), `DirectActionRunnerTests` (uma ação → no máximo um feedback real).
+- A suíte foi de **591** para **594** testes (os 3 da guarda de wiring).
+
+## 73.5 Evidências
+
+- `dotnet build` (Debug): 0 erros, 1 aviso pré-existente (xUnit2020 em `OcrCollectionGeneratorTests.cs`) — nenhum aviso novo.
+- `dotnet test` (Debug): **594/594 aprovados**, 0 falhas.
+- `dotnet build -c Release`: 0 erros, 1 aviso pré-existente (o mesmo).
+- `dotnet test -c Release`: **594/594 aprovados**, 0 falhas.
+- `settings.json` não foi lido/escrito por esta correção; as alterações locais preexistentes (§§71.3–§72) foram preservadas; nenhum commit, tag ou push; `C:\Dev\CapParse` não foi tocado.
+- **Não validado nesta sessão** (exige desktop real): o comportamento visual nos dois modos (exatamente um toast, ausência do balão no Modo Direto) — os testes automatizados não provam o comportamento de tela; ver §73.6.
+
+## 73.6 Validação manual pendente (usuário, desktop real)
+
+**Desfecho:** a validação subsequente do usuário (registrada em §77.1) confirmou que nenhum erro ou notificação duplicada aparece nos dois modos — a mudança visível esperada (um único toast) foi observada.
+
+Passos mínimos:
+
+1. **Modo Tradicional**: inicie uma captura (`Ctrl+Shift+X` ou "Capturar" da bandeja) e conclua a seleção. Deve aparecer **apenas um** toast: o cartão **pequeno, arredondado, com o tema do app** (glifo de check verde + "Captura pronta"), no canto inferior direito. **Não** deve aparecer o cartão **grande estilo notificação do Windows** (com o ícone do CapParse) — ele nunca fazia parte do fluxo tradicional.
+2. **Modo Direto** (slot configurado): execute uma ação. Deve aparecer **apenas o mesmo toast pequeno** do app, com a mensagem real da ação ("Imagem copiada." / "Texto copiado." / "Imagem salva." etc.). O grande balão do Windows **não** deve mais aparecer — essa é a mudança visível em relação ao estado anterior.
+3. **Cancelamento** (Esc na seleção): nenhum toast, nenhum balão.
+
+Como distinguir os dois overlays (a atribuição inverte em relação ao reportado): a **confirmação própria do CapParse é o overlay PEQUENO** (cartão temático arredondado com glifo); o overlay GRANDE é o **balão legado do Windows** (cartão de notificação do shell com o ícone do app). Após a correção, ambos os modos exibem exatamente o pequeno; o grande desaparece do Modo Direto e nunca existia no Tradicional.
+
+
+Itens já validados anteriormente e que devem permanecer: não roubar foco, auto-hide (~3 s), substituição em capturas consecutivas, tooltip da bandeja com o último resultado, encerramento sem janela órfã (reconferir no encerramento, se desejável).
+
+## 73.7 Arquivos
+
+- Alterados: `src/CapParse/App.xaml.cs` (`OnDirectFeedback` sem o balão; comentário do campo `_toastWindow`), `src/CapParse/UI/CaptureConfirmation.cs` (comentário), `src/CapParse/UI/CaptureToastWindow.cs` (comentário), `src/CapParse/UI/DirectActionRunner.cs` (comentários), `docs/development.md` (esta seção + §50 + nota de supervindo em §72.9).
+- Novo: `tests/CapParse.Tests/ConfirmationChannelWiringTests.cs`.
+- Não alterados: pipeline de captura/OCR, `FrozenOverlaySession`/overlays, hotkeys, `SettingsWindow`, `FirstRunWindow`, `DirectModeStatus.cs`, `settings.json`; nenhuma dependência adicionada.
+
+---
+
+# 74. Correção da cópia de texto do Modo Direto — fallback Win32 para o caminho OLE do clipboard (sessão atual, trabalho local)
+
+Corrige o único defeito funcional residual após a validação da confirmação visual (§73): no Modo Direto, o atalho de **copiar texto** falhava com "Não foi possível copiar o texto. A área de transferência pode estar em uso por outro aplicativo.", e a falha persistia em novas tentativas (e também podia aparecer ao maximizar o CapParse). Os demais atalhos do Modo Direto (copiar imagem, salvar imagem) e todo o Modo Tradicional funcionavam. O trabalho anterior (§§64–§73) foi preservado integralmente. **Sem commit, tag ou push.**
+
+**Supervindo (parcial):** o desenho de *caminho WPF primário + fallback Win32* descrito nesta seção foi substituído pelo **canal único Win32** do §76 (o `Win32TextClipboard` deixou de ser fallback e o `ITextClipboard`/`WpfTextClipboard` foram removidos como código morto); a análise do §74.2 sobre o caminho OLE do WPF permanece como história da investigação.
+
+## 74.1 Evidência recolhida (trace do usuário + probe local)
+
+**Trace do usuário** (`%TEMP%\capparse-trace-final.log`, sessões de 12:58–17:26): a exceção exata de TODAS as falhas de cópia de texto:
+
+```text
+System.Runtime.InteropServices.COMException (0x800401D0): Falha de OpenClipboard (0x800401D0 (CLIPBRD_E_CANT_OPEN))
+   at System.Windows.Clipboard.CriticalSetDataObject(Object data, Boolean copy)
+   at CapParse.UI.WpfTextClipboard.SetText(String text)
+   at CapParse.UI.OcrTextCopier.TryCopyText(String text)
+```
+
+Padrão da sessão 16:01–16:07: capturas tradicionais ("Captura pronta") e cópias/salvamentos de imagem **bem-sucedidos** (16:06:25 "Imagem copiada."), enquanto as duas tentativas de copiar texto falharam (16:04:14, 16:04:25) — cada uma ~5 s após o fim da seleção, ou seja, exatamente quando o OCR termina e a escrita no clipboard ocorre.
+
+**Probe local** (app WPF de descarte em `C:\Dev\clipprobe`, fora do repositório; processado no ambiente desta máquina):
+- `OpenClipboard(0)` **cru** (Win32): 247/247 tentativas bem-sucedidas na thread da UI e 20/20 em thread de pool — o clipboard no nível Win32 funciona perfeitamente.
+- `System.Windows.Clipboard.SetText` (caminho do WPF): falhas com `CLIPBRD_E_CANT_OPEN` **intermitentes** no mesmo processo/thread em que o cru funciona (2 de 3 execuções; quando falha, falha em todas as tentativas da execução).
+- A sequência crua exata do `Win32TextClipboard` (`OpenClipboard` → `EmptyClipboard` → `GlobalAlloc` → `SetClipboardData(CF_UNICODETEXT)` → `CloseClipboard`) + leitura de volta: **OK + conteúdo MATCH** na mesma execução em que o caminho OLE estava indisponível.
+
+## 74.2 Causa raiz (comprovada por código + WPF source + probe)
+
+O caminho do WPF **não** é um `OpenClipboard` simples. Pela source do .NET 8 WPF (`PresentationCore/System/Windows/clipboard.cs` + `OleServicesContext.cs`): `Clipboard.SetText` → `CriticalSetDataObject` → `OleServicesContext.CurrentOleServicesContext.OleSetClipboard(...)`, onde `OleServicesContext` é um contexto **por thread** (slot `Thread.GetData`) que faz `OleInitialize` na thread de chamada e cuja falha de `OleSetClipboard` é o `CLIPBRD_E_CANT_OPEN` observado.
+
+Conclusões:
+1. **A falha é do caminho OLE do WPF, não do clipboard do Windows**: o mesmo processo abre o clipboard sem problema pela API crua (evidência 247/247), e a mensagem de exceção **não** contém "clipboard" — por isso a `ClipboardWritePolicy` (que só retenta falhas de lock com essa assinatura) **não** retentava, e retentar seria inócuo: não é lock de outro processo.
+2. **Não há bug de thread no CapParse**: o caminho completo (`OnDirectFeedback` → `DirectActionRunner.RunAsync` → `RunRecognitionAsync` → `TryCopyText`) roda na thread da UI (STA) — callbacks da sessão de captura disparam apenas por eventos WPF (drag/Esc/Close) e todos os `await` do fluxo preservam o `SynchronizationContext` da UI.
+3. **O gatilho é a quebra do estado OLE por thread após a criação/destruição de janelas na thread da UI**: no fluxo de copiar texto, as janelas de overlay são destruídas no fim da seleção, o OCR roda ~5 s em thread de pool, e a escrita no clipboard ocorre logo em seguida — com o estado OLE da thread instável (a falha também aparece ao maximizar a janela, que também altera o conjunto de janelas da thread). É uma fragilidade conhecida do caminho OLE do WPF, não um defeito do CapParse.
+4. O copiar **imagem** usa o mesmo caminho OLE (`Clipboard.SetImage`) e também seria suscetível — apenas não foi observado falhando (janela de exposição menor: a escrita ocorre imediatamente após a seleção, sem o gap do OCR).
+
+**Hipótese residual (não comprovada internamente):** o mecanismo exato dentro do OLE (associação de janela/mensagem do contexto por thread) não foi instrumentado — a evidência acima prova o componente falho (caminho OLE do WPF) e a independência do caminho cru, que é tudo o que a correção precisa.
+
+## 74.3 Correção aplicada (menor alteração segura)
+
+Novo canal de escrita **cru** para o texto, usado apenas como fallback do caminho WPF:
+
+- **`src/CapParse/UI/Win32TextClipboard.cs`** (novo): `IRawTextClipboardWriter` + implementação Win32 (`OpenClipboard` com retentativas limitadas para lock de outro processo — erro 5/1418, mesmas formas da `ClipboardWritePolicy`; `EmptyClipboard`; `GlobalAlloc(GMEM_MOVEABLE)` + `GlobalLock`/`Marshal.Copy` UTF-16 com NUL final; `SetClipboardData(CF_UNICODETEXT)`). Propriedade de memória: no sucesso o clipboard assume a posse do bloco (nunca liberado); em qualquer falha o bloco é liberado e a exceção escapa. Nenhum conteúdo é logado.
+- **`OcrTextCopier`**: construtor ganha `IRawTextClipboardWriter? rawFallback = null` (opcional — todos os call sites e testes existentes seguem sem fallback). Em `TryCopyText`, se o caminho WPF (após a política de retentativas) falhar **com exceção de classe clipboard** (`ExternalException`, que inclui o `COMException` do WPF) e houver fallback configurado, o texto é escrito pelo canal cru; sucesso real do fallback → resultado de sucesso (o texto está de fato no clipboard); fallback também falha → resultado de falha (nunca sucesso falso). Falhas **não** de clipboard (bug real) **nunca** vão para o fallback (não mascaram nada). A exceção primária original é sempre registrada no `CAPPARSE_TRACE` (agora com a thread), e a do fallback quando ocorre.
+- **Wiring**: `App` (runner do Modo Direto) e `MainWindow` (botão de copiar texto do Modo Tradicional — mesmo caminho, mesma fragilidade) passam a injetar `new Win32TextClipboard()`. O construtor de testes da `MainWindow` ganha o parâmetro opcional (null nos testes → nenhum efeito no clipboard real do processo de teste).
+- `ClipboardWritePolicy`, `WpfTextClipboard`, `CropImageCopier`/`WpfImageClipboard` (caminho de imagem), hotkeys, políticas de salvamento, confirmação visual (§73), `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY`: **inalterados**.
+
+## 74.4 Testes (7 novos, determinísticos, sem clipboard real)
+
+`tests/CapParse.Tests/OcrTextCopierRawFallbackTests.cs`:
+1. Caminho WPF falha com a forma exata do defeito (`COMException` 0x800401D0 `CLIPBRD_E_CANT_OPEN`) → fallback cru escreve o mesmo texto → sucesso reportado.
+2. WPF falha **e** o fallback falha → falha reportada com a mensagem de sempre, nunca sucesso falso.
+3. WPF falha com lock de clipboard (`ExternalException` com a assinatura reconhecida) → também vai para o fallback.
+4. WPF falha com exceção **não** de clipboard (`InvalidOperationException`) → fallback **não** é consultado (bug real não é mascarado).
+5. WPF tem sucesso → fallback nunca é consultado (sem efeito colateral).
+6. Sem fallback configurado (forma dos testes/versões anteriores) → comportamento anterior preservado.
+7. `TryCopy` (ponto de entrada do botão da `MainWindow`) beneficia do mesmo fallback.
+
+A implementação P/Invoke do `Win32TextClipboard` em si não é testável sem desktop (validação manual, §74.6); a lógica de decisão em torno dela é o que está fixado na suíte.
+
+## 74.5 Evidências
+
+- `dotnet build` (Debug): 0 erros, 1 aviso pré-existente (xUnit2020 em `OcrCollectionGeneratorTests.cs`) — nenhum aviso novo.
+- `dotnet test` (Debug): **601/601 aprovados**, 0 falhas (594 da sessão §73 + 7 novos).
+- `dotnet build -c Release`: 0 erros, 1 aviso pré-existente (o mesmo).
+- `dotnet test -c Release`: **601/601 aprovados**, 0 falhas.
+- Probe de descarte (`C:\Dev\clipprobe`, fora do repositório, removido ao final da sessão): validou a sequência crua exata do `Win32TextClipboard` (escrita + leitura de volta com MATCH) no ambiente em que o caminho OLE falhava.
+- `settings.json` não foi lido/escrito; as alterações locais preexistentes (§§71.3–§73) foram preservadas; nenhum commit, tag ou push; `C:\Dev\CapParse` não foi tocado.
+- **Não validado nesta sessão** (exige desktop real do usuário): o atalho real de copiar texto no Modo Direto — os testes automatizados não provam o comportamento no desktop.
+
+## 74.6 Validação manual pendente (usuário, desktop real)
+
+1. **Modo Direto — copiar texto** (o cenário do bug): configurar o slot de copiar texto, selecionar uma região **com texto** → o toast deve mostrar "Texto copiado." (e o texto deve colar corretamente em um editor). Repetir 2–3 vezes, incluindo uma captura imediatamente após a anterior: nunca mais o erro "área de transferência em uso".
+2. **Modo Direto — região sem texto**: o toast informativo "Nenhum texto foi reconhecido nesta região." (comportamento preservado).
+3. **Modo Direto — copiar imagem / salvar imagem**: continuam funcionando (sem regressão).
+4. **Modo Tradicional**: botões "Copiar texto"/"Copiar imagem" da janela de resultado funcionam (mesmo fallback).
+5. **Estabilidade**: após uma cópia de texto bem-sucedida, maximizar/restaurar a janela principal e copiar novamente — sem erro.
+6. Se algum cenário falhar: reexecutar com `CAPPARSE_TRACE` ativo — o trace agora registra a thread e a exceção primária + a do fallback (`OcrTextCopier: ...`), o que discrimina definitivamente qualquer resíduo.
+
+## 74.7 Arquivos
+
+- Novos: `src/CapParse/UI/Win32TextClipboard.cs`, `tests/CapParse.Tests/OcrTextCopierRawFallbackTests.cs`.
+- Alterados: `src/CapParse/UI/OcrTextCopier.cs` (fallback + diagnóstico com thread), `src/CapParse/App.xaml.cs` (wiring do runner do Modo Direto), `src/CapParse/MainWindow.xaml.cs` (parâmetro opcional do construtor + wiring), `docs/development.md` (esta seção + §50 + §50.2).
+- Não alterados: `ClipboardWritePolicy`, `WpfTextClipboard`, `WpfImageClipboard`/`CropImageCopier`, `DirectActionRunner`, pipeline de captura/OCR, overlays, hotkeys, `settings.json`; nenhuma dependência adicionada.
+
+## 74.8 Observação (fora do escopo)
+
+O caminho de **copiar imagem** usa o mesmo caminho OLE do WPF (`Clipboard.SetImage`) e, em princípio, a mesma fragilidade (`CLIPBRD_E_CANT_OPEN`) — mas nenhum caso foi observado (a escrita ocorre imediatamente após a seleção, sem o gap do OCR). Um fallback DIB equivalente seria uma mudança significativamente maior (codificação `BitmapSource` → `CF_DIB`) e não há evidência de falha: **não implementado**; se o defeito aparecer no copiar imagem, reaproveitar o desenho desta sessão.
+
+---
+
+# 75. Modo Direto — cópia de texto: fallback tolerante a lock + instrumentação por estágio (sessão atual, trabalho local)
+
+O usuário validou a correção do §74 no desktop e reportou o residual: no Modo Direto, o atalho de copiar texto **copia o texto** mas **continua exibindo a mensagem de erro de clipboard** ("Não foi possível copiar o texto. A área de transferência pode estar em uso por outro aplicativo."), com uma pequena engasgada/demora. O Modo Tradicional segue rápido, copia e mostra o "Captura pronta" normalmente. **Sem commit, tag ou push.**
+
+**Incorporado:** o `OpenClipboard` com a janela da thread de chamada e a instrumentação por estágio descritos nesta seção fazem parte da implementação final do §76 (canal único); o enquadramento de "caminho WPF + fallback" desta seção é histórico.
+
+## 75.1 Estado do repositório (inspecionado antes de agir)
+
+- Branch `main`, HEAD `07fa7ea` (o mesmo do §74), com as alterações locais preexistentes (§§71.3–§74) preservadas integralmente: `Win32TextClipboard.cs`, os testes de fallback, o toast (`CaptureToast*`), o `App.xaml.cs` instrumentado.
+- O único executável com Modo Direto na máquina é o Debug do `CapParseIntegI` (`bin\Debug\net8.0-windows\CapParse.exe`, build de 27/10 17:40 — **pós**-correção do §74). O repositório `C:\Dev\CapParse` (intocado, por regra) **não tem Modo Direto** em `src/`, então o atalho do usuário só pode ter sido executado pelo build corrigido.
+- `settings.json` (`%LOCALAPPDATA%\CapParse\settings.json`) atualizado em 27/10 17:59 (durante a sessão de teste do usuário); estado final gravado: `DirectModeEnabled: false` (o usuário revertera o modo ao final dos testes). O arquivo não foi lido para escrita nem modificado.
+- **Não existe trace pós-correção**: os logs `capparse-trace-*.log` mais recentes (`capparse-trace-final.log`, 17:27) são todos da era pré-fallback. A sequência exata das operações em que o usuário viu "copia + erro" nunca foi registrada — esta sessão adiciona a instrumentação que a captura.
+
+## 75.2 Diagnóstico (por código + evidência disponível; o que restou a comprovar)
+
+1. **Uma única operação no build corrigido não pode "copiar e dar erro de clipboard"**: se o fallback gravou o texto, `OcrTextCopier.TryCopyText` retorna `CopyOutcome(true, ...)` e o `DirectActionRunner` apresenta o feedback de sucesso ("Texto copiado."). O caminho de falha só produz a mensagem de clipboard quando **ambos** os canais falham. Logo, nas operações em que o usuário viu o erro, o fallback **também falhou** — e o "copia" observado vem das operações em que o clipboard estava livre (WPF ok, ou fallback ok).
+2. **Defeito de código que faz o fallback falhar onde o caminho primário sobreviveria**: o `Win32TextClipboard` abria o clipboard com `OpenClipboard(IntPtr.Zero)`. Pela contrato Win32, com `hWnd` nulo a chamada **não espera** o lock de outro processo ser liberado (falha imediatamente com `ERROR_ACCESS_DENIED`), e o orçamento total do fallback era ~300 ms (3 tentativas × 150 ms) contra ~3 s do caminho WPF (3 tentativas × espera de lock de ~1 s). Um **lock transitório de outro processo** (gerenciador de clipboard, OneDrive, etc.) no desktop do usuário derruba o fallback em situações que o caminho primário toleraria — produzindo a **mesma mensagem** de antes da correção.
+3. **A demora** decompõe em: OCR (~5 s no trace pré-correção — a confirmação do Modo Direto só aparece **após** o OCR; no Modo Tradicional o "Captura pronta" é mostrado no fim da seleção, **antes** do OCR, por isso "vai rápido") + na rota de falha, até ~3,6 s de esperas limitadas na thread da UI (retentativas WPF + retentativas do fallback).
+4. **O que restava a comprovar** (exige o trace do usuário): se nas operações com erro o fallback falhou com `OpenClipboard failed (win32 error 5)` (lock de outro processo — a hipótese principal) ou com outro erro. A instrumentação do §75.4 captura exatamente isso.
+
+## 75.3 Correção aplicada (menor alteração, baseada no contrato Win32)
+
+- **`Win32TextClipboard`**: o `OpenClipboard` passa a usar uma **janela da thread de chamada** (resolvida com `EnumThreadWindows` na cada escrita; a thread da UI do aplicativo sempre possui pelo menos uma — a janela oculta de hotkey e a janela principal sobrevivem entre capturas), em vez de `IntPtr.Zero`. Com janela, a chamada **espera** o lock de outro processo ser liberado (limitado pelo timeout de lock do sistema, ~1 s) antes de falhar — a mesma tolerância do caminho WPF que o fallback está ali para apoiar; com 3 tentativas, o orçamento total passa a ~3,4 s, em paridade com o caminho primário. Sem janela na thread (caso de teste), mantém o comportamento anterior (`IntPtr.Zero`). O resolve é um método `internal static` (`ResolveCallingThreadWindow`) testável; nenhum wiring, construtor ou call site foi alterado.
+- **Instrumentação (opt-in `CAPPARSE_TRACE`, sem conteúdo — só durações, tipos de exceção e tamanho do texto)**:
+  - `OcrTextCopier.TryCopyText`: tempo de cada tentativa WPF (via novo hook `onAttemptFailed` opcional no `ClipboardWritePolicy.WriteWithRetry`), tempo total do caminho WPF, início/duração/resultado do fallback e o resultado final da cópia (sempre com a thread).
+  - `Win32TextClipboard`: cada tentativa de `OpenClipboard` (janela usada, win32 erro implícito na exceção) e a gravação ok (chars, ms totais).
+  - `DirectActionRunner` (CopyText): início da ação, duração do reconhecimento (failed/has-result/chars) e duração total com o resultado da cópia.
+  - `App.RunRecognitionAsync`: início/fim do motor OCR com duração e chars.
+  - `App.HandleDirectActionAsync`: entrada (ação, seleção, dpi) e tempo total até o fim da ação.
+- `ClipboardWritePolicy` ganhou apenas o parâmetro opcional `onAttemptFailed` (null por padrão — os demais chamadores, inclusive o copiar imagem, são inalterados); `WpfTextClipboard`, `CropImageCopier`, hotkeys, políticas de salvamento, confirmação visual (§73), pipeline de captura/OCR: **inalterados**.
+
+## 75.4 Testes (5 novos: 605 no total)
+
+- `DirectActionRunnerTests` (2): (a) caminho WPF falha com a forma exata do defeito (`COMException` 0x800401D0) e o fallback grava → o feedback do runner é **Success "Texto copiado."** (nunca o erro de clipboard — o cenário exato reportado), com **uma única** escrita do fallback; (b) ambos os canais falham → o feedback é **Error** com a mensagem de sempre (o feedback espelha o resultado real, sem sucesso falso).
+- `OcrTextCopierRawFallbackTests` (3): (a) fallback bem-sucedido grava **uma** vez (sem segunda escrita); (b) a entrada por estado (`TryCopy`, o botão da `MainWindow`) reporta o mesmo sucesso do fallback; (c) thread sem janelas → `ResolveCallingThreadWindow()` retorna `IntPtr.Zero` (comportamento NULL preservado; roda em thread dedicada para não depender de janelas de outras suítes).
+- Coberturas já existentes que permanecem e fixam os itens da lista de regressão: WPF ok → fallback nunca consultado; exceção não-clipboard → fallback nunca consultado; ambos falham → falha; texto vazio → não copia; cópia de imagem e Modo Tradicional intactos.
+- O P/Invoke do `Win32TextClipboard` (incluindo o `OpenClipboard` com janela) continua sem teste automatizado — exige desktop (validação manual, §75.6).
+
+## 75.5 Evidências
+
+- `dotnet build` (Debug): 0 erros, 1 aviso pré-existente (xUnit2020 em `OcrCollectionGeneratorTests.cs`).
+- `dotnet test` (Debug): **605/605 aprovados**, 0 falhas, 0 ignorados.
+- `dotnet build -c Release`: 0 erros, 1 aviso pré-existente (o mesmo).
+- `dotnet test -c Release`: **605/605 aprovados**, 0 falhas, 0 ignorados.
+- Um dos novos testes capturou um erro real de P/Invoke durante o desenvolvimento (`GetCurrentThreadId` declarado contra `user32.dll` em vez de `kernel32.dll` — o host de teste morreu com `EntryPointNotFoundException`); corrigido e a suíte passa limpa.
+- `settings.json` não foi lido para escrita nem modificado; as alterações locais preexistentes (§§71.3–§74) preservadas; nenhum commit, tag ou push; `C:\Dev\CapParse` não foi tocado.
+- **Não validado nesta sessão** (exige desktop real do usuário): o atalho real de copiar texto no Modo Direto — em particular, se nas operações com erro o fallback agora sobrevive a um lock de outro processo, ou se outro mecanismo (ainda não identificado) produz o erro residual.
+
+## 75.6 Validação manual pendente (usuário, desktop real)
+
+1. Iniciar o CapParse **com a variável `CAPPARSE_TRACE` apontando para um arquivo** (ex.: `set CAPPARSE_TRACE=%TEMP%\capparse-trace-75.log` no shell que inicia o `CapParse.exe` de Debug do `CapParseIntegI`).
+2. Ativar o Modo Direto (Configurações) com o atalho de copiar texto configurado.
+3. Usar o atalho de copiar texto com uma região **com texto**; colar no Bloco de Notas. Repetir 2–3 vezes, incluindo capturas consecutivas.
+4. Maximizar/restaurar a janela principal e repetir a ação.
+5. Confirmar: texto colado, **sem** o erro de clipboard, toast "Texto copiado." (e o "Captura pronta" do Modo Tradicional intacto).
+6. **Se qualquer operação der o erro de clipboard**: enviar o arquivo de trace — as novas linhas (`OcrTextCopier: WPF attempt N failed after X ms (HRESULT ...)`, `Win32TextClipboard: open ok on attempt N (window ...)` ou a exceção `OpenClipboard failed (win32 error ...)`, `DirectActionRunner: CopyText finished after X ms (ocr Y ms, ...)`) discriminam definitivamente a causa residual: lock de outro processo (hipótese principal), quebra OLE persistente ou outra.
+
+## 75.7 Arquivos
+
+- Alterados: `src/CapParse/UI/Win32TextClipboard.cs` (open com janela da thread + trace), `src/CapParse/UI/OcrTextCopier.cs` (instrumentação por estágio), `src/CapParse/UI/ClipboardWritePolicy.cs` (hook opcional `onAttemptFailed`), `src/CapParse/UI/DirectActionRunner.cs` (trace das etapas do CopyText), `src/CapParse/App.xaml.cs` (trace do OCR e da ação direta), `tests/CapParse.Tests/DirectActionRunnerTests.cs` (2 testes + fakes), `tests/CapParse.Tests/OcrTextCopierRawFallbackTests.cs` (3 testes), `docs/development.md` (esta seção).
+- Não alterados: `WpfTextClipboard`, `CropImageCopier`/`WpfImageClipboard`, `CaptureToast*`/`CaptureConfirmation*`, pipeline de captura/OCR, `FrozenOverlaySession`/overlays, hotkeys, `SettingsWindow`/`FirstRunWindow`, `settings.json`; nenhuma dependência adicionada.
+
+---
+
+# 76. Modo Direto — cópia de texto: canal único Win32 + fim do stall multi-segundo (sessão atual, trabalho local)
+
+Diagnóstico definitivo do clipboard no Direct Mode, a partir do trace `capparse-trace-75.log` (operação de 28/10, 09:38). O defeito: o atalho de copiar texto demora ~4,6 s (OCR ~0,94 s + clipboard ~3,61 s) e termina com a notificação "Não foi possível copiar o texto. A área de transferência pode estar em uso por outro aplicativo." **Sem commit, tag ou push.**
+
+## 76.1 Evidência recolhida (trace do usuário + source WPF verificada)
+
+**Trace `capparse-trace-75.log`** (sessão 09:37:03–09:40:09):
+
+```text
+09:37:03.287 App: CAPPARSE_TRACE active                      (início do processo)
+09:38:05.356 HandleDirectActionAsync: action CopyText started
+09:38:06.282 RunRecognitionAsync: engine finished after 922 ms
+09:38:07.295 OcrTextCopier: WPF attempt 1 failed after 1000 ms: COMException (800401D0)
+09:38:08.429 OcrTextCopier: WPF attempt 2 failed after 1141 ms: COMException (800401D0)
+09:38:09.563 OcrTextCopier: WPF attempt 3 failed after 1141 ms: COMException (800401D0)
+09:38:09.563 OcrTextCopier: WPF path failed, starting the raw Win32 fallback
+09:38:09.891 OcrTextCopier: raw Win32 fallback failed after 328 ms:
+             ExternalException (OpenClipboard failed (win32 error 5).)
+09:38:09.892 OcrTextCopier: copy failed after 3610 ms
+```
+
+Fatos extraídos:
+
+1. **A cópia falha foi a PRIMEIRA e única operação de clipboard do processo** (início às 09:37:03, nenhuma escrita de clipboard anterior no trace): o CapParse não era dono do clipboard e não deixou nenhum lock aberto — descarta-se a auto-incriminação.
+2. **Cada "tentativa WPF" durou ~1,0–1,14 s por causa do loop de retry interno do próprio WPF .NET 8** (source verificada nesta sessão: `dotnet/wpf`, branch `release/8.0`, `PresentationCore/System/Windows/clipboard.cs`, `CriticalSetDataObject`: `while(true)` com `OleRetryCount = 10` tentativas de `OleSetClipboard` e `Thread.Sleep(OleRetryDelay = 100)` **na thread de chamada**, "as mitigation for clipboard locking issues in TS sessions"). A política externa do app empilhou 3 dessas chamadas: ~3,3 s de `Thread.Sleep` na thread da UI + 328 ms do fallback = os 3,6 s do trace.
+3. **O fallback Win32 COM JANELA (`EnumThreadWindows`) falhou com erro 5 em dezenas de ms por tentativa** (328 ms totais para 3 tentativas incluindo 2×150 ms de sleep). Pelo contrato do `OpenClipboard`, com handle de janela a chamada **espera** o lock de outro processo ser liberado (limitado pelo `InhibitTimeout`, ~1000 ms por padrão) antes de falhar. Falhar em muito menos que esse tempo significa que o dono do lock **não era um processo vivo e responsivo**.
+4. **Dois mecanismos independentes (OLE do WPF e Win32 puro, na mesma thread) falharam em abrir o clipboard** → o lock estava **no nível Win32**, não no estado OLE por-thread. Isso **contradiz** a hipótese de causa-raiz do §74.2 ("quebra do estado OLE por thread") como explicação completa: o §74.1 tinha mostrado o cru funcionando 247/247 na máquina de teste, mas neste trace o cru também falhou.
+5. O usuário reporta que as demais ações do Direct Mode (copiar imagem — mesmo caminho OLE) e o Modo Tradicional funcionam normalmente → o lock é **transitório entre operações**; o clipboard é abri-vel na maioria dos momentos.
+
+## 76.2 Causa (o que ficou demonstrado × o que resta hipótese)
+
+**Demonstrado:**
+- Os vários segundos de espera são **autoinfligidos pelo app**: 3× o loop interno de ~1 s do WPF (polling ineficaz contra um lock que falha rápido) + retentativas do fallback. Nenhum retry curto resolve um lock com assinatura de falha rápida; a única tolerância útil é a espera nativa do `OpenClipboard` com janela (`InhibitTimeout`) contra um locker **vivo**.
+- O lock no momento da falha era de nível Win32 (ambos os canais falharam) e seu dono não era um processo vivo e responsivo (assinatura de falha rápida do open com janela).
+- O app não é o locker (primeira operação do processo; nenhuma outra thread abre o clipboard).
+
+**Hipóteses (não confirmadas — exigem o próximo trace ou o experimento do §76.6):**
+- H1: lock de um **processo vivo externo** (no Windows 11, o broker do histórico de clipboard é o candidato mais provável; gerenciadores de clipboard e OneDrive também podem) — a API pública `GetOpenClipboard()` nomeia o processo dono de um lock **vivo** (PID); o trace agora a registra em cada tentativa de open falha.
+- H2: **cadeia de viewers quebrada / dono morto** (processo que morreu com o clipboard aberto, sem repassar a cadeia): nenhum PID vivo existe para o sistema esperar — `GetOpenClipboard()` retorna 0 com o open falhando. Nenhuma API pública identifica um dono morto; nem o app nem o OS expõem o dono do lock nesses casos.
+
+**Limitação declarada:** não é possível, pelas APIs públicas disponíveis, identificar o processo responsável quando o dono é morto (H2) — apenas quando é vivo (H1, via `GetOpenClipboard`).
+
+## 76.3 Correção aplicada
+
+**Canal único de escrita de texto** (fim da alternância entre mecanismos sem justificativa): o `Win32TextClipboard` (Win32 puro, `CF_UNICODETEXT` — exatamente os dados que o caminho WPF colocaria no clipboard) passa a ser o **único** canal de texto, usado pelo `OcrTextCopier` nos dois modos (Direct e Tradicional). O caminho WPF (OLE) é removido como writer de texto (`ITextClipboard`/`WpfTextClipboard` excluídos — código morto): o loop interno de 10×100 ms dele, somado a qualquer política externa, é a origem do stall, e a tolerância que ele dava (polling ~1 s) é reproduzida pela espera nativa do `OpenClipboard` com janela em **uma** chamada.
+
+**Política de open baseada em evidência** (`Win32TextClipboard`, função pura `ShouldRetryOpen` testável):
+- Apenas erros transitórios são retentados: `ERROR_ACCESS_DENIED` (5) e `ERROR_NO_CLIPBOARD` (1418); qualquer outro erro falha na hora.
+- **Discriminação por tempo de falha**: um open COM janela que falha em ≥100 ms (≥ o limite `FastFailLimitMilliseconds`, muito abaixo do `InhibitTimeout` de ~1000 ms) significa que o sistema **esperou** um dono vivo e ele seguiu segurando o lock → vale retentar (delay 150 ms, máx. 3 tentativas). Falha em <100 ms = dono não-responsivo (dono morto / cadeia quebrada) → **para imediatamente**: nenhuma retentativa limpa esse lock (a assinatura exata do trace-75, que antes custava 3,6 s e agora custa dezenas de ms).
+- O open usa a janela da thread de chamada (`EnumThreadWindows`; a UI thread sempre possui a janela oculta de hotkey e a principal); sem janela, `IntPtr.Zero` (comportamento anterior, só em threads sem janelas, como em testes).
+- Instrumentação opt-in (`CAPPARSE_TRACE`) por tentativa de open falha: janela usada, win32 error, **tempo do open** e **PID do locker vivo via `GetOpenClipboard()`** (0 = assinatura de dono não-responsivo) — o próximo trace aponta o processo responsável quando as APIs permitem.
+
+**Comportamento resultante (thread da UI):**
+- Clipboard livre: escrita em alguns ms (caminho comum — sem nenhuma espera).
+- Lock de dono vivo que libera em <~1 s: a **primeira** tentativa nativa espera e completa (≤ ~1 s, o melhor caso que o WPF já tinha).
+- Lock persistente de dono vivo: até 3×(~1 s de espera nativa + 150 ms) — o mesmo orçamento que o caminho WPF tinha, e só nesse cenário patológico.
+- Dono não-responsivo (o caso do trace-75): **falha em dezenas de ms** com a mensagem de sempre (antes: 3,6 s).
+
+**Sem efeito colateral**: `ClipboardWritePolicy` (caminho de **imagem**, que funciona) intacto; captura, OCR, toasts, hotkeys, configurações, `CAPPARSE_TRACE`/`CAPPARSE_NO_OVERLAY` e `settings.json` inalterados.
+
+## 76.4 Testes (suíte reescrita no contrato de canal único: 607 no total)
+
+- `OcrTextCopierTests` (reescrito): sucesso, vazio (não toca o clipboard), falha de clipboard → resultado de falha, lock transitório limpo **dentro** da chamada do writer → sucesso com **exatamente 1** invocação do writer (o copier nunca empilha retry externo), lock persistente → mensagem de sempre em 1 chamada, exceção não-clipboard → resultado de falha (nunca lançada).
+- `OcrTextCopierWriterTests` (novo, substitui `OcrTextCopierRawFallbackTests`): contrato do writer (sucesso real → sucesso; lock → falha sem sucesso falso; bug → não mascarado; entrada por estado), `ResolveCallingThreadWindow` em thread sem janelas → `IntPtr.Zero`, e a decisão pura `ShouldRetryOpen`: erro transitório + falha lenta + orçamento → retenta; **falha rápida (assinatura do trace-75) → não retenta**; orçamento esgotado → não retenta; erro 1418 lento → retenta; erro não-transitório → não retenta; fronteira em 100 ms → retenta.
+- `DirectActionRunnerTests` (2 testes atualizados + fakes): writer recupera um lock transitório → feedback **Success "Texto copiado."** com 1 invocação; writer falha → feedback **Error** com a mensagem de sempre (sem sucesso falso).
+- `OcrTextCopierHistoryTests` (fakes atualizados para o writer).
+- `ClipboardWritePolicyTests` e `CropImageCopierTests` (caminho de imagem): **inalterados**.
+- O P/Invoke do `Win32TextClipboard` (open com janela, `GetOpenClipboard`) continua sem teste automatizado — exige desktop (validação manual, §76.6).
+
+## 76.5 Evidências
+
+- `dotnet build` (Debug): 0 erros, 1 aviso pré-existente (xUnit2020 em `OcrCollectionGeneratorTests.cs`) — nenhum aviso novo.
+- `dotnet test` (Debug): **607/607 aprovados**, 0 falhas, 0 ignorados.
+- `dotnet build -c Release`: 0 erros, 1 aviso pré-existente (o mesmo).
+- `dotnet test -c Release`: **607/607 aprovados**, 0 falhas, 0 ignorados.
+- Source WPF .NET 8 verificada nesta sessão (`dotnet/wpf` branch `release/8.0`, `clipboard.cs`): `CriticalSetDataObject` com `OleRetryCount = 10` / `OleRetryDelay = 100 ms` / `Thread.Sleep` na thread de chamada — confirma o mecanismo do stall de ~1 s por tentativa.
+- `settings.json` não foi lido para escrita nem modificado; as alterações locais preexistentes (§§71.3–§75) preservadas (diff verificado); nenhum commit, tag ou push; `C:\Dev\CapParse` não foi tocado.
+- **Não validado nesta sessão** (exige desktop real do usuário): o atalho real de copiar texto no Modo Direto — em particular, se o lock do cenário de falha agora é reportado em dezenas de ms (e não 3,6 s) e se `GetOpenClipboard()` nomeia o processo responsável (H1) ou retorna 0 (H2).
+
+## 76.6 Validação manual pendente (usuário, desktop real)
+
+**Desfecho:** os itens 1–5 foram validados com sucesso pelo usuário no desktop (registro em §77.1: cinco cópias consecutivas de texto no Modo Direto OK, Modo Tradicional OK, copiar/salvar imagem OK, cópias após alternar ações OK, nenhum erro ou notificação duplicada). Os itens 6–7 se aplicam apenas em caso de novo defeito.
+
+1. Iniciar o CapParse **com a variável `CAPPARSE_TRACE` apontando para um arquivo** (ex.: `set CAPPARSE_TRACE=%TEMP%\capparse-trace-76.log` no shell que inicia o `CapParse.exe` de Debug do `CapParseIntegI`).
+2. Ativar o Modo Direto (Configurações) com o atalho de copiar texto configurado.
+3. Usar o atalho de copiar texto com uma região **com texto**; colar no Bloco de Notas. **Repetir 5+ vezes consecutivas**, incluindo capturas em sequência (a repro do defeito).
+4. **Modo Tradicional**: capturar e usar "Copiar texto" da janela de resultado (regressão — mesmo canal).
+5. **Outras ações do Direct Mode**: copiar imagem / salvar imagem (regressão — caminho de imagem intacto).
+6. **Experimento A/B (só se o erro de clipboard voltar)**: desativar o histórico de clipboard do Windows 11 (Configurações → Sistema → Área de transferência → "Histórico da área de transferência" desligado), reiniciar o app no shell com `CAPPARSE_TRACE` e repetir o item 3. Se as falhas desaparecerem, o broker do histórico é o locker (H1 confirmada); se persistirem, o trace discrimina o resto.
+7. **Leitura do trace em caso de falha**: as linhas `Win32TextClipboard: open attempt N failed in X ms (window ..., win32 error E, clipboard open by pid P)` discriminam os três cenários:
+   - `X` grande (~1000 ms) + `P` ≠ 0 → lock de processo **vivo** → `P` é o PID do responsável (H1; nomear o processo pelo PID).
+   - `X` pequeno (<100 ms) + `P` = 0 → **dono não-responsivo** (dono morto / cadeia de viewers quebrada) (H2) — não identificável por APIs públicas.
+   - `X` pequeno + `P` ≠ 0 → locker vivo que o sistema não esperou (ex.: `InhibitTimeout` alterado por `HKEY_CURRENT_USER\Clipboard\InhibitTimeout`) — verificar o valor do registro.
+8. O sucesso do toast "Texto copiado." agora implica **escrita real confirmada** (`SetClipboardData` + `CloseClipboard` concluídos) — nunca há sucesso sem escrita, e a falha agora ocorre em dezenas de ms no cenário do trace-75, sem o stall de 3,6 s.
+
+## 76.7 Arquivos
+
+- Alterados: `src/CapParse/UI/Win32TextClipboard.cs` (política de open com discriminação por tempo de falha + `GetOpenClipboard` no trace + `ShouldRetryOpen` puro; classe promovida de fallback a canal único), `src/CapParse/UI/OcrTextCopier.cs` (writer único, sem retry externo; docs), `src/CapParse/App.xaml.cs` (wiring: `new OcrTextCopier(new Win32TextClipboard())`), `src/CapParse/MainWindow.xaml.cs` (construtor: `IRawTextClipboardWriter` no lugar de `ITextClipboard` + fallback), `tests/CapParse.Tests/OcrTextCopierTests.cs` (reescrito), `tests/CapParse.Tests/OcrTextCopierHistoryTests.cs` (fakes), `tests/CapParse.Tests/DirectActionRunnerTests.cs` (2 testes + fakes), `docs/development.md` (esta seção).
+- Removidos: `src/CapParse/UI/ITextClipboard.cs` (`ITextClipboard` + `WpfTextClipboard` — código morto após a promoção do writer Win32 a canal único), `tests/CapParse.Tests/OcrTextCopierRawFallbackTests.cs` (substituído por `OcrTextCopierWriterTests.cs`).
+- Novos: `tests/CapParse.Tests/OcrTextCopierWriterTests.cs`.
+- Não alterados: `ClipboardWritePolicy` (+testes), `CropImageCopier`/`WpfImageClipboard` (caminho de imagem), `DirectActionRunner`, `CaptureToast*`/`CaptureConfirmation*`, pipeline de captura/OCR, `FrozenOverlaySession`/overlays, hotkeys, `SettingsWindow`/`FirstRunWindow`, `DirectModeStatus`, `settings.json`; nenhuma dependência adicionada.
+
+---
+
+# 77. Consolidação das Etapas 1/2 — commits locais, validação final do clipboard e estado documental (trabalho local)
+
+## 77.1 Validação manual final do usuário (fecha os itens pendentes do §76.6)
+
+O usuário validou o canal único Win32 de texto no desktop real:
+
+| Cenário | Resultado |
+|---|---|
+| Cinco cópias consecutivas de texto no Modo Direto | OK — texto colado, sem o erro de clipboard |
+| Modo Tradicional (copiar texto na janela de resultado) | OK |
+| Copiar imagem / salvar imagem no Modo Direto | OK (sem regressão) |
+| Cópias após alternar ações | OK |
+| Erros ou notificações duplicadas | nenhum observado |
+
+Com isso, os itens 1–5 do §76.6 foram validados com sucesso no desktop do usuário. O experimento A/B (item 6) e a leitura discriminativa do trace (item 7) só se aplicam **se** o erro de clipboard voltar. As hipóteses H1/H2 do §76.2 permanecem como explicação do lock transitório de terceiros observado no trace-75: o comportamento resultante (falha rápida em dezenas de ms, sem stall multi-segundo) é o projetado para esse cenário, e o desktop do usuário não reportou novas falhas. A investigação do fechamento precoce do balão legado (§71.3, H1–H3) permanece **aberta**, mas o balão deixou de ser o canal de confirmação crítica (§73) — ele fica apenas no aviso de primeira execução.
+
+## 77.2 Etapa 1 — commit funcional `632c671`
+
+`feat: add capture confirmation toast, tray tooltip and Win32 text clipboard` — 24 arquivos (implementação + testes): o toast próprio (`CaptureConfirmation`/`CaptureToastPresenter`/`CaptureToastWindow`), o tooltip da bandeja com o último resultado (`DirectModeStatus.TrayTooltip`), o canal único de texto `Win32TextClipboard` (`IRawTextClipboardWriter`; remoção de `ITextClipboard`/`WpfTextClipboard`), a instrumentação opt-in `CAPPARSE_TRACE` (janela de broadcast oculta, ciclo de vida do ícone, estágios de OCR/cópia, fallback do log de trace) e o cartão de confirmação do Modo Direto na primeira execução. `CAPPARSE_NO_OVERLAY` preservado. Validação executada: `dotnet test` **607/607 aprovados** em Debug e Release. `settings.json` e o repositório auxiliar `C:\Dev\CapParse` intocados.
+
+## 77.3 Etapa 2 — commit de documentação
+
+Este commit registra a consolidação documental alinhada ao estado commitado: `README.md` (Modo Direto, escolha na primeira execução, toast, tooltip da bandeja, variáveis de diagnóstico, pacote publicado × branch `main`), `docs/development.md` (§50/§50.2 + esta seção), `docs/product.md` (§14), `docs/ui.md` (tooltip da bandeja, feedback, primeira execução) e `docs/architecture.md` (canal de clipboard, fluxo, bandeja). Sem alterações de código ou configuração.
+
+## 77.4 Estado e pendências
+
+- `main` local: `07fa7ea` + `632c671` + este commit de documentação — **3 commits à frente de `origin/main`** (`e225eb6`); working tree limpo. **Push e nova release pendentes** (fora do escopo das Etapas 1–2; a próxima release será a primeira a incluir o Modo Direto e o canal de confirmação em um pacote distribuído).
+- Pendentes de validação natural: o próximo trace com a instrumentação de §71.3.2/§75/§76 (apenas se um balão/defeito ocorrer) e o caminho de copiar imagem (§74.8 — mesma fragilidade OLE em princípio, sem evidência de falha).

@@ -161,7 +161,9 @@ Crop Selected Region
                            Manual (diálogo) ou Automático (pasta,
                            nome único, nunca sobrescreve)
 
-              feedback: notificação discreta na bandeja
+              feedback: confirmação própria do app (toast, única apresentação)
+                           + tooltip da bandeja com o último resultado
+                           (consulta posterior)
 ```
 
 O fluxo deve ser explícito.
@@ -535,10 +537,10 @@ O acesso ao clipboard fica isolado em pequenas seams testáveis, já implementad
 
 ```text
 UI/
-├── ITextClipboard        (WpfTextClipboard)
-├── IImageClipboard       (WpfImageClipboard)
-├── OcrTextCopier         (copia o texto reconhecido; nunca copia vazio)
-└── CropImageCopier       (copia a imagem do crop, com DPI)
+├── IRawTextClipboardWriter (Win32TextClipboard)
+├── IImageClipboard         (WpfImageClipboard)
+├── OcrTextCopier           (copia o texto reconhecido; nunca copia vazio)
+└── CropImageCopier         (copia a imagem do crop, com DPI)
 ```
 
 Essa camada lida com:
@@ -547,6 +549,10 @@ Essa camada lida com:
 - imagem.
 
 As seams permitem que os testes substituam o clipboard real por fakes.
+
+Canal de **texto** (único nos dois modos, V0.3): a escrita vai pela API Win32 crua — `OpenClipboard` com a janela da thread de chamada + `EmptyClipboard` + `SetClipboardData(CF_UNICODETEXT)`, exatamente os dados que o caminho WPF colocaria no clipboard. O caminho OLE do WPF foi removido como writer de texto (`ITextClipboard`/`WpfTextClipboard` excluídos, código morto): seu loop interno de 10 × 100 ms na thread de chamada, somado a qualquer política externa de retentativa, transformava um clipboard que não podia ser aberto em um stall de ~3,6 s da UI — e no defeito do trace-75 ambos os canais (OLE e Win32) falharam no nível Win32, então alternar entre eles não resolvia (ver `docs/development.md` §74–§76). O writer possui a política de open limitada: retenta apenas falhas transitórias **lentas** (o sistema esperou um dono vivo de lock); falha **rápida** = dono não-responsivo, e nenhuma retentativa limpa esse lock, então para na hora.
+
+Canal de **imagem** (inalterado): o caminho WPF (DIB em memória, com DPI).
 
 Não criar um sistema genérico de integração com todos os formatos possíveis.
 
@@ -622,6 +628,10 @@ Abre a janela de configurações (`SettingsWindow`; implementado no M13). A mesm
 ### Sair
 
 Encerra a aplicação e libera recursos.
+
+### Tooltip
+
+O tooltip do ícone é o companheiro passivo e sempre disponível das confirmações transitórias (o toast some, o tooltip fica). Prioridade fixa (implementado, V0.3): (1) no Modo Direto sem nenhum atalho configurado, o lembrete de configurar os atalhos (nunca enterrado por um resultado antigo); (2) com um resultado confirmado, a linha do último resultado ("CapParse — última: {mensagem}") — a confirmação mais recente sempre substitui a linha anterior, então uma falha nunca deixa um sucesso antigo de pé; (3) sem resultado, o nome do aplicativo ("CapParse"). A combinação mais longa real fica abaixo do limite de 127 caracteres do shell. O estado reflete apenas as configurações comitadas e o último resultado registrado: um modo pendente na janela de configurações aberta nunca muda o tooltip.
 
 O hotkey e o menu do tray devem compartilhar exatamente o mesmo fluxo de captura.
 
